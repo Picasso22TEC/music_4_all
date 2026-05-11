@@ -1,6 +1,17 @@
-"""Tests del backend"""
+"""Tests del backend - Punto de entrada para todas las pruebas."""
 
 import pytest
 from fastapi.testclient import TestClient
+from app.main import app
 
-# TODO: Importar la app y crear tests
+# Tests centrales importados de las subcarpetas
+pytest_plugins = ["tests.fixtures.conftest"]
+
+
+class TestMainApp:
+    """Tests principales de la aplicación."""
+
+    def test_app_startup(self, api_client):
+        """Verificar que la app inicie correctamente."""
+        response = api_client.get("/health")
+        assert response.status_code == 200

@@ -40,6 +40,7 @@ dist/
 .env
 .env.local
 .env.*.local
+backend/session.json
 
 # OS
 .DS_Store
