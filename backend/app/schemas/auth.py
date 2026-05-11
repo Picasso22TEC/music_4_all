@@ -1,11 +1,3 @@
-"""Esquemas Pydantic para autenticación"""
+"""Compatibilidad con los esquemas de autenticación del módulo nuevo."""
 
-from pydantic import BaseModel
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+from app.modules.auth.schemas import LoginRequest, TokenResponse

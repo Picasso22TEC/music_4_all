@@ -4,9 +4,6 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
-# Tests centrales importados de las subcarpetas
-pytest_plugins = ["tests.fixtures.conftest"]
-
 
 class TestMainApp:
     """Tests principales de la aplicación."""
