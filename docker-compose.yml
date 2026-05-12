@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -22,6 +20,8 @@ services:
       - backend
     volumes:
       - ./frontend:/app
+      - frontend_node_modules_v3:/app/node_modules
 
 volumes:
   downloads:
+  frontend_node_modules_v3:
