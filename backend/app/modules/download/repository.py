@@ -1,14 +1,27 @@
 import asyncio
-from pathlib import Path
+import json
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.tidal import TidalDownloader
+from app.modules.history.repository import HistoryRepository
 
 from .schemas import DownloadJobStatus
+
+history_repo = HistoryRepository()
+
+
+def _cover_url(track) -> str | None:
+    album = getattr(track, "album", None)
+    cover = getattr(album, "cover", None) if album else None
+    if not cover:
+        return None
+    return f"https://resources.tidal.com/images/{cover.replace('-', '/')}/320x320.jpg"
 
 
 class DownloadRepository:
     def prepare(self, url: str, engine: TidalDownloader):
-        """Parsea la URL y obtiene los tracks a descargar (bloqueante, corre en thread)."""
+        """Parsea la URL y obtiene los tracks (bloqueante, corre en thread)."""
         kind, item_id = engine.parse_link(url)
         if not kind or not item_id:
             raise ValueError("URL de Tidal no reconocida")
@@ -21,8 +34,11 @@ class DownloadRepository:
         elif kind == "album":
             album = engine.session.album(item_id)
             tracks = list(album.tracks())
+            year = album.release_date.year if album.release_date else ""
             title = album.name
-            folder = engine._sanitize_filename(f"{album.artist.name} - [{album.release_date.year if album.release_date else ''}] {album.name}")
+            folder = engine._sanitize_filename(
+                f"{album.artist.name} - [{year}] {album.name}"
+            )
         elif kind == "playlist":
             playlist = engine.session.playlist(item_id)
             tracks = list(playlist.tracks(limit=None))
@@ -43,8 +59,9 @@ class DownloadRepository:
         folder: str,
         engine: TidalDownloader,
         jobs: dict,
+        session_factory: async_sessionmaker[AsyncSession],
     ) -> None:
-        """Ejecuta la descarga en background, actualizando el job dict."""
+        """Descarga en background, actualiza estado y persiste historial en PostgreSQL."""
         jobs[job_id]["status"] = DownloadJobStatus.DOWNLOADING
         total = len(tracks)
         last_file_path = None
@@ -63,8 +80,28 @@ class DownloadRepository:
                     make_cb(i),
                 )
                 if ok:
-                    jobs[job_id]["done"] = jobs[job_id]["done"] + 1
+                    jobs[job_id]["done"] += 1
                     last_file_path = path_or_err
+
+                    artist = getattr(getattr(track, "artist", None), "name", "")
+                    async with session_factory() as session:
+                        await history_repo.save_download(
+                            session,
+                            title=track.name,
+                            artist=artist,
+                            quality=quality,
+                            cover_url=_cover_url(track),
+                            job_id=job_id,
+                        )
+                        await history_repo.save_audit(
+                            session,
+                            event="download.completed",
+                            detail=json.dumps({
+                                "job_id": job_id,
+                                "title": track.name,
+                                "quality": quality,
+                            }),
+                        )
                 else:
                     jobs[job_id]["error"] = path_or_err
             except Exception as exc:
