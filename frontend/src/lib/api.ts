@@ -35,8 +35,8 @@ export interface DownloadRecord {
   title: string
   artist: string
   quality: string
-  coverUrl?: string
-  downloadedAt: string
+  cover_url?: string
+  downloaded_at: string
 }
 
 export interface AuthStatusResponse {
