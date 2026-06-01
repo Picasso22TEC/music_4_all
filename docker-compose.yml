@@ -1,4 +1,17 @@
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   backend:
     build:
       context: ./backend
@@ -7,9 +20,13 @@ services:
       - "8000:8000"
     environment:
       - TIDAL_QUALITY=LOSSLESS
+      - REDIS_URL=redis://redis:6379
     volumes:
       - ./backend:/app
       - ./downloads:/app/downloads
+    depends_on:
+      redis:
+        condition: service_healthy
 
   frontend:
     build:
@@ -18,14 +35,15 @@ services:
       target: development
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
     environment:
       - BACKEND_URL=http://backend:8000
     volumes:
       - ./frontend:/app
       - frontend_pnpm_store:/app/node_modules
+    depends_on:
+      - backend
 
 volumes:
   downloads:
+  redis_data:
   frontend_pnpm_store:

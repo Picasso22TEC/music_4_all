@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     # Auth
     session_file: str = "session.json"
 
+    # Redis
+    redis_url: str = "redis://localhost:6379"
+
     # CORS — en producción pasar CORS_ORIGINS="http://mydomain.com" via env var
     cors_origins: list[str] = [
         "http://localhost:3000",

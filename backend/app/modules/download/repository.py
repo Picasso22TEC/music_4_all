@@ -1,9 +1,21 @@
 import asyncio
-from pathlib import Path
+import uuid
+from datetime import datetime, timezone
 
+from redis.asyncio import Redis
+
+from app.core import redis_client as rc
 from app.core.tidal import TidalDownloader
 
 from .schemas import DownloadJobStatus
+
+
+def _cover_url(track) -> str | None:
+    album = getattr(track, "album", None)
+    cover = getattr(album, "cover", None) if album else None
+    if not cover:
+        return None
+    return f"https://resources.tidal.com/images/{cover.replace('-', '/')}/320x320.jpg"
 
 
 class DownloadRepository:
@@ -17,12 +29,17 @@ class DownloadRepository:
             track = engine.session.track(item_id)
             tracks = [track]
             title = track.name
-            folder = engine._sanitize_filename(f"{track.artist.name} - {track.album.name}")
+            folder = engine._sanitize_filename(
+                f"{track.artist.name} - {track.album.name}"
+            )
         elif kind == "album":
             album = engine.session.album(item_id)
             tracks = list(album.tracks())
+            year = album.release_date.year if album.release_date else ""
             title = album.name
-            folder = engine._sanitize_filename(f"{album.artist.name} - [{album.release_date.year if album.release_date else ''}] {album.name}")
+            folder = engine._sanitize_filename(
+                f"{album.artist.name} - [{year}] {album.name}"
+            )
         elif kind == "playlist":
             playlist = engine.session.playlist(item_id)
             tracks = list(playlist.tracks(limit=None))
@@ -43,8 +60,9 @@ class DownloadRepository:
         folder: str,
         engine: TidalDownloader,
         jobs: dict,
+        redis: Redis,
     ) -> None:
-        """Ejecuta la descarga en background, actualizando el job dict."""
+        """Descarga en background, actualiza estado y guarda historial en Redis."""
         jobs[job_id]["status"] = DownloadJobStatus.DOWNLOADING
         total = len(tracks)
         last_file_path = None
@@ -63,8 +81,19 @@ class DownloadRepository:
                     make_cb(i),
                 )
                 if ok:
-                    jobs[job_id]["done"] = jobs[job_id]["done"] + 1
+                    jobs[job_id]["done"] += 1
                     last_file_path = path_or_err
+
+                    # Guardar en historial Redis al terminar cada track
+                    artist = getattr(getattr(track, "artist", None), "name", "")
+                    await rc.push_history(redis, {
+                        "id": str(uuid.uuid4()),
+                        "title": track.name,
+                        "artist": artist,
+                        "quality": quality,
+                        "cover_url": _cover_url(track),
+                        "downloaded_at": datetime.now(timezone.utc).isoformat(),
+                    })
                 else:
                     jobs[job_id]["error"] = path_or_err
             except Exception as exc:
