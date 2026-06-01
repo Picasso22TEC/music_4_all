@@ -1,0 +1,97 @@
+import json
+from datetime import datetime, timezone
+
+import redis.asyncio as aioredis
+from redis.asyncio import Redis
+
+REDIS_SESSION_KEY = "music4all:session"
+REDIS_HISTORY_KEY = "music4all:downloads:history"
+REDIS_QUEUE_KEY = "music4all:queue:downloads"
+REDIS_JOB_PREFIX = "music4all:job:"
+REDIS_JOB_PROGRESS_CHANNEL = "music4all:job:{job_id}:progress"
+HISTORY_MAX_SIZE = 200
+JOB_TTL = 86400  # 24 horas
+
+
+async def create_client(url: str) -> Redis:
+    return aioredis.from_url(url, decode_responses=True)
+
+
+# ─── Session ──────────────────────────────────────────────────────────────────
+
+async def save_session(redis: Redis, session_data: dict) -> None:
+    ttl = _ttl_from_session(session_data)
+    await redis.setex(REDIS_SESSION_KEY, ttl, json.dumps(session_data))
+
+
+async def load_session(redis: Redis) -> dict | None:
+    raw = await redis.get(REDIS_SESSION_KEY)
+    return json.loads(raw) if raw else None
+
+
+async def delete_session(redis: Redis) -> None:
+    await redis.delete(REDIS_SESSION_KEY)
+
+
+def _ttl_from_session(session_data: dict) -> int:
+    try:
+        expiry = datetime.fromisoformat(session_data["expiry_time"])
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+        ttl = int((expiry - datetime.now(timezone.utc)).total_seconds())
+        return max(300, ttl)
+    except Exception:
+        return 3600
+
+
+# ─── Download history (Redis list — cache rápido) ────────────────────────────
+
+async def push_history(redis: Redis, record: dict) -> None:
+    await redis.lpush(REDIS_HISTORY_KEY, json.dumps(record))
+    await redis.ltrim(REDIS_HISTORY_KEY, 0, HISTORY_MAX_SIZE - 1)
+
+
+async def get_history(redis: Redis) -> list[dict]:
+    records = await redis.lrange(REDIS_HISTORY_KEY, 0, -1)
+    return [json.loads(r) for r in records]
+
+
+# ─── Job queue (Redis List como cola FIFO) ────────────────────────────────────
+
+async def enqueue_job(redis: Redis, job: dict) -> None:
+    """Empuja un job al final de la cola."""
+    await redis.lpush(REDIS_QUEUE_KEY, json.dumps(job))
+
+
+async def dequeue_job(redis: Redis, timeout: int = 2) -> dict | None:
+    """Extrae el siguiente job de la cola (blocking). Devuelve None si hay timeout."""
+    result = await redis.brpop(REDIS_QUEUE_KEY, timeout=timeout)
+    if result:
+        _, data = result
+        return json.loads(data)
+    return None
+
+
+# ─── Job state ────────────────────────────────────────────────────────────────
+
+async def set_job_state(redis: Redis, job_id: str, state: dict) -> None:
+    """Persiste el estado de un job con TTL de 24h."""
+    await redis.setex(f"{REDIS_JOB_PREFIX}{job_id}", JOB_TTL, json.dumps(state))
+
+
+async def get_job_state(redis: Redis, job_id: str) -> dict | None:
+    """Lee el estado actual de un job."""
+    raw = await redis.get(f"{REDIS_JOB_PREFIX}{job_id}")
+    return json.loads(raw) if raw else None
+
+
+# ─── Pub/Sub de progreso ──────────────────────────────────────────────────────
+
+async def publish_progress(redis: Redis, job_id: str, data: dict) -> None:
+    """Publica un update de progreso en el canal del job."""
+    channel = REDIS_JOB_PROGRESS_CHANNEL.format(job_id=job_id)
+    await redis.publish(channel, json.dumps(data))
+
+
+def progress_channel(job_id: str) -> str:
+    return REDIS_JOB_PROGRESS_CHANNEL.format(job_id=job_id)

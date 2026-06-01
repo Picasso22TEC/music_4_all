@@ -1,15 +1,52 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: music4all
+      POSTGRES_PASSWORD: music4all
+      POSTGRES_DB: music4all
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U music4all -d music4all"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
     ports:
       - "8000:8000"
     environment:
       - TIDAL_QUALITY=LOSSLESS
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://music4all:music4all@postgres:5432/music4all
     volumes:
       - ./backend:/app
       - ./downloads:/app/downloads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   frontend:
     build:
@@ -18,14 +55,32 @@ services:
       target: development
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
     environment:
       - BACKEND_URL=http://backend:8000
     volumes:
       - ./frontend:/app
       - frontend_pnpm_store:/app/node_modules
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - backend
+      - frontend
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
+  postgres_data:
+  redis_data:
   downloads:
   frontend_pnpm_store:
