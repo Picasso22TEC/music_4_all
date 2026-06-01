@@ -25,6 +25,8 @@ dependencies = [
     "opentelemetry-api>=1.22.0",
     "opentelemetry-sdk>=1.22.0",
     "opentelemetry-instrumentation-fastapi>=0.43b0",
+    # Seguridad (Fase 7)
+    "slowapi>=0.1.9",
 ]
 
 [dependency-groups]
@@ -34,6 +36,8 @@ dev = [
     "httpx>=0.25.0",
     "mypy>=1.8.0",
     "ruff>=0.3.0",
+    "bandit>=1.7.0",
+    "locust>=2.20.0",
 ]
 
 [tool.ruff]

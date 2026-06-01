@@ -1,5 +1,8 @@
 from enum import Enum
+
 from pydantic import BaseModel, field_validator
+
+from app.core.sanitizer import sanitize_tidal_url
 
 
 class DownloadJobStatus(str, Enum):
@@ -14,10 +17,8 @@ class DownloadRequest(BaseModel):
 
     @field_validator("url")
     @classmethod
-    def must_be_tidal_url(cls, v: str) -> str:
-        if "tidal.com" not in v:
-            raise ValueError("La URL debe ser de Tidal")
-        return v.strip()
+    def validate_and_sanitize_url(cls, v: str) -> str:
+        return sanitize_tidal_url(v)
 
 
 class DownloadStartResponse(BaseModel):

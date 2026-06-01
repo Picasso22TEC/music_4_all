@@ -120,11 +120,40 @@ jobs:
       - name: Run tests
         run: uv run pytest tests/ -v --tb=short || echo "No tests found — skipping"
 
+  # ── Backend: seguridad (bandit) ──────────────────────────────────────────
+  security-backend:
+    name: "Backend — Security Scan"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install dev dependencies
+        run: uv sync --frozen
+
+      - name: Bandit — security scan
+        run: uv run bandit -r app/ -ll -f json -o bandit-report.json || true
+
+      - name: Upload bandit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-security-report
+          path: backend/bandit-report.json
+
   # ── Docker: build de imágenes ────────────────────────────────────────────
   docker-build:
     name: "Docker — Build Images"
     runs-on: ubuntu-latest
-    needs: [lint-backend, build-frontend]
+    needs: [lint-backend, build-frontend, security-backend]
 
     steps:
       - uses: actions/checkout@v4
