@@ -1,6 +1,7 @@
 import asyncio
 
 import tidalapi
+from redis.asyncio import Redis
 
 from app.core.tidal import TidalDownloader
 
@@ -12,7 +13,9 @@ class AuthService:
     def __init__(self) -> None:
         self.repository = AuthRepository()
 
-    async def get_status(self, engine: TidalDownloader, app_state) -> AuthStatusResponse:
+    async def get_status(
+        self, engine: TidalDownloader, app_state
+    ) -> AuthStatusResponse:
         if engine.check_auth():
             return AuthStatusResponse(authenticated=True)
 
@@ -23,26 +26,27 @@ class AuthService:
         future = pending["future"]
         session = pending["session"]
 
-        # El future resuelve cuando el usuario completa el OAuth en el navegador
         if not future.done():
-            return AuthStatusResponse(authenticated=False, message="Esperando autorización del usuario")
+            return AuthStatusResponse(
+                authenticated=False, message="Esperando autorización del usuario"
+            )
 
         if session.check_login():
-            # Transferir sesión autenticada al motor principal
             engine.session = session
             session_data = engine.get_session_data()
             if session_data:
-                await asyncio.to_thread(self.repository.save_session, session_data)
+                await self.repository.save_session(app_state.redis, session_data)
             app_state.pending_oauth = None
             return AuthStatusResponse(authenticated=True)
 
         app_state.pending_oauth = None
-        return AuthStatusResponse(authenticated=False, message="Autorización fallida o expirada")
+        return AuthStatusResponse(
+            authenticated=False, message="Autorización fallida o expirada"
+        )
 
     async def start_device_auth(self, app_state) -> DeviceAuthResponse:
         session = tidalapi.Session()
         link, future = await asyncio.to_thread(session.login_oauth)
-
         app_state.pending_oauth = {"session": session, "future": future, "link": link}
 
         return DeviceAuthResponse(
@@ -54,5 +58,5 @@ class AuthService:
     async def logout(self, engine: TidalDownloader, app_state) -> dict:
         engine.session = engine._load_session(None)
         app_state.pending_oauth = None
-        await asyncio.to_thread(self.repository.delete_session)
+        await self.repository.delete_session(app_state.redis)
         return {"message": "Sesión cerrada"}

@@ -31,7 +31,10 @@ class DownloadService:
         }
 
         asyncio.create_task(
-            self.repository.run(job_id, tracks, folder, engine, app_state.download_jobs)
+            self.repository.run(
+                job_id, tracks, folder, engine,
+                app_state.download_jobs, app_state.redis,
+            )
         )
 
         return DownloadStartResponse(
