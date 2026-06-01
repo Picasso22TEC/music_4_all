@@ -1,31 +1,16 @@
-import json
-from pathlib import Path
+from redis.asyncio import Redis
 
-from app.config import settings
+from app.core import redis_client as rc
 
 
 class AuthRepository:
-    """Persistencia de sesión en session.json. Redis en Fase 2."""
+    """Persistencia de sesión en Redis con TTL automático."""
 
-    def _path(self) -> Path:
-        return Path(settings.session_file)
+    async def save_session(self, redis: Redis, session_data: dict) -> None:
+        await rc.save_session(redis, session_data)
 
-    def save_session(self, session_data: dict) -> None:
-        try:
-            self._path().write_text(json.dumps(session_data, indent=2))
-        except Exception:
-            pass
+    async def load_session(self, redis: Redis) -> dict | None:
+        return await rc.load_session(redis)
 
-    def load_session(self) -> dict | None:
-        try:
-            if self._path().exists():
-                return json.loads(self._path().read_text())
-        except Exception:
-            pass
-        return None
-
-    def delete_session(self) -> None:
-        try:
-            self._path().unlink(missing_ok=True)
-        except Exception:
-            pass
+    async def delete_session(self, redis: Redis) -> None:
+        await rc.delete_session(redis)
