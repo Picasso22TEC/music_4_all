@@ -1,13 +1,14 @@
 import asyncio
-import uuid
-from datetime import datetime, timezone
+import json
 
-from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core import redis_client as rc
 from app.core.tidal import TidalDownloader
+from app.modules.history.repository import HistoryRepository
 
 from .schemas import DownloadJobStatus
+
+history_repo = HistoryRepository()
 
 
 def _cover_url(track) -> str | None:
@@ -20,7 +21,7 @@ def _cover_url(track) -> str | None:
 
 class DownloadRepository:
     def prepare(self, url: str, engine: TidalDownloader):
-        """Parsea la URL y obtiene los tracks a descargar (bloqueante, corre en thread)."""
+        """Parsea la URL y obtiene los tracks (bloqueante, corre en thread)."""
         kind, item_id = engine.parse_link(url)
         if not kind or not item_id:
             raise ValueError("URL de Tidal no reconocida")
@@ -29,9 +30,7 @@ class DownloadRepository:
             track = engine.session.track(item_id)
             tracks = [track]
             title = track.name
-            folder = engine._sanitize_filename(
-                f"{track.artist.name} - {track.album.name}"
-            )
+            folder = engine._sanitize_filename(f"{track.artist.name} - {track.album.name}")
         elif kind == "album":
             album = engine.session.album(item_id)
             tracks = list(album.tracks())
@@ -60,9 +59,9 @@ class DownloadRepository:
         folder: str,
         engine: TidalDownloader,
         jobs: dict,
-        redis: Redis,
+        session_factory: async_sessionmaker[AsyncSession],
     ) -> None:
-        """Descarga en background, actualiza estado y guarda historial en Redis."""
+        """Descarga en background, actualiza estado y persiste historial en PostgreSQL."""
         jobs[job_id]["status"] = DownloadJobStatus.DOWNLOADING
         total = len(tracks)
         last_file_path = None
@@ -84,16 +83,25 @@ class DownloadRepository:
                     jobs[job_id]["done"] += 1
                     last_file_path = path_or_err
 
-                    # Guardar en historial Redis al terminar cada track
                     artist = getattr(getattr(track, "artist", None), "name", "")
-                    await rc.push_history(redis, {
-                        "id": str(uuid.uuid4()),
-                        "title": track.name,
-                        "artist": artist,
-                        "quality": quality,
-                        "cover_url": _cover_url(track),
-                        "downloaded_at": datetime.now(timezone.utc).isoformat(),
-                    })
+                    async with session_factory() as session:
+                        await history_repo.save_download(
+                            session,
+                            title=track.name,
+                            artist=artist,
+                            quality=quality,
+                            cover_url=_cover_url(track),
+                            job_id=job_id,
+                        )
+                        await history_repo.save_audit(
+                            session,
+                            event="download.completed",
+                            detail=json.dumps({
+                                "job_id": job_id,
+                                "title": track.name,
+                                "quality": quality,
+                            }),
+                        )
                 else:
                     jobs[job_id]["error"] = path_or_err
             except Exception as exc:

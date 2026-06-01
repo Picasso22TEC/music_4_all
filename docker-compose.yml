@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: music4all
+      POSTGRES_PASSWORD: music4all
+      POSTGRES_DB: music4all
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U music4all -d music4all"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     ports:
@@ -21,10 +37,13 @@ services:
     environment:
       - TIDAL_QUALITY=LOSSLESS
       - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://music4all:music4all@postgres:5432/music4all
     volumes:
       - ./backend:/app
       - ./downloads:/app/downloads
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
@@ -44,6 +63,7 @@ services:
       - backend
 
 volumes:
-  downloads:
+  postgres_data:
   redis_data:
+  downloads:
   frontend_pnpm_store:

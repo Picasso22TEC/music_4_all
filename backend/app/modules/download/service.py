@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 
+from app.core.database import AsyncSessionLocal
 from app.core.tidal import TidalDownloader
 
 from .repository import DownloadRepository
@@ -33,7 +34,7 @@ class DownloadService:
         asyncio.create_task(
             self.repository.run(
                 job_id, tracks, folder, engine,
-                app_state.download_jobs, app_state.redis,
+                app_state.download_jobs, AsyncSessionLocal,
             )
         )
 
