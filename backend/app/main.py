@@ -5,10 +5,16 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry import trace
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import settings
 from app.core import redis_client as rc
 from app.core.database import AsyncSessionLocal, engine
+from app.core.logging_config import get_logger, setup_logging
 from app.core.models import Base
 from app.core.tidal import TidalDownloader
 from app.core.worker import start_worker
@@ -18,9 +24,21 @@ from app.modules.download.ws import router as ws_router
 from app.modules.history.router import router as history_router
 from app.modules.metadata.router import router as metadata_router
 
+setup_logging(level="DEBUG" if settings.debug else "INFO")
+logger = get_logger(__name__)
+
+
+def _setup_tracing() -> None:
+    provider = TracerProvider()
+    # Console exporter para desarrollo — reemplazar por OTLP en producción
+    provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+    trace.set_tracer_provider(provider)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Starting Music 4 All API", extra={"version": "6.0.0"})
+
     # ── Base de datos ──────────────────────────────────────
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -48,10 +66,12 @@ async def lifespan(app: FastAPI):
     worker_task = asyncio.create_task(
         start_worker(app.state.engine, app.state.redis, AsyncSessionLocal)
     )
+    logger.info("Download worker started")
 
     yield
 
     # ── Cleanup ────────────────────────────────────────────
+    logger.info("Shutting down Music 4 All API")
     worker_task.cancel()
     try:
         await worker_task
@@ -66,10 +86,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Music 4 All API",
     description="API para descargar música de Tidal",
-    version="4.0.0",
+    version="6.0.0",
     lifespan=lifespan,
 )
 
+# ── Middleware ─────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -78,6 +99,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Prometheus: métricas HTTP automáticas en /metrics ─────────────────────────
+Instrumentator(
+    should_group_status_codes=True,
+    excluded_handlers=["/metrics", "/health"],
+).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+
+# ── OpenTelemetry: trazas distribuidas ────────────────────────────────────────
+_setup_tracing()
+FastAPIInstrumentor.instrument_app(app)
+
+# ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router)
 app.include_router(download_router)
 app.include_router(ws_router)
@@ -85,6 +117,6 @@ app.include_router(metadata_router)
 app.include_router(history_router)
 
 
-@app.get("/health")
+@app.get("/health", include_in_schema=False)
 async def health_check():
-    return {"status": "healthy", "service": "Music 4 All API", "version": "4.0.0"}
+    return {"status": "healthy", "service": "Music 4 All API", "version": "6.0.0"}
