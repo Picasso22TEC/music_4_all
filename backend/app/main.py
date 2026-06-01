@@ -1,3 +1,4 @@
+import asyncio
 import json
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -7,9 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.core import redis_client as rc
-from app.core.database import engine
+from app.core.database import AsyncSessionLocal, engine
 from app.core.models import Base
 from app.core.tidal import TidalDownloader
+from app.core.worker import start_worker
 from app.modules.auth.router import router as auth_router
 from app.modules.download.router import router as download_router
 from app.modules.download.ws import router as ws_router
@@ -26,7 +28,7 @@ async def lifespan(app: FastAPI):
     # ── Redis ──────────────────────────────────────────────
     app.state.redis = await rc.create_client(settings.redis_url)
 
-    # ── Sesión Tidal: Redis primero, session.json como migración ─
+    # ── Sesión Tidal ───────────────────────────────────────
     session_data = await rc.load_session(app.state.redis)
     if not session_data:
         session_file = Path(settings.session_file)
@@ -40,12 +42,22 @@ async def lifespan(app: FastAPI):
 
     # ── Motor Tidal ────────────────────────────────────────
     app.state.engine = TidalDownloader(session_data=session_data)
-    app.state.download_jobs: dict = {}
     app.state.pending_oauth = None
+
+    # ── Worker de descargas ────────────────────────────────
+    worker_task = asyncio.create_task(
+        start_worker(app.state.engine, app.state.redis, AsyncSessionLocal)
+    )
 
     yield
 
     # ── Cleanup ────────────────────────────────────────────
+    worker_task.cancel()
+    try:
+        await worker_task
+    except asyncio.CancelledError:
+        pass
+
     await app.state.redis.aclose()
     await engine.dispose()
     app.state.engine._cleanup_temp_dir()
@@ -54,7 +66,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Music 4 All API",
     description="API para descargar música de Tidal",
-    version="3.0.0",
+    version="4.0.0",
     lifespan=lifespan,
 )
 
@@ -75,4 +87,4 @@ app.include_router(history_router)
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "Music 4 All API", "version": "3.0.0"}
+    return {"status": "healthy", "service": "Music 4 All API", "version": "4.0.0"}
