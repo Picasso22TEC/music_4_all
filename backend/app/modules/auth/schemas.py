@@ -1,13 +1,12 @@
-"""Esquemas del módulo de autenticación."""
-
 from pydantic import BaseModel
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+class DeviceAuthResponse(BaseModel):
+    verification_uri_complete: str
+    user_code: str
+    expires_in: int
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+class AuthStatusResponse(BaseModel):
+    authenticated: bool
+    message: str = ""

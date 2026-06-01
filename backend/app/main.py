@@ -1,21 +1,34 @@
-"""Punto de entrada FastAPI para Music 4 All Backend."""
-
+import json
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import settings
+from app.core.tidal import TidalDownloader
 from app.modules.auth.router import router as auth_router
 from app.modules.download.router import router as download_router
-from app.modules.download.ws import router as download_ws_router
+from app.modules.download.ws import router as ws_router
 from app.modules.metadata.router import router as metadata_router
-from app.core.tidal import TidalDownloader
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.engine = TidalDownloader(session_data={"access_token": "dev-token"})
+    session_data = None
+    session_file = Path(settings.session_file)
+    if session_file.exists():
+        try:
+            session_data = json.loads(session_file.read_text())
+        except Exception:
+            pass
+
+    app.state.engine = TidalDownloader(session_data=session_data)
+    app.state.download_jobs: dict = {}
+    app.state.pending_oauth = None
     yield
+    app.state.engine._cleanup_temp_dir()
+
 
 app = FastAPI(
     title="Music 4 All API",
@@ -24,42 +37,26 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Registrar routers por módulo
 app.include_router(auth_router)
 app.include_router(download_router)
-app.include_router(download_ws_router)
+app.include_router(ws_router)
 app.include_router(metadata_router)
-
-
-@app.get("/")
-async def root():
-    return {
-        "message": "Welcome to Music 4 All API",
-        "version": "1.0.0",
-        "status": "operational",
-    }
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "service": "Music 4 All API",
-        "version": "1.0.0",
-    }
+    return {"status": "healthy", "service": "Music 4 All API", "version": "1.0.0"}
 
 
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.get("/history")
+async def get_history():
+    # Placeholder hasta Fase 3 (PostgreSQL)
+    return []

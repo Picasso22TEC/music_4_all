@@ -1,20 +1,41 @@
-"""Servicio del módulo de descargas."""
+import asyncio
+import uuid
+
+from app.core.tidal import TidalDownloader
 
 from .repository import DownloadRepository
-from .schemas import DownloadJob
+from .schemas import DownloadJobStatus, DownloadStartResponse
 
 
 class DownloadService:
-    """Lógica de negocio de descargas."""
+    def __init__(self) -> None:
+        self.repository = DownloadRepository()
 
-    def __init__(self, repository: DownloadRepository | None = None):
-        self.repository = repository or DownloadRepository()
+    async def start(
+        self, url: str, engine: TidalDownloader, app_state
+    ) -> DownloadStartResponse:
+        kind, item_id, tracks, title, folder = await asyncio.to_thread(
+            self.repository.prepare, url, engine
+        )
 
-    async def start_download(self, track_id: str) -> dict:
-        return await self.repository.add_to_queue(track_id)
+        job_id = str(uuid.uuid4())
+        app_state.download_jobs[job_id] = {
+            "job_id": job_id,
+            "title": title,
+            "status": DownloadJobStatus.PENDING,
+            "progress": 0.0,
+            "file_path": None,
+            "error": None,
+            "total": len(tracks),
+            "done": 0,
+        }
 
-    async def get_status(self, job_id: str) -> DownloadJob:
-        return await self.repository.get_progress(job_id)
+        asyncio.create_task(
+            self.repository.run(job_id, tracks, folder, engine, app_state.download_jobs)
+        )
 
-    async def get_file(self, job_id: str) -> dict:
-        return await self.repository.get_file(job_id)
+        return DownloadStartResponse(
+            job_id=job_id,
+            title=title,
+            status=DownloadJobStatus.PENDING,
+        )

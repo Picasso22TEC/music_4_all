@@ -1,19 +1,16 @@
-"""Esquemas del módulo de metadatos."""
-
-from typing import List
+from typing import Literal
 from pydantic import BaseModel
 
 
-class Track(BaseModel):
+class SearchResult(BaseModel):
     id: str
     title: str
     artist: str
-    album: str
-    duration: int
+    url: str
+    cover_url: str | None = None
+    type: Literal["album", "track", "playlist"]
 
 
-class Album(BaseModel):
-    id: str
-    title: str
-    artist: str
-    tracks: List[Track] = []
+class SearchResponse(BaseModel):
+    results: list[SearchResult]
+    total: int

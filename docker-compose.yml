@@ -9,19 +9,23 @@ services:
       - TIDAL_QUALITY=LOSSLESS
     volumes:
       - ./backend:/app
+      - ./downloads:/app/downloads
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development
     ports:
-      - "5173:5173"
+      - "3000:3000"
     depends_on:
       - backend
+    environment:
+      - BACKEND_URL=http://backend:8000
     volumes:
       - ./frontend:/app
-      - frontend_node_modules_v3:/app/node_modules
+      - frontend_pnpm_store:/app/node_modules
 
 volumes:
   downloads:
-  frontend_node_modules_v3:
+  frontend_pnpm_store:

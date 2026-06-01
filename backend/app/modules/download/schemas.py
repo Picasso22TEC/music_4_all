@@ -1,7 +1,5 @@
-"""Esquemas del módulo de descargas."""
-
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class DownloadJobStatus(str, Enum):
@@ -11,10 +9,26 @@ class DownloadJobStatus(str, Enum):
     FAILED = "failed"
 
 
-class DownloadJob(BaseModel):
+class DownloadRequest(BaseModel):
+    url: str
+
+    @field_validator("url")
+    @classmethod
+    def must_be_tidal_url(cls, v: str) -> str:
+        if "tidal.com" not in v:
+            raise ValueError("La URL debe ser de Tidal")
+        return v.strip()
+
+
+class DownloadStartResponse(BaseModel):
     job_id: str
-    track_id: str
+    title: str
     status: DownloadJobStatus
-    progress: float = 0.0
-    total_size: int = 0
-    downloaded_size: int = 0
+
+
+class DownloadStatusResponse(BaseModel):
+    job_id: str
+    title: str
+    status: DownloadJobStatus
+    progress: float
+    error: str | None = None

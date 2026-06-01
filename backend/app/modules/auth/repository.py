@@ -1,15 +1,31 @@
-"""Repositorio del módulo de autenticación."""
+import json
+from pathlib import Path
 
-from .schemas import LoginRequest, TokenResponse
+from app.config import settings
 
 
 class AuthRepository:
-    """Acceso a datos de autenticación."""
+    """Persistencia de sesión en session.json. Redis en Fase 2."""
 
-    async def login(self, credentials: LoginRequest) -> TokenResponse:
-        """Resolver una autenticación de ejemplo."""
-        return TokenResponse(access_token="placeholder_token")
+    def _path(self) -> Path:
+        return Path(settings.session_file)
 
-    async def logout(self) -> dict:
-        """Resolver una salida de sesión de ejemplo."""
-        return {"message": "Logged out"}
+    def save_session(self, session_data: dict) -> None:
+        try:
+            self._path().write_text(json.dumps(session_data, indent=2))
+        except Exception:
+            pass
+
+    def load_session(self) -> dict | None:
+        try:
+            if self._path().exists():
+                return json.loads(self._path().read_text())
+        except Exception:
+            pass
+        return None
+
+    def delete_session(self) -> None:
+        try:
+            self._path().unlink(missing_ok=True)
+        except Exception:
+            pass
