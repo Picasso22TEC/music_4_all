@@ -1,0 +1,146 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Music 4 All — métricas de descargas y API",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Descargas completadas (total)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [
+          { "color": "green", "value": null }
+        ]}}
+      },
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "sum(music4all_downloads_total{status=\"completed\"}) or vector(0)",
+        "legendFormat": "Completadas"
+      }]
+    },
+    {
+      "id": 2,
+      "title": "Descargas fallidas (total)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [
+          { "color": "green", "value": null },
+          { "color": "red", "value": 1 }
+        ]}}
+      },
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "sum(music4all_downloads_total{status=\"failed\"}) or vector(0)",
+        "legendFormat": "Fallidas"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "Descargas en curso",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [
+          { "color": "blue", "value": null }
+        ]}}
+      },
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "music4all_downloads_in_progress",
+        "legendFormat": "En curso"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Tasa de descargas (por minuto)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(music4all_downloads_total{status=\"completed\"}[5m]) * 60",
+          "legendFormat": "Completadas/min"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(music4all_downloads_total{status=\"failed\"}[5m]) * 60",
+          "legendFormat": "Fallidas/min"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Latencia API (p50 / p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.5, rate(http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Duración de descarga (p50 / p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.5, rate(music4all_download_duration_seconds_bucket[10m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, rate(music4all_download_duration_seconds_bucket[10m]))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Tasa de requests HTTP",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(http_requests_total[5m])) by (handler)",
+          "legendFormat": "{{handler}}"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["music4all"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "title": "Music 4 All",
+  "uid": "music4all-main",
+  "version": 1
+}
