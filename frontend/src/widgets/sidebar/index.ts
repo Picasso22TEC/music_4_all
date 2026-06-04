@@ -1,1 +1,3 @@
-// Sidebar widget — to be implemented in Phase 2 (Layout Shell)
+export { Sidebar } from './ui/Sidebar'
+export { useSidebarState } from './model/useSidebarState'
+export type { SidebarState } from './model/useSidebarState'

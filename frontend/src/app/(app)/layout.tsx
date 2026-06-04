@@ -1,8 +1,70 @@
 import type { ReactNode } from 'react'
 
-// Authenticated layout shell — Phase 2 (Layout Shell) adds Sidebar, PlayerBar, DownloadPanel
-// Server-side session validation requires RM-03 (httpOnly cookie)
+import { AppHeader } from '@/widgets/app-header'
+import { PlayerBar } from '@/widgets/player-bar'
+import { Sidebar } from '@/widgets/sidebar'
 
+/**
+ * Authenticated application shell (wireframes §2 — Shell v2).
+ *
+ * Layout structure:
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │ Sidebar (fixed left, w-sidebar, hidden on mobile)          │
+ * ├─────────────┬───────────────────────────────────────────────┤
+ * │             │ AppHeader (sticky, h-header)                  │
+ * │             ├───────────────────────────────────────────────┤
+ * │             │ Page content (flex-1, overflow-y-auto)        │
+ * │             │                                               │
+ * ├─────────────┴───────────────────────────────────────────────┤
+ * │ PlayerBar (fixed bottom, h-player, z-sticky)               │
+ * └─────────────────────────────────────────────────────────────┘
+ *
+ * NOTE: RM-03 will add server-side session validation here once
+ * the backend emits httpOnly session cookies.
+ */
 export default function AppLayout({ children }: { children: ReactNode }) {
-  return <>{children}</>
+  return (
+    <div className="h-screen overflow-hidden bg-surface-void">
+
+      {/* Skip-to-content link (accessibility — spec §5) */}
+      <a
+        href="#main-content"
+        className={[
+          'sr-only focus:not-sr-only',
+          'focus:absolute focus:top-2 focus:left-2',
+          'focus:z-tooltip focus:rounded-md',
+          'focus:bg-teal-500 focus:px-4 focus:py-2',
+          'focus:font-sans focus:text-sm focus:font-medium focus:text-surface-void',
+        ].join(' ')}
+      >
+        Skip to main content
+      </a>
+
+      {/* ── Sidebar — fixed left panel ────────────────────────────── */}
+      <Sidebar />
+
+      {/* ── Main column — offset by sidebar on lg+ ────────────────── */}
+      {/*  lg:ml-60 = 240px = w-sidebar (16 × 15 = 240px in Tailwind) */}
+      <div className="flex h-full flex-col overflow-hidden lg:ml-60">
+
+        {/* Sticky header */}
+        <AppHeader />
+
+        {/* Scrollable page content */}
+        {/*  pb-20 = 80px = h-player, clears the fixed PlayerBar */}
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto pb-20 focus-visible:outline-none"
+        >
+          {children}
+        </main>
+      </div>
+
+      {/* ── Player bar — fixed bottom ──────────────────────────────── */}
+      {/*  Rendered outside the column so it spans full viewport width */}
+      <PlayerBar />
+
+    </div>
+  )
 }
