@@ -1,6 +1,6 @@
 import axios, { type AxiosError } from 'axios'
 
-import { type ApiError, type ApiErrorCode, isApiError } from '@/shared/lib/errors'
+import { type ApiError, type ApiErrorCode } from '@/shared/lib/errors'
 import { API_BASE_URL, API_TIMEOUT_MS } from '@/shared/config/api.config'
 
 const client = axios.create({

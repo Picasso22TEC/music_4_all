@@ -6,9 +6,9 @@ const PROTECTED_PATHS = ['/dashboard', '/library', '/downloads', '/history', '/s
 // Routes that redirect to dashboard when already authenticated
 const AUTH_PATHS = ['/login']
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
+// _request: intentionally unused until RM-03 (httpOnly session_id cookie) is implemented.
+// Rename to `request` and uncomment the redirect block when activating cookie-based auth.
+export function middleware(_request: NextRequest) {
   // NOTE: Active cookie-based redirection requires RM-03 (httpOnly session_id cookie).
   // Until then this middleware provides the routing scaffold and matcher configuration.
   // Client-side protection is handled by auth.store rehydration in (app)/layout.tsx.
