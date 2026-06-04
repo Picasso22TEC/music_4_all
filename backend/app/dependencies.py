@@ -1,5 +1,6 @@
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Request
 
+from app.core.exceptions import ApiException
 from app.core.tidal import TidalDownloader
 
 
@@ -9,10 +10,15 @@ def get_engine(request: Request) -> TidalDownloader:
 
 
 def get_authenticated_engine(engine: TidalDownloader = Depends(get_engine)) -> TidalDownloader:
-    """Devuelve el motor Tidal solo si está autenticado con Tidal."""
+    """Devuelve el motor Tidal. Produce {"error": {"code": "UNAUTHORIZED"}} si no autenticado.
+
+    D-09: reemplaza HTTPException(401) por ApiException para formato uniforme de errores.
+    """
     if not engine.check_auth():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No autenticado con Tidal. Inicia sesión primero.",
+        raise ApiException(
+            code="UNAUTHORIZED",
+            message="No autenticado con Tidal. Inicia sesión primero.",
+            http_status=401,
+            retriable=False,
         )
     return engine

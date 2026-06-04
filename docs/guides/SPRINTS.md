@@ -6,7 +6,7 @@
 
 ### Tareas completadas:
 - [x] Estructura de carpetas (backend, frontend)
-- [x] Requirements.txt con dependencias base
+- [x] ~~Requirements.txt con dependencias base~~ → migrado a `pyproject.toml` + `uv.lock`
 - [x] .gitignore configurado
 - [x] README.md
 - [x] .env.example

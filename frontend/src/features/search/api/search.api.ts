@@ -1,0 +1,86 @@
+import { mapAlbumDTO, mapTrackDTO } from '@/shared/api/mappers'
+import client from '@/shared/api/client'
+import type { Album, Artist, PaginatedList, Playlist, ResolveUrlResult, SearchResults, Track } from '@/entities'
+import type { AlbumDTO, ResolveUrlResponseDTO, SearchResponseDTO, TrackDTO } from '@/shared/types/api.types'
+
+function mapPlaylist(dto: Record<string, unknown>): Playlist {
+  const cover = dto.cover ? String(dto.cover) : null
+  return {
+    id: String(dto.id ?? ''),
+    title: String(dto.title ?? ''),
+    description: null,
+    numberOfTracks: Number(dto.number_of_tracks ?? 0),
+    creator: { id: '', name: '' } satisfies Artist,
+    coverUrl: cover
+      ? `https://resources.tidal.com/images/${cover.replace(/-/g, '/')}/${480}x${480}.jpg`
+      : null,
+  }
+}
+
+export const searchApi = {
+  async search(query: string, limit = 50): Promise<SearchResults> {
+    const { data } = await client.get<SearchResponseDTO>('/search', {
+      params: { q: query, limit },
+    })
+
+    const albums: PaginatedList<Album> = {
+      items: data.albums.items.map((dto) => mapAlbumDTO(dto)),
+      totalNumberOfItems: data.albums.total_number_of_items,
+      limit: data.albums.limit,
+      offset: data.albums.offset,
+    }
+
+    const tracks: PaginatedList<Track> = {
+      items: data.tracks.items.map((dto) => {
+        const albumCtx = dto.album
+          ? { id: dto.album.id, title: dto.album.title, coverUrl: '' }
+          : { id: '', title: '', coverUrl: '' }
+        return mapTrackDTO(dto, albumCtx)
+      }),
+      totalNumberOfItems: data.tracks.total_number_of_items,
+      limit: data.tracks.limit,
+      offset: data.tracks.offset,
+    }
+
+    const playlists: PaginatedList<Playlist> = {
+      items: (data.playlists.items as Record<string, unknown>[]).map(mapPlaylist),
+      totalNumberOfItems: data.playlists.total_number_of_items,
+      limit: data.playlists.limit,
+      offset: data.playlists.offset,
+    }
+
+    return { albums, tracks, playlists }
+  },
+
+  async resolveUrl(url: string): Promise<ResolveUrlResult> {
+    const { data } = await client.get<ResolveUrlResponseDTO>('/resolve', { params: { url } })
+
+    if (data.type === 'album') {
+      return {
+        type: 'album',
+        id: data.id,
+        data: mapAlbumDTO(data.data as AlbumDTO),
+      }
+    }
+
+    if (data.type === 'track') {
+      const trackDto = data.data as TrackDTO
+      return {
+        type: 'track',
+        id: data.id,
+        data: mapTrackDTO(trackDto, {
+          id: trackDto.album?.id ?? '',
+          title: trackDto.album?.title ?? '',
+          coverUrl: '',
+        }),
+      }
+    }
+
+    // Playlist
+    return {
+      type: 'playlist',
+      id: data.id,
+      data: mapPlaylist(data.data as unknown as Record<string, unknown>),
+    }
+  },
+}

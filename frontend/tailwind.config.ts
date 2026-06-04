@@ -1,40 +1,190 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  // ── B-01: Content paths — todos los directorios FSD ───────────────────────
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/features/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/widgets/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/shared/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/providers/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
+      // ── B-02 + B-04: Design System tokens ─────────────────────────────────
+
+      // ── Colores ─────────────────────────────────────────────────────────────
+
       colors: {
+        // Grupo A — Superficies (design-system §1.1-A)
+        'surface-void':    '#080B0F',
+        'surface-abyss':   '#0D1117',
+        'surface-console': '#131920',
+        'surface-studio':  '#1A2330',
+        'surface-rack':    '#21303F',
+
+        // Grupo B — Texto (design-system §1.1-B)
+        // Genera text-primary, text-secondary, text-disabled, text-ghost
+        primary:   '#E8EFF5',
+        secondary: '#8FA3B8',
+        disabled:  '#4D6278',
+        ghost:     '#2C3E50',
+
+        // Grupo C — Acento teal (design-system §1.1-C)
+        teal: {
+          300:  '#4DFFD9',
+          400:  '#00E5BF',
+          500:  '#00C9A7',
+          700:  '#008C73',
+          glow: '#00C9A720',
+        },
+
+        // Grupo D — Semántica de estado (design-system §1.1-D)
+        semantic: {
+          success: '#39D353',
+          warning: '#E8A020',
+          error:   '#E84040',
+          info:    '#3B82F6',
+          queue:   '#8B5CF6',
+        },
+
+        // Grupo F — Synthwave, uso restringido (design-system §1.1-F)
+        synthwave: {
+          magenta: '#E040FB',
+          blue:    '#40C4FF',
+          pink:    '#FF4081',
+        },
+
+        // ── Legacy neon (mantenidos para compatibilidad) ──────────────────────
         neon: {
-          green: '#00ff00',
+          green:   '#00ff00',
           magenta: '#ff00ff',
-          cyan: '#00ffff',
+          cyan:    '#00ffff',
         },
         dark: {
-          bg: '#0a0e27',
+          bg:      '#0a0e27',
           surface: '#111827',
-          border: '#1f2937',
+          border:  '#1f2937',
         },
       },
+
+      // ── Colores de borde (design-system §1.1-E) ────────────────────────────
+      // Genera: border, border-subtle, border-focus, border-error
+      borderColor: {
+        DEFAULT: '#1E2D3D',
+        subtle:  '#162030',
+        focus:   '#00C9A750',
+        error:   '#E8404050',
+      },
+
+      // ── B-04: Tipografías (design-system §2.1) ─────────────────────────────
+      // CSS variables: --font-sans (Inter), --font-display (Geist Mono)
+      // next/font provee las variables; Tailwind las consume aquí.
       fontFamily: {
-        mono: ['Courier New', 'Courier', 'monospace'],
+        // UI / Interfaz — Inter
+        sans: [
+          'var(--font-sans)',
+          'Inter',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'sans-serif',
+        ],
+        // Display / Técnica — Geist Mono
+        // --font-display es mapeado desde --font-geist-mono en globals.css
+        mono: [
+          'var(--font-display)',
+          'var(--font-geist-mono)',
+          'JetBrains Mono',
+          'monospace',
+        ],
+        // Código / CLI — JetBrains Mono (futuro, por ahora usa Geist como fallback)
+        code: [
+          'JetBrains Mono',
+          'var(--font-display)',
+          'var(--font-geist-mono)',
+          'monospace',
+        ],
       },
+
+      // ── Escala de tamaños tipográficos (design-system §2.2) ────────────────
+      fontSize: {
+        '2xs': ['0.625rem', { lineHeight: '1.0', letterSpacing: '0.05em' }], // 10px
+        heading: ['1.25rem', { lineHeight: '1.2', letterSpacing: '0' }],      // 20px
+      },
+
+      // ── Radios de borde (design-system §1.3) ───────────────────────────────
+      // Sobreescribe defaults de Tailwind para alinear con el design system.
+      // Cambio más notable: rounded-md 6px → 4px (canónico del DS)
+      borderRadius: {
+        none: '0px',
+        sm:   '2px',
+        md:   '4px',
+        lg:   '8px',
+        xl:   '12px',
+        full: '9999px',
+      },
+
+      // ── Sombras y Glow (design-system §1.4) ────────────────────────────────
       boxShadow: {
-        'neon-green': '0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 40px #00ff00',
-        'neon-cyan': '0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff',
-        'neon-magenta': '0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff',
+        // Elevación
+        sm:  '0 1px 3px 0 rgba(0,0,0,0.40), 0 1px 2px 0 rgba(0,0,0,0.30)',
+        md:  '0 4px 12px 0 rgba(0,0,0,0.50), 0 2px 4px 0 rgba(0,0,0,0.40)',
+        lg:  '0 10px 30px 0 rgba(0,0,0,0.60), 0 4px 8px 0 rgba(0,0,0,0.40)',
+        xl:  '0 20px 50px 0 rgba(0,0,0,0.70), 0 8px 16px 0 rgba(0,0,0,0.50)',
+        // Glow semántico
+        'glow-active':   '0 0 8px 0 rgba(0,201,167,0.40), 0 0 24px 0 rgba(0,201,167,0.15)',
+        'glow-focus':    '0 0 0 2px rgba(0,201,167,0.50)',
+        'glow-error':    '0 0 8px 0 rgba(232,64,64,0.35)',
+        'glow-success':  '0 0 8px 0 rgba(57,211,83,0.30)',
+        'glow-download': '0 0 8px 0 rgba(59,130,246,0.35)',
+        // Legacy neon (compatibilidad)
+        'neon-green':    '0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 40px #00ff00',
+        'neon-cyan':     '0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff',
+        'neon-magenta':  '0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff',
       },
+
+      // ── Z-Index (design-system §1.5 + wireframes-v2 §2 z-panel:150) ────────
+      zIndex: {
+        base:     '0',
+        raised:   '10',
+        dropdown: '100',
+        panel:    '150',  // Download Panel fijo — agregado en wireframes-v2
+        sticky:   '200',
+        overlay:  '300',
+        modal:    '400',
+        toast:    '500',
+        tooltip:  '600',
+      },
+
+      // ── Constantes de layout (design-system §1.2) ──────────────────────────
+      width: {
+        sidebar: '240px',
+      },
+      height: {
+        player: '80px',
+        header: '56px',
+      },
+      maxWidth: {
+        content: '1440px',
+        prose:   '65ch',
+      },
+
+      // ── Animaciones ─────────────────────────────────────────────────────────
       animation: {
-        'pulse-neon': 'pulseNeon 2s ease-in-out infinite',
+        'pulse-neon': 'pulseNeon 2s ease-in-out infinite',     // legacy
+        shimmer:      'shimmer 1500ms linear infinite',         // skeleton loading
       },
       keyframes: {
         pulseNeon: {
           '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.6' },
+          '50%':      { opacity: '0.6' },
+        },
+        shimmer: {
+          '0%':   { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
         },
       },
     },
