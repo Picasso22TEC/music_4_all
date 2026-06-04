@@ -11,3 +11,6 @@ export * from './Modal'
 export * from './Popover'
 export * from './Skeleton'
 export * from './Toast'
+
+// ── Phase 6B.1 additions ──────────────────────────────────────────────────────
+export * from './QualitySelector'

@@ -12,3 +12,4 @@ export {
   useLogoutMutation,
 } from './model/auth.queries'
 export { authApi } from './api/auth.api'
+export { LoginForm } from './ui/LoginForm'

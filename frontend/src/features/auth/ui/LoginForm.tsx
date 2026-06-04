@@ -1,0 +1,238 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+
+import { cn } from '@/shared/lib/cn'
+import { Badge } from '@/shared/ui/Badge'
+import { Button } from '@/shared/ui/Button'
+import { Card } from '@/shared/ui/Card'
+
+// Intra-feature imports — avoid barrel to prevent circular dependency
+import { useAuthStore } from '@/features/auth/model/auth.store'
+import {
+  useDeviceAuthPollingQuery,
+  useInitDeviceAuthMutation,
+} from '@/features/auth/model/auth.queries'
+
+/**
+ * Login form — v2 auth stack only.
+ *
+ * Flow:
+ *   1. POST /session/device-auth  (useInitDeviceAuthMutation)
+ *      → stores DeviceAuthCode in auth.store (setDeviceAuth)
+ *   2. GET  /session/device-auth/{deviceCode}  (useDeviceAuthPollingQuery)
+ *      → polling cadence from deviceAuth.interval (backend-provided, NOT hardcoded)
+ *   3. On status === 'authorized' → setAuthenticated + redirect /dashboard
+ *
+ * Uses exclusively:
+ *   - auth.store v2  (status: SessionStatus, deviceAuth: DeviceAuthCode)
+ *   - /session/device-auth  (NOT /auth/device)
+ *   - /session/device-auth/{deviceCode}  (NOT /auth/status)
+ *   - deviceAuth.verificationUriComplete  (camelCase, NOT snake_case)
+ *   - deviceAuth.userCode  (camelCase, NOT user_code)
+ */
+export function LoginForm() {
+  const router = useRouter()
+
+  // v2 auth store — status and deviceAuth (camelCase)
+  const status     = useAuthStore((s) => s.status)
+  const deviceAuth = useAuthStore((s) => s.deviceAuth)
+
+  const [error, setError] = useState<string | null>(null)
+
+  // ── Redirect if already authenticated (store rehydrated from localStorage) ──
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/dashboard')
+    }
+  }, [status, router])
+
+  // ── Device Auth initiation ─────────────────────────────────────────────────
+
+  const initMutation = useInitDeviceAuthMutation()
+  // onSuccess is handled inside useInitDeviceAuthMutation → setDeviceAuth(data)
+
+  // ── Polling — interval from backend response (NOT hardcoded) ──────────────
+
+  // DeviceAuthCode.interval is in seconds → convert to ms
+  const pollingIntervalMs = deviceAuth ? deviceAuth.interval * 1000 : 5_000
+
+  const pollingQuery = useDeviceAuthPollingQuery(
+    deviceAuth?.deviceCode ?? null,
+    pollingIntervalMs
+  )
+
+  // ── Handle authorized status ───────────────────────────────────────────────
+
+  useEffect(() => {
+    const data = pollingQuery.data
+    if (!data) return
+
+    if (data.status === 'authorized') {
+      // Update auth.store with the authenticated user and expiry
+      if (data.user && data.expiresAt) {
+        useAuthStore.getState().setAuthenticated(data.user, data.expiresAt)
+      }
+      useAuthStore.getState().clearDeviceAuth()
+      router.replace('/dashboard')
+    }
+  }, [pollingQuery.data, router])
+
+  // ── Handle expired / denied (backend returns 400 DEVICE_AUTH_EXPIRED) ─────
+
+  useEffect(() => {
+    if (!pollingQuery.error) return
+    useAuthStore.getState().clearDeviceAuth()
+    setError('Authorization code expired or denied. Please start again.')
+  }, [pollingQuery.error])
+
+  // ── Event handlers ─────────────────────────────────────────────────────────
+
+  function handleConnect() {
+    setError(null)
+    initMutation.mutate(undefined, {
+      onError: () => setError('Error starting Tidal authentication. Please try again.'),
+    })
+  }
+
+  function handleCancel() {
+    setError(null)
+    useAuthStore.getState().clearDeviceAuth()
+    initMutation.reset()
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  return (
+    <main
+      className="flex min-h-screen flex-col items-center justify-center bg-surface-void p-4"
+    >
+      {/* Live region for screen reader announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {deviceAuth ? 'Waiting for Tidal authorization' : ''}
+      </div>
+
+      {/* ── Brand — replaces NeonTitle with Design System tokens ──────────── */}
+      <div className="mb-8 text-center" aria-hidden="true">
+        <div className="mb-2 flex items-center justify-center gap-2">
+          <span className="text-teal-500 text-xs">■</span>
+          <span className="font-mono text-2xl font-bold tracking-widest text-teal-500">
+            MUSIC 4 ALL
+          </span>
+        </div>
+        <p className="font-mono text-xs tracking-widest text-secondary">
+          ∴ Lossless Audio Downloader ∴
+        </p>
+      </div>
+
+      {/* ── Login card ────────────────────────────────────────────────────── */}
+      <Card
+        noPadding
+        className="w-full max-w-md space-y-6 p-8"
+        aria-labelledby="login-heading"
+      >
+        <h1
+          id="login-heading"
+          className="text-center font-mono text-heading font-semibold text-primary"
+        >
+          Connect to Tidal
+        </h1>
+
+        {/* Error message */}
+        {error && (
+          <div
+            role="alert"
+            className={cn(
+              'rounded-md border border-semantic-error px-4 py-3',
+              'bg-semantic-error/10',
+            )}
+          >
+            <p className="font-sans text-sm text-semantic-error">{error}</p>
+          </div>
+        )}
+
+        {deviceAuth ? (
+          /* ── Device auth pending: verification URL + user code ─────── */
+          <div className="space-y-4 text-center">
+            <p className="font-sans text-sm text-secondary">
+              Open this URL in your browser and authorize the app:
+            </p>
+
+            {/* verificationUriComplete — camelCase v2 */}
+            <a
+              href={deviceAuth.verificationUriComplete}
+              target="_blank"
+              rel="noreferrer noopener"
+              className={cn(
+                'block break-all font-mono text-xs text-teal-500 underline',
+                'hover:text-teal-400 transition-colors duration-100',
+                'focus-visible:outline-none focus-visible:shadow-glow-focus rounded-sm',
+              )}
+              aria-label="Open Tidal authorization page in a new tab"
+            >
+              {deviceAuth.verificationUriComplete}
+            </a>
+
+            {/* userCode — camelCase v2 */}
+            <div className="flex items-center justify-center gap-3">
+              <span className="font-sans text-xs text-secondary">Your code:</span>
+              <Badge
+                variant="format"
+                title={`Authorization code: ${deviceAuth.userCode}`}
+              >
+                {deviceAuth.userCode}
+              </Badge>
+            </div>
+
+            {/* Polling indicator */}
+            {pollingQuery.isFetching && (
+              <p
+                className="animate-pulse font-sans text-sm text-secondary"
+                aria-live="polite"
+              >
+                ◌ Waiting for authorization…
+              </p>
+            )}
+
+            {/* Cancel */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              className="mt-2"
+            >
+              Cancel and try again
+            </Button>
+          </div>
+        ) : (
+          /* ── Initial state: connect button ─────────────────────────── */
+          <div className="space-y-6">
+            <p className="text-center font-sans text-sm text-secondary">
+              A Tidal authorization window will open in your browser.
+            </p>
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              onClick={handleConnect}
+              loading={initMutation.isPending}
+              disabled={initMutation.isPending}
+              className="w-full"
+              aria-label="Connect with Tidal via Device Authorization"
+            >
+              Connect with Tidal
+            </Button>
+          </div>
+        )}
+      </Card>
+    </main>
+  )
+}

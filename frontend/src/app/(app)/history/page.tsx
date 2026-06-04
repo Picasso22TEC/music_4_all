@@ -1,94 +1,120 @@
 'use client'
 
-import Image from 'next/image'
-import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
-import { historyApi } from '@/lib/api'
+/**
+ * History page — v2 stack only.
+ *
+ * Eliminated legacy dependencies:
+ *   ✗  historyApi  from '@/lib/api'  →  useHistoryQuery from features/history
+ *   ✗  DownloadRecord legacy type    →  HistoryRecord (camelCase, mapped from DTO)
+ */
+
+import Link from 'next/link'
+
+import { Skeleton } from '@/shared/ui/Skeleton'
+import { Button } from '@/shared/ui/Button'
+import {
+  HistoryEmptyState,
+  HistoryList,
+  useHistoryQuery,
+} from '@/features/history'
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function HistoryPage() {
-  const { data: history, isLoading, isError } = useQuery({
-    queryKey: ['history'],
-    queryFn: historyApi,
-    refetchInterval: 10_000,
-  })
+  const { data, isLoading, isError, refetch, isFetching } = useHistoryQuery()
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="font-mono text-2xl font-bold text-neon-cyan">
-            Historial de Descargas
-          </h1>
-          <a
-            href="/dashboard"
-            className="font-mono text-sm text-gray-400 transition-colors hover:text-neon-cyan"
-          >
-            ← Volver
-          </a>
-        </div>
+    <div className="mx-auto max-w-3xl p-6">
 
-        {isLoading && (
-          <p className="animate-pulse text-center font-mono text-gray-500">
-            Cargando historial...
-          </p>
-        )}
+      {/* ── Header ───────────────────────────────────────────────────── */}
+      <header className="mb-8 flex items-center justify-between">
+        <h1 className="font-mono text-2xl font-bold text-primary">
+          Download History
+        </h1>
+        <Link
+          href="/dashboard"
+          className="font-sans text-sm text-secondary transition-colors hover:text-primary"
+          aria-label="Back to dashboard"
+        >
+          ← Dashboard
+        </Link>
+      </header>
 
-        {isError && (
-          <p className="text-center font-mono text-red-400">
-            Error al cargar el historial.
-          </p>
-        )}
-
-        {history?.length === 0 && (
-          <p className="text-center font-mono text-gray-500">
-            Aún no hay descargas registradas.
-          </p>
-        )}
-
-        <div className="space-y-3">
-          {history?.map((record, i) => (
-            <motion.div
-              key={record.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="flex items-center gap-4 rounded border border-dark-border bg-dark-surface p-4"
-            >
-              {record.cover_url ? (
-                <Image
-                  src={record.cover_url}
-                  alt={record.title}
-                  width={48}
-                  height={48}
-                  className="h-12 w-12 shrink-0 rounded object-cover"
-                />
-              ) : (
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-dark-border text-xl">
-                  ♪
-                </div>
-              )}
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-mono font-bold text-white">{record.title}</p>
-                <p className="truncate font-mono text-sm text-gray-400">{record.artist}</p>
-              </div>
-
-              <div className="shrink-0 text-right">
-                <span className="block font-mono text-xs font-bold text-neon-green">
-                  {record.quality}
-                </span>
-                <span className="block font-mono text-xs text-gray-500">
-                  {new Date(record.downloaded_at).toLocaleDateString('es', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                  })}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+      {/* Accessible live region */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {isLoading && 'Loading history…'}
+        {data && `${data.length} download${data.length !== 1 ? 's' : ''} in history`}
+        {isError && 'Error loading history'}
       </div>
-    </main>
+
+      {/* ── Content ──────────────────────────────────────────────────── */}
+      <main
+        aria-label="Download history"
+        aria-busy={isLoading || isFetching || undefined}
+      >
+
+        {/* Loading state — skeleton rows */}
+        {isLoading && (
+          <div className="space-y-2" aria-label="Loading history records">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-4 rounded-md border bg-surface-console p-4"
+                aria-hidden="true"
+              >
+                <Skeleton className="h-12 w-12 rounded-sm shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton variant="text" className="h-4 w-1/2" />
+                  <Skeleton variant="text" className="h-3 w-1/3" />
+                </div>
+                <div className="space-y-2 text-right shrink-0">
+                  <Skeleton variant="text" className="h-3 w-16" />
+                  <Skeleton variant="text" className="h-3 w-12" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error state */}
+        {isError && !isLoading && (
+          <div
+            role="alert"
+            className="flex flex-col items-center gap-4 py-16 text-center"
+          >
+            <span className="font-mono text-5xl text-semantic-error" aria-hidden="true">
+              ✕
+            </span>
+            <p className="font-sans text-sm text-semantic-error">
+              Error loading download history.
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void refetch()}
+              aria-label="Retry loading history"
+            >
+              Try again
+            </Button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && !isError && data?.length === 0 && (
+          <HistoryEmptyState />
+        )}
+
+        {/* Success state — history list */}
+        {!isLoading && !isError && data && data.length > 0 && (
+          <HistoryList items={data} />
+        )}
+      </main>
+    </div>
   )
 }

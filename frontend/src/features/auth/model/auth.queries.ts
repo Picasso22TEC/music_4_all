@@ -28,10 +28,14 @@ export function useInitDeviceAuthMutation() {
   })
 }
 
-// Polling query — active while deviceCode is non-null, stops on terminal status
-export function useDeviceAuthPollingQuery(deviceCode: string | null) {
-  const queryClient = useQueryClient()
-
+// Polling query — active while deviceCode is non-null, stops on terminal status.
+// intervalMs comes from DeviceAuthCode.interval * 1000 (backend-specified cadence).
+// NEVER hardcode the polling interval — always pass it from deviceAuth.interval.
+export function useDeviceAuthPollingQuery(
+  deviceCode: string | null,
+  /** Polling cadence in ms. Must be derived from deviceAuth.interval * 1000. */
+  intervalMs = 5_000
+) {
   return useQuery({
     queryKey: queryKeys.session.deviceAuth(deviceCode ?? ''),
     queryFn: () => authApi.pollDeviceAuth(deviceCode!),
@@ -48,7 +52,7 @@ export function useDeviceAuthPollingQuery(deviceCode: string | null) {
       ) {
         return false
       }
-      return 5_000
+      return intervalMs  // respects backend-provided interval
     },
     refetchIntervalInBackground: false,
   })
