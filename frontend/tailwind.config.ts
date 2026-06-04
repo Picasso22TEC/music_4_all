@@ -174,8 +174,9 @@ const config: Config = {
 
       // ── Animaciones ─────────────────────────────────────────────────────────
       animation: {
-        'pulse-neon': 'pulseNeon 2s ease-in-out infinite',     // legacy
-        shimmer:      'shimmer 1500ms linear infinite',         // skeleton loading
+        'pulse-neon':            'pulseNeon 2s ease-in-out infinite',
+        shimmer:                 'shimmer 1500ms linear infinite',
+        'progress-indeterminate':'progressIndeterminate 1500ms ease-in-out infinite',
       },
       keyframes: {
         pulseNeon: {
@@ -185,6 +186,10 @@ const config: Config = {
         shimmer: {
           '0%':   { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        progressIndeterminate: {
+          '0%':   { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(400%)' },
         },
       },
     },
