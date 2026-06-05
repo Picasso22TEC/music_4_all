@@ -6,8 +6,10 @@ import { cn } from '@/shared/lib/cn'
 import { useUpdateDownloadMutation, useCancelDownloadMutation } from '@/features/downloads'
 import { useDownloadsStore } from '@/features/downloads'
 import { useDownloadSocket } from '@/features/downloads'
+import { openSessionRecovery } from '@/features/auth'
 
 import { useDownloadPanel } from '../model/useDownloadPanel'
+import { useDownloadRecovery } from '../model/useDownloadRecovery'
 import { DownloadJobItem } from './DownloadJobItem'
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -24,6 +26,9 @@ import { DownloadJobItem } from './DownloadJobItem'
 export function DownloadPanel() {
   // Mount unified WS socket once (singleton for the authenticated session)
   useDownloadSocket()
+
+  // Phase 6H: bridge downloads ↔ SessionRecoveryModal
+  const { isRetrying } = useDownloadRecovery()
 
   const {
     isPanelVisible,
@@ -53,6 +58,11 @@ export function DownloadPanel() {
 
   function handleCancel(backendJobId: string) {
     cancelMutation.mutate(backendJobId)
+  }
+
+  /** Manual "Check Session" from DownloadJobItem error state */
+  function handleCheckSession(backendJobId: string) {
+    openSessionRecovery(backendJobId)
   }
 
   // Panel is always mounted so the WS socket stays alive, but renders
@@ -110,6 +120,15 @@ export function DownloadPanel() {
                 {!wsConnected && (
                   <span className="font-mono text-xs text-semantic-warning animate-pulse">
                     ◌ Reconnecting…
+                  </span>
+                )}
+                {isRetrying && (
+                  <span
+                    role="status"
+                    aria-live="polite"
+                    className="font-mono text-xs text-semantic-info animate-pulse"
+                  >
+                    ↻ Retrying…
                   </span>
                 )}
               </div>
@@ -171,6 +190,7 @@ export function DownloadPanel() {
                       onResume={handleResume}
                       onCancel={handleCancel}
                       onRemove={removeJob}
+                      onCheckSession={handleCheckSession}
                     />
                   </div>
                 ))

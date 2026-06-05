@@ -26,6 +26,11 @@ interface AuthActions {
   /** Opens the recovery modal, optionally storing the job to retry after auth */
   openRecoveryModal: (jobIdToRetry?: string) => void
   closeRecoveryModal: () => void
+  /**
+   * Clears jobIdToRetry after the retry has been dispatched.
+   * Called by useDownloadRecovery (Phase 6H) after a successful retry mutation.
+   */
+  clearJobIdToRetry: () => void
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -58,7 +63,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       openRecoveryModal: (jobIdToRetry) =>
         set({ isRecoveryModalOpen: true, jobIdToRetry: jobIdToRetry ?? null }),
       closeRecoveryModal: () =>
-        set({ isRecoveryModalOpen: false, deviceAuth: null, isCheckingSession: false, jobIdToRetry: null }),
+        // jobIdToRetry intentionally preserved — consumed by useDownloadRecovery
+        // (Phase 6H) which dispatches the retry then calls clearJobIdToRetry().
+        set({ isRecoveryModalOpen: false, deviceAuth: null, isCheckingSession: false }),
+      clearJobIdToRetry: () => set({ jobIdToRetry: null }),
     }),
     {
       name: 'music4all-auth',

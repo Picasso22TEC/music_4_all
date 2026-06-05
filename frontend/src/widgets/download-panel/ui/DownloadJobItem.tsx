@@ -38,6 +38,12 @@ export interface DownloadJobItemProps {
   onPause:   (jobId: string) => void
   onResume:  (jobId: string) => void
   onRemove:  (jobId: string) => void
+  /**
+   * Opens SessionRecoveryModal for this job.
+   * Shown when error.code is 401 or 403 (session expired).
+   * Phase 6H — also triggered automatically via useDownloadRecovery.
+   */
+  onCheckSession?: (backendJobId: string) => void
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -53,6 +59,7 @@ export function DownloadJobItem({
   onPause,
   onResume,
   onRemove,
+  onCheckSession,
 }: DownloadJobItemProps) {
   // Auto-remove completed jobs after 10s (wireframes §11)
   useEffect(() => {
@@ -61,12 +68,15 @@ export function DownloadJobItem({
     return () => clearTimeout(timer)
   }, [job.status, job.id, onRemove])
 
-  const badgeConfig = STATUS_BADGE[job.status]
+  const badgeConfig     = STATUS_BADGE[job.status]
   const progressVariant = PROGRESS_VARIANT[job.status]
-  const isActive   = job.status === 'active'
-  const isPaused   = job.status === 'paused'
-  const isError    = job.status === 'error'
-  const isCompleted = job.status === 'completed'
+  const isActive        = job.status === 'active'
+  const isPaused        = job.status === 'paused'
+  const isError         = job.status === 'error'
+  const isCompleted     = job.status === 'completed'
+
+  // Detect auth errors (401 / 403 SESSION_EXPIRED) to show "Check Session" button
+  const isAuthError = isError && (job.error?.code === 401 || job.error?.code === 403)
 
   return (
     <div
@@ -167,6 +177,21 @@ export function DownloadJobItem({
           <span className="text-semantic-success">Download complete</span>
         )}
       </div>
+
+      {/* ── Check Session CTA — shown for auth errors (Phase 6H) ─────── */}
+      {isAuthError && onCheckSession && (
+        <div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => onCheckSession(job.backendJobId)}
+            aria-label={`Check Tidal session for: ${job.albumTitle}`}
+          >
+            Check Session
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
