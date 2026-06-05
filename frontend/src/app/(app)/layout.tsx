@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { SessionRecoveryModal } from '@/features/auth'
 import { AppHeader } from '@/widgets/app-header'
 import { DownloadPanel } from '@/widgets/download-panel'
 import { PlayerBar } from '@/widgets/player-bar'
@@ -61,6 +62,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* ── Session Recovery Modal — auth error recovery (G-recovery) ─── */}
+      {/*  Always present so openSessionRecovery() works from anywhere.   */}
+      <SessionRecoveryModal />
 
       {/* ── Download panel — fixed above PlayerBar ────────────────────── */}
       {/*  Always mounted so the WS socket stays alive for the session.  */}

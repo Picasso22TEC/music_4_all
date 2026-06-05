@@ -12,6 +12,8 @@ interface AuthState {
   deviceAuth: DeviceAuthCode | null
   isCheckingSession: boolean
   isRecoveryModalOpen: boolean
+  /** Backend job ID to retry once the session is recovered (Phase 6E/6F) */
+  jobIdToRetry: string | null
 }
 
 interface AuthActions {
@@ -21,7 +23,8 @@ interface AuthActions {
   setDeviceAuth: (code: DeviceAuthCode) => void
   clearDeviceAuth: () => void
   setCheckingSession: (v: boolean) => void
-  openRecoveryModal: () => void
+  /** Opens the recovery modal, optionally storing the job to retry after auth */
+  openRecoveryModal: (jobIdToRetry?: string) => void
   closeRecoveryModal: () => void
 }
 
@@ -34,6 +37,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       deviceAuth: null,
       isCheckingSession: false,
       isRecoveryModalOpen: false,
+      jobIdToRetry: null,
 
       setAuthenticated: (user, expiresAt) =>
         set({ status: 'authenticated', user, expiresAt }),
@@ -51,9 +55,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       setDeviceAuth: (deviceAuth) => set({ deviceAuth }),
       clearDeviceAuth: () => set({ deviceAuth: null }),
       setCheckingSession: (isCheckingSession) => set({ isCheckingSession }),
-      openRecoveryModal: () => set({ isRecoveryModalOpen: true }),
+      openRecoveryModal: (jobIdToRetry) =>
+        set({ isRecoveryModalOpen: true, jobIdToRetry: jobIdToRetry ?? null }),
       closeRecoveryModal: () =>
-        set({ isRecoveryModalOpen: false, deviceAuth: null, isCheckingSession: false }),
+        set({ isRecoveryModalOpen: false, deviceAuth: null, isCheckingSession: false, jobIdToRetry: null }),
     }),
     {
       name: 'music4all-auth',
@@ -80,3 +85,4 @@ export const selectIsAuthenticated = (s: AuthState) => s.status === 'authenticat
 export const selectUser = (s: AuthState) => s.user
 export const selectIsRecoveryModalOpen = (s: AuthState) => s.isRecoveryModalOpen
 export const selectDeviceAuth = (s: AuthState) => s.deviceAuth
+export const selectJobIdToRetry = (s: AuthState) => s.jobIdToRetry

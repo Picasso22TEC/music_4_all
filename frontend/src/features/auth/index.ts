@@ -4,7 +4,10 @@ export {
   selectUser,
   selectIsRecoveryModalOpen,
   selectDeviceAuth,
+  selectJobIdToRetry,
 } from './model/auth.store'
+// Also imported locally for openSessionRecovery() implementation
+import { useAuthStore } from './model/auth.store'
 export {
   useSessionStatusQuery,
   useInitDeviceAuthMutation,
@@ -12,4 +15,17 @@ export {
   useLogoutMutation,
 } from './model/auth.queries'
 export { authApi } from './api/auth.api'
-export { LoginForm } from './ui/LoginForm'
+export { LoginForm, SessionRecoveryModal } from './ui'
+
+// ── Public API for triggering recovery from DownloadPanel (Fase 6E/6F) ───────
+// Widgets can call this without importing from features/auth internals.
+
+/**
+ * Opens the Session Recovery Modal.
+ * Called from DownloadPanel when a download fails with 401 / 403 / AUTH_REQUIRED.
+ *
+ * @param jobIdToRetry - Backend job ID to retry after successful recovery.
+ */
+export function openSessionRecovery(jobIdToRetry?: string): void {
+  useAuthStore.getState().openRecoveryModal(jobIdToRetry)
+}
