@@ -1,1 +1,4 @@
-// Download Panel widget — to be implemented in Phase 5 (Downloads)
+export { DownloadPanel } from './ui/DownloadPanel'
+export { DownloadJobItem } from './ui/DownloadJobItem'
+export type { DownloadJobItemProps } from './ui/DownloadJobItem'
+export { useDownloadPanel } from './model/useDownloadPanel'

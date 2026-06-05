@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { AppHeader } from '@/widgets/app-header'
+import { DownloadPanel } from '@/widgets/download-panel'
 import { PlayerBar } from '@/widgets/player-bar'
 import { Sidebar } from '@/widgets/sidebar'
 
@@ -60,6 +61,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* ── Download panel — fixed above PlayerBar ────────────────────── */}
+      {/*  Always mounted so the WS socket stays alive for the session.  */}
+      {/*  Renders nothing when isPanelVisible=false.                    */}
+      <DownloadPanel />
 
       {/* ── Player bar — fixed bottom ──────────────────────────────── */}
       {/*  Rendered outside the column so it spans full viewport width */}

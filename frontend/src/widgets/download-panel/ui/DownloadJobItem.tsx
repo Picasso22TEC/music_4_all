@@ -1,0 +1,172 @@
+'use client'
+
+import { useEffect } from 'react'
+
+import { cn } from '@/shared/lib/cn'
+import { formatDuration, formatSpeed } from '@/shared/lib/format'
+import { Badge } from '@/shared/ui/Badge'
+import { Button } from '@/shared/ui/Button'
+import { ProgressBar } from '@/shared/ui/ProgressBar'
+import type { DownloadJob } from '@/entities'
+import type { BadgeVariant } from '@/shared/ui/Badge'
+
+// ─── Status badge mapping ─────────────────────────────────────────────────────
+
+const STATUS_BADGE: Record<DownloadJob['status'], { variant: BadgeVariant; label: string }> = {
+  queued:    { variant: 'status-queue', label: 'QUEUED' },
+  active:    { variant: 'status-info',  label: 'ACTIVE' },
+  paused:    { variant: 'status-warn',  label: 'PAUSED' },
+  completed: { variant: 'status-ok',   label: 'DONE'   },
+  error:     { variant: 'status-error', label: 'ERROR'  },
+}
+
+const PROGRESS_VARIANT = {
+  active:    'download',
+  paused:    'default',
+  completed: 'success',
+  error:     'error',
+  queued:    'default',
+} as const
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+export interface DownloadJobItemProps {
+  job: DownloadJob
+  /** True when this job gets the glow-download effect (max 2 per session) */
+  glowActive: boolean
+  onCancel:  (jobId: string) => void
+  onPause:   (jobId: string) => void
+  onResume:  (jobId: string) => void
+  onRemove:  (jobId: string) => void
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+/**
+ * Single download job row inside the DownloadPanel.
+ * Auto-removes completed jobs from the store after 10 seconds.
+ */
+export function DownloadJobItem({
+  job,
+  glowActive,
+  onCancel,
+  onPause,
+  onResume,
+  onRemove,
+}: DownloadJobItemProps) {
+  // Auto-remove completed jobs after 10s (wireframes §11)
+  useEffect(() => {
+    if (job.status !== 'completed') return
+    const timer = setTimeout(() => onRemove(job.id), 10_000)
+    return () => clearTimeout(timer)
+  }, [job.status, job.id, onRemove])
+
+  const badgeConfig = STATUS_BADGE[job.status]
+  const progressVariant = PROGRESS_VARIANT[job.status]
+  const isActive   = job.status === 'active'
+  const isPaused   = job.status === 'paused'
+  const isError    = job.status === 'error'
+  const isCompleted = job.status === 'completed'
+
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-2 p-3',
+        'bg-surface-studio',
+        'transition-colors duration-150',
+      )}
+      aria-label={`Download: ${job.albumTitle} by ${job.artistName} — ${badgeConfig.label}`}
+    >
+      {/* ── Row 1: Status dot + title + controls ─────────────────────── */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          {/* Track filename or status text */}
+          <p className="truncate font-sans text-sm font-medium text-primary">
+            {isActive && job.currentTrackFilename
+              ? job.currentTrackFilename
+              : job.albumTitle}
+          </p>
+          <p className="truncate font-sans text-xs text-secondary">
+            {job.artistName}
+            {job.totalTracks > 1 &&
+              ` · ${job.completedTracks}/${job.totalTracks} tracks`}
+          </p>
+        </div>
+
+        {/* Status badge */}
+        <Badge variant={badgeConfig.variant}>
+          {badgeConfig.label}
+        </Badge>
+
+        {/* Action buttons */}
+        <div className="flex shrink-0 items-center gap-1">
+          {isActive && (
+            <Button
+              type="button"
+              variant="icon-only"
+              size="sm"
+              onClick={() => onPause(job.backendJobId)}
+              aria-label={`Pause download: ${job.albumTitle}`}
+            >
+              <span aria-hidden="true">⏸</span>
+            </Button>
+          )}
+          {isPaused && (
+            <Button
+              type="button"
+              variant="icon-only"
+              size="sm"
+              onClick={() => onResume(job.backendJobId)}
+              aria-label={`Resume download: ${job.albumTitle}`}
+            >
+              <span aria-hidden="true">▶</span>
+            </Button>
+          )}
+          {!isCompleted && (
+            <Button
+              type="button"
+              variant="icon-only"
+              size="sm"
+              onClick={() => onCancel(job.backendJobId)}
+              aria-label={`Cancel download: ${job.albumTitle}`}
+            >
+              <span aria-hidden="true">✕</span>
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Progress bar ─────────────────────────────────────────────── */}
+      {!isError && (
+        <ProgressBar
+          value={job.progressPercent}
+          variant={progressVariant as 'download' | 'success' | 'default' | 'error'}
+          size="md"
+          animated={isActive && glowActive}
+          label={`Download progress for ${job.albumTitle}: ${job.progressPercent}%`}
+        />
+      )}
+
+      {/* ── Row 2: Speed · ETA · Error message ───────────────────────── */}
+      <div className="flex items-center gap-3 font-mono text-xs text-secondary">
+        {isActive && job.speedMbps !== null && (
+          <span>{formatSpeed(job.speedMbps)}</span>
+        )}
+        {isActive && job.etaSeconds !== null && (
+          <span>{formatDuration(job.etaSeconds)} left</span>
+        )}
+        {job.status === 'queued' && (
+          <span className="text-disabled">Waiting to start…</span>
+        )}
+        {isError && job.error && (
+          <span className="text-semantic-error" role="alert">
+            {job.error.message}
+          </span>
+        )}
+        {isCompleted && (
+          <span className="text-semantic-success">Download complete</span>
+        )}
+      </div>
+    </div>
+  )
+}
