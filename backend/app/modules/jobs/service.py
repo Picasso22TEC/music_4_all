@@ -4,6 +4,7 @@ import asyncio
 import uuid
 
 from app.core import redis_client as rc
+from app.core.job_controls import JobControlRegistry
 from app.core.tidal import TidalDownloader
 from app.modules.download.repository import DownloadRepository
 from app.modules.download.schemas import DownloadJobStatus
@@ -104,37 +105,60 @@ class JobService:
         current = _spec_status(state.get("status"))
         action = req.action
 
+        _reg: JobControlRegistry | None = getattr(app_state, "job_controls", None)
+
         if action == "pause":
             allowed = {"queued", "active"}
             if current not in allowed:
                 raise ValueError(f"No se puede pausar un job en estado '{current}'")
             paused_state = {**state, "spec_status": "paused", "status": "paused"}
             await rc.set_job_state(redis, job_id, paused_state)
-            # RM-01: publish pause event so /ws/downloads can emit job_paused
             await rc.publish_progress(redis, job_id, paused_state)
+            # Signal the running worker so it pauses between tracks.
+            ctrl = _reg.get(job_id) if _reg is not None else None
+            if ctrl is not None:
+                ctrl.pause_event.set()
             return UpdateJobResponse(job_id=job_id, status="paused")
 
         elif action == "resume":
             if current != "paused":
                 raise ValueError(f"No se puede reanudar un job en estado '{current}'")
-            url = _url_from_state(state)
-            if url:
-                resumed_state = {
+            ctrl = _reg.get(job_id) if _reg is not None else None
+
+            if ctrl is not None:
+                # Worker still alive and blocked on pause_event — just unblock it.
+                ctrl.pause_event.clear()
+                await rc.set_job_state(redis, job_id, {
                     **state,
-                    "status": DownloadJobStatus.PENDING,
-                    "spec_status": "active",   # D-04: paused→active según spec §1.5
+                    "status": DownloadJobStatus.DOWNLOADING,
+                    "spec_status": "active",
                     "error": None,
-                }
-                await rc.set_job_state(redis, job_id, resumed_state)
-                await rc.enqueue_job(redis, {
-                    "job_id": job_id,
-                    "url": url,
-                    "title": state.get("title", ""),
-                    "quality": state.get("quality", "MASTER"),
                 })
-                # RM-01: publish resume event so /ws/downloads can emit job_resumed
-                await rc.publish_progress(redis, job_id, resumed_state)
-            return UpdateJobResponse(job_id=job_id, status="active")  # D-04: era "queued"
+                # Publish job_resumed event: status "pending" → job_resumed in ws_mapper.
+                await rc.publish_progress(redis, job_id, {
+                    "job_id": job_id,
+                    "title": state.get("title", ""),
+                    "status": DownloadJobStatus.PENDING,
+                })
+            else:
+                # Worker gone (app restart / crash) — fall back to re-enqueue.
+                url = _url_from_state(state)
+                if url:
+                    resumed_state = {
+                        **state,
+                        "status": DownloadJobStatus.PENDING,
+                        "spec_status": "active",
+                        "error": None,
+                    }
+                    await rc.set_job_state(redis, job_id, resumed_state)
+                    await rc.enqueue_job(redis, {
+                        "job_id": job_id,
+                        "url": url,
+                        "title": state.get("title", ""),
+                        "quality": state.get("quality", "MASTER"),
+                    })
+                    await rc.publish_progress(redis, job_id, resumed_state)
+            return UpdateJobResponse(job_id=job_id, status="active")
 
         elif action == "retry":
             allowed = {"error"}
@@ -156,7 +180,6 @@ class JobService:
                     "title": state.get("title", ""),
                     "quality": state.get("quality", "MASTER"),
                 })
-                # RM-01: publish retry event so /ws/downloads can emit job_resumed
                 await rc.publish_progress(redis, job_id, retried_state)
             return UpdateJobResponse(job_id=job_id, status="queued")
 
@@ -177,12 +200,20 @@ class JobService:
         tracks_saved = int(progress * estimated / 100) if estimated > 0 else 0
         output_path = state.get("file_path")
 
-        await rc.set_job_state(redis, job_id, {
+        cancelled_state = {
             **state,
             "status": DownloadJobStatus.FAILED,
             "spec_status": "error",
             "error": "Cancelado por el usuario",
-        })
+        }
+        await rc.set_job_state(redis, job_id, cancelled_state)
+        # Notify WebSocket clients of the cancellation.
+        await rc.publish_progress(redis, job_id, cancelled_state)
+        # Signal the running worker to abort immediately.
+        _reg: JobControlRegistry | None = getattr(app_state, "job_controls", None)
+        ctrl = _reg.get(job_id) if _reg is not None else None
+        if ctrl is not None:
+            ctrl.cancel_event.set()
 
         return CancelJobResponse(
             job_id=job_id,

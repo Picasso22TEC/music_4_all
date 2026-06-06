@@ -21,6 +21,7 @@ from app.config import settings
 from app.core import redis_client as rc
 from app.core.database import AsyncSessionLocal, engine
 from app.core.exceptions import ApiException
+from app.core.job_controls import JobControlRegistry
 from app.core.logging_config import get_logger, setup_logging
 from app.core.models import Base
 from app.core.rate_limiter import limiter
@@ -72,9 +73,10 @@ async def lifespan(app: FastAPI):
     app.state.engine = TidalDownloader(session_data=session_data)
     app.state.pending_oauth = None
     app.state.pending_oauth_v2 = {}     # dict[device_code → {session, future}]
+    app.state.job_controls = JobControlRegistry()
 
     worker_task = asyncio.create_task(
-        start_worker(app.state.engine, app.state.redis, AsyncSessionLocal)
+        start_worker(app.state.engine, app.state.redis, AsyncSessionLocal, app.state.job_controls)
     )
 
     yield
