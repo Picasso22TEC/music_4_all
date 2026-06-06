@@ -29,11 +29,16 @@ tracks_downloaded_total = Counter(
     "Número total de tracks individuales descargados con éxito",
 )
 
-# ── Queue ─────────────────────────────────────────────────────────────────────
+# ── Queue / concurrency ───────────────────────────────────────────────────────
 
 queue_depth = Gauge(
     "music4all_queue_depth",
     "Jobs pendientes en la cola de descargas Redis",
+)
+
+downloads_concurrency_limit = Gauge(
+    "music4all_downloads_concurrency_limit",
+    "Límite máximo de descargas simultáneas (MAX_CONCURRENT_DOWNLOADS)",
 )
 
 # ── Auth ──────────────────────────────────────────────────────────────────────

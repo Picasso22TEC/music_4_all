@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379"
 
+    # Worker concurrency
+    max_concurrent_downloads: int = 3
+
     # PostgreSQL — SQLite solo en desarrollo local
     database_url: str = "sqlite+aiosqlite:///./dev.db"
 

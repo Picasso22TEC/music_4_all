@@ -16,11 +16,13 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.config import settings
 from app.core import redis_client as rc
 from app.core.job_controls import JobControlRegistry
 from app.core.logging_config import get_logger, job_logger
 from app.core.metrics import (
     download_duration_seconds,
+    downloads_concurrency_limit,
     downloads_in_progress,
     downloads_total,
     tracks_downloaded_total,
@@ -41,13 +43,26 @@ async def start_worker(
     session_factory: async_sessionmaker[AsyncSession],
     job_controls: JobControlRegistry,
 ) -> None:
-    logger.info("Download worker ready — waiting for jobs")
+    semaphore = asyncio.Semaphore(settings.max_concurrent_downloads)
+    downloads_concurrency_limit.set(settings.max_concurrent_downloads)
+    logger.info(
+        "Download worker ready — waiting for jobs",
+        extra={"max_concurrent": settings.max_concurrent_downloads},
+    )
     while True:
         try:
             job = await rc.dequeue_job(redis, timeout=2)
             if job is None:
                 continue
-            asyncio.create_task(_process_job(job, engine, redis, session_factory, job_controls))
+            # Block here if the concurrency cap is reached; resumes when a
+            # running job finishes and _run_with_semaphore releases the slot.
+            await semaphore.acquire()
+            asyncio.create_task(
+                _run_with_semaphore(
+                    _process_job(job, engine, redis, session_factory, job_controls),
+                    semaphore,
+                )
+            )
         except asyncio.CancelledError:
             logger.info("Download worker shutting down")
             return
@@ -217,6 +232,14 @@ async def _process_job(
         await _update_state(redis, job_id, title, DownloadJobStatus.FAILED,
                             round(done / total * 100, 1),
                             error=f"{done}/{total} tracks completados")
+
+
+async def _run_with_semaphore(coro, semaphore: asyncio.Semaphore) -> None:
+    """Awaits coro and releases the semaphore slot when done (even on error)."""
+    try:
+        await coro
+    finally:
+        semaphore.release()
 
 
 async def _update_state(
