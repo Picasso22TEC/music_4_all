@@ -137,6 +137,31 @@ class TestRelay:
         assert msg["job_id"] == "abc-789"
         assert msg["payload"]["started_at"] == "2024-06-01T12:00:00+00:00"
 
+    def test_enriched_progress_fields_delivered(self) -> None:
+        flat = {
+            "type": "message",
+            "data": json.dumps({
+                "job_id": "enr-001",
+                "status": "downloading",
+                "progress": 60.0,
+                "title": "OK Computer",
+                "current_track_filename": "03 - Karma Police.flac",
+                "completed_tracks": 2,
+                "total_tracks": 10,
+                "speed_mbps": 0.0,
+                "eta_seconds": 45,
+            }),
+        }
+        client, _ = _setup(messages=[flat])
+        with client.websocket_connect("/ws/downloads") as ws:
+            msg = ws.receive_json()
+        assert msg["type"] == "progress"
+        payload = msg["payload"]
+        assert payload["current_track_filename"] == "03 - Karma Police.flac"
+        assert payload["completed_tracks"] == 2
+        assert payload["total_tracks"] == 10
+        assert payload["eta_seconds"] == 45
+
     def test_unknown_status_dropped_not_delivered(self) -> None:
         # flat_to_spec_message returns None for unknown status → relay drops it
         flat = {

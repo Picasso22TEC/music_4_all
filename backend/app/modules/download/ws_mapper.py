@@ -64,16 +64,14 @@ def flat_to_spec_message(data: dict[str, object]) -> dict[str, object] | None:
             "type": "progress",
             "job_id": job_id,
             "payload": {
-                # current_track_filename: best available — use title until worker
-                # is enriched to publish individual track names (future RM-06).
-                "current_track_filename": str(data.get("title", "")),
-                # These metrics are not yet available from the current worker.
-                # Set to 0 — will be enriched in RM-06 worker enhancement.
-                "completed_tracks": 0,
-                "total_tracks": 0,
+                "current_track_filename": str(
+                    data.get("current_track_filename") or data.get("title", "")
+                ),
+                "completed_tracks": _safe_int(data.get("completed_tracks", 0)),
+                "total_tracks": _safe_int(data.get("total_tracks", 0)),
                 "progress_percent": _safe_float(data.get("progress", 0.0)),
-                "speed_mbps": 0.0,
-                "eta_seconds": 0,
+                "speed_mbps": _safe_float(data.get("speed_mbps", 0.0)),
+                "eta_seconds": _safe_int(data.get("eta_seconds", 0)),
             },
         }
 
@@ -134,3 +132,17 @@ def _safe_float(value: object) -> float:
         except ValueError:
             return 0.0
     return 0.0
+
+
+def _safe_int(value: object) -> int:
+    """Safely coerce a value to int, defaulting to 0."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(float(value))
+        except ValueError:
+            return 0
+    return 0

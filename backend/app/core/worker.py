@@ -96,15 +96,26 @@ async def _process_job(
     loop = asyncio.get_running_loop()
 
     for i, track in enumerate(tracks):
-        def make_cb(idx: int):
+        track_name: str = getattr(track, "name", "") or ""
+
+        def make_cb(idx: int, name: str, n_done: int):
             def cb(p: float) -> None:
-                progress = round((idx + p) / total * 100, 1)
+                ovr = round((idx + p) / total * 100, 1)
+                elapsed = time.monotonic() - start_time
+                # Linear ETA from elapsed time and overall progress.
+                # speed_mbps stays 0.0 — no byte-count data available from TidalDownloader.
+                eta = round(elapsed * (100.0 - ovr) / ovr) if ovr > 0.0 else 0
                 asyncio.run_coroutine_threadsafe(
                     rc.publish_progress(redis, job_id, {
                         "job_id": job_id,
                         "title": title,
                         "status": DownloadJobStatus.DOWNLOADING,
-                        "progress": progress,
+                        "progress": ovr,
+                        "completed_tracks": n_done,
+                        "total_tracks": total,
+                        "current_track_filename": name,
+                        "speed_mbps": 0.0,
+                        "eta_seconds": eta,
                     }),
                     loop,
                 )
@@ -113,7 +124,7 @@ async def _process_job(
         try:
             ok, path_or_err, quality, _, _ = await asyncio.to_thread(
                 engine.download_single_track,
-                track, folder, make_cb(i),
+                track, folder, make_cb(i, track_name, done),
             )
             if ok:
                 done += 1

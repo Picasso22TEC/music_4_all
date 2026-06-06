@@ -218,6 +218,81 @@ class TestStarted:
         assert "T" in str(payload["started_at"])
 
 
+# ─── downloading → progress (RM-06 enriched fields) ─────────────────────────
+
+class TestDownloadingEnriched:
+    def test_completed_tracks_from_data(self) -> None:
+        result = flat_to_spec_message(_base("downloading", progress=50.0, completed_tracks=3))
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["completed_tracks"] == 3
+
+    def test_total_tracks_from_data(self) -> None:
+        result = flat_to_spec_message(_base("downloading", progress=50.0, total_tracks=10))
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["total_tracks"] == 10
+
+    def test_current_track_filename_from_dedicated_field(self) -> None:
+        result = flat_to_spec_message(
+            _base("downloading", progress=50.0, current_track_filename="01 - Karma Police.flac")
+        )
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["current_track_filename"] == "01 - Karma Police.flac"
+
+    def test_current_track_filename_fallback_to_title(self) -> None:
+        result = flat_to_spec_message(
+            {"job_id": "x", "status": "downloading", "progress": 50.0, "title": "OK Computer"}
+        )
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["current_track_filename"] == "OK Computer"
+
+    def test_speed_mbps_from_data(self) -> None:
+        result = flat_to_spec_message(_base("downloading", progress=50.0, speed_mbps=2.5))
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["speed_mbps"] == pytest.approx(2.5)
+
+    def test_eta_seconds_from_data(self) -> None:
+        result = flat_to_spec_message(_base("downloading", progress=50.0, eta_seconds=120))
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["eta_seconds"] == 120
+
+    def test_missing_enriched_fields_default_to_zero(self) -> None:
+        # Backward-compat: old worker format without enriched fields
+        result = flat_to_spec_message(_base("downloading", progress=30.0))
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["completed_tracks"] == 0
+        assert payload["total_tracks"] == 0
+        assert payload["speed_mbps"] == pytest.approx(0.0)
+        assert payload["eta_seconds"] == 0
+
+    def test_string_completed_tracks_coerced(self) -> None:
+        result = flat_to_spec_message(_base("downloading", progress=50.0, completed_tracks="3"))
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["completed_tracks"] == 3
+
+    def test_string_eta_seconds_coerced(self) -> None:
+        result = flat_to_spec_message(_base("downloading", progress=50.0, eta_seconds="90"))
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["eta_seconds"] == 90
+
+
 # ─── Edge cases ───────────────────────────────────────────────────────────────
 
 class TestEdgeCases:
