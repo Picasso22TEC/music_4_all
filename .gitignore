@@ -59,6 +59,10 @@ Thumbs.db
 downloads/
 music/
 
+# SQLite — bases de datos locales de desarrollo
+*.db
+*.sqlite3
+
 # Media
 *.mp3
 *.flac

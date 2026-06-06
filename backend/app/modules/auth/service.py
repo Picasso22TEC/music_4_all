@@ -1,12 +1,21 @@
 import asyncio
 
 import tidalapi
-from redis.asyncio import Redis
 
 from app.core.tidal import TidalDownloader
 
 from .repository import AuthRepository
 from .schemas import AuthStatusResponse, DeviceAuthResponse
+
+
+def _ensure_https(url: str) -> str:
+    """Prepend https:// if the URL has no scheme (Tidal omits it)."""
+    url = url.strip()
+    if not url:
+        return ""
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return f"https://{url}"
 
 
 class AuthService:
@@ -50,7 +59,9 @@ class AuthService:
         app_state.pending_oauth = {"session": session, "future": future, "link": link}
 
         return DeviceAuthResponse(
-            verification_uri_complete=link.verification_uri_complete,
+            verification_uri_complete=_ensure_https(
+                str(getattr(link, "verification_uri_complete", "") or "")
+            ),
             user_code=getattr(link, "user_code", ""),
             expires_in=getattr(link, "expires_in", 300),
         )
