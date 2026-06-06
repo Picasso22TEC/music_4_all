@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core import redis_client as rc
+from app.core.job_controls import JobControlRegistry
 from app.core.logging_config import get_logger, job_logger
 from app.core.metrics import (
     download_duration_seconds,
@@ -38,6 +39,7 @@ async def start_worker(
     engine: TidalDownloader,
     redis,
     session_factory: async_sessionmaker[AsyncSession],
+    job_controls: JobControlRegistry,
 ) -> None:
     logger.info("Download worker ready — waiting for jobs")
     while True:
@@ -45,7 +47,7 @@ async def start_worker(
             job = await rc.dequeue_job(redis, timeout=2)
             if job is None:
                 continue
-            asyncio.create_task(_process_job(job, engine, redis, session_factory))
+            asyncio.create_task(_process_job(job, engine, redis, session_factory, job_controls))
         except asyncio.CancelledError:
             logger.info("Download worker shutting down")
             return
@@ -59,11 +61,28 @@ async def _process_job(
     engine: TidalDownloader,
     redis,
     session_factory: async_sessionmaker[AsyncSession],
+    job_controls: JobControlRegistry,
 ) -> None:
     job_id = job["job_id"]
     url = job["url"]
     title = job.get("title", "")
     log = job_logger(__name__, job_id)
+
+    # Register control before any download begins so HTTP handlers can signal us.
+    ctrl = job_controls.register(job_id)
+
+    # If this job was paused or cancelled before we dequeued it (e.g. the job
+    # was in "queued" state and received a PATCH pause before the worker picked
+    # it up), honour that state immediately.
+    pre_state = await rc.get_job_state(redis, job_id)
+    if pre_state is not None:
+        pre_status = str(pre_state.get("spec_status") or pre_state.get("status", ""))
+        if pre_status in ("failed", "error"):
+            log.info("Skipping already-cancelled job", extra={"status": pre_status})
+            job_controls.unregister(job_id)
+            return
+        if pre_status == "paused":
+            ctrl.pause_event.set()
 
     downloads_in_progress.inc()
     start_time = time.monotonic()
@@ -88,6 +107,7 @@ async def _process_job(
         await _update_state(redis, job_id, title, DownloadJobStatus.FAILED, 0.0, error=str(exc))
         downloads_in_progress.dec()
         downloads_total.labels(status="failed").inc()
+        job_controls.unregister(job_id)
         return
 
     total = len(tracks)
@@ -96,6 +116,16 @@ async def _process_job(
     loop = asyncio.get_running_loop()
 
     for i, track in enumerate(tracks):
+        # Pause: block between tracks until resumed or cancelled.
+        while ctrl.pause_event.is_set():
+            if ctrl.cancel_event.is_set():
+                break
+            await asyncio.sleep(0.5)
+
+        # Cancel: exit the download loop immediately.
+        if ctrl.cancel_event.is_set():
+            break
+
         track_name: str = getattr(track, "name", "") or ""
 
         def make_cb(idx: int, name: str, n_done: int):
@@ -124,8 +154,11 @@ async def _process_job(
         try:
             ok, path_or_err, quality, _, _ = await asyncio.to_thread(
                 engine.download_single_track,
-                track, folder, make_cb(i, track_name, done),
+                track, folder, make_cb(i, track_name, done), ctrl.cancel_event,
             )
+            # download_single_track returns (False, "Cancelado") when cancel_event fires.
+            if ctrl.cancel_event.is_set():
+                break
             if ok:
                 done += 1
                 last_file_path = path_or_err
@@ -150,10 +183,19 @@ async def _process_job(
                 log.warning("Track download failed", extra={"track": track.name, "error": path_or_err})
         except Exception as exc:
             log.error("Unexpected error downloading track", extra={"error": str(exc)})
+            if ctrl.cancel_event.is_set():
+                break
 
     duration = time.monotonic() - start_time
     download_duration_seconds.observe(duration)
     downloads_in_progress.dec()
+    job_controls.unregister(job_id)
+
+    if ctrl.cancel_event.is_set():
+        # State and WS event already published by the HTTP cancel handler.
+        log.info("Job cancelled by user", extra={"done": done, "total": total})
+        downloads_total.labels(status="failed").inc()
+        return
 
     if done == total:
         file_path = last_file_path
