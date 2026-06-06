@@ -16,15 +16,15 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
+  valkey:
+    image: valkey/valkey:8-alpine
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
+      - valkey_data:/data
+    command: valkey-server --appendonly yes
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -39,7 +39,7 @@ services:
       - "8000:8000"
     environment:
       - TIDAL_QUALITY=LOSSLESS
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://valkey:6379
       - DATABASE_URL=postgresql://music4all:music4all@postgres:5432/music4all
     volumes:
       - ./backend:/app
@@ -47,7 +47,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
+      valkey:
         condition: service_healthy
 
   frontend:
@@ -128,7 +128,7 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
+  valkey_data:
   prometheus_data:
   grafana_data:
   loki_data:
