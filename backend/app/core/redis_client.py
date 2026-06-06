@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis
@@ -9,6 +9,8 @@ REDIS_HISTORY_KEY = "music4all:downloads:history"
 REDIS_QUEUE_KEY = "music4all:queue:downloads"
 REDIS_JOB_PREFIX = "music4all:job:"
 REDIS_JOB_PROGRESS_CHANNEL = "music4all:job:{job_id}:progress"
+# RM-01: unified channel — all jobs publish here for /ws/downloads
+REDIS_ALL_JOBS_CHANNEL = "music4all:progress:all"
 HISTORY_MAX_SIZE = 200
 JOB_TTL = 86400  # 24 horas
 
@@ -37,8 +39,8 @@ def _ttl_from_session(session_data: dict) -> int:
     try:
         expiry = datetime.fromisoformat(session_data["expiry_time"])
         if expiry.tzinfo is None:
-            expiry = expiry.replace(tzinfo=timezone.utc)
-        ttl = int((expiry - datetime.now(timezone.utc)).total_seconds())
+            expiry = expiry.replace(tzinfo=UTC)
+        ttl = int((expiry - datetime.now(UTC)).total_seconds())
         return max(300, ttl)
     except Exception:
         return 3600
@@ -88,9 +90,12 @@ async def get_job_state(redis: Redis, job_id: str) -> dict | None:
 # ─── Pub/Sub de progreso ──────────────────────────────────────────────────────
 
 async def publish_progress(redis: Redis, job_id: str, data: dict) -> None:
-    """Publica un update de progreso en el canal del job."""
-    channel = REDIS_JOB_PROGRESS_CHANNEL.format(job_id=job_id)
-    await redis.publish(channel, json.dumps(data))
+    """Publica un update de progreso en el canal del job Y en el canal global (RM-01)."""
+    payload = json.dumps(data)
+    # Legacy per-job channel — keeps /ws/progress/{job_id} working
+    await redis.publish(REDIS_JOB_PROGRESS_CHANNEL.format(job_id=job_id), payload)
+    # Unified channel — consumed by /ws/downloads
+    await redis.publish(REDIS_ALL_JOBS_CHANNEL, payload)
 
 
 def progress_channel(job_id: str) -> str:

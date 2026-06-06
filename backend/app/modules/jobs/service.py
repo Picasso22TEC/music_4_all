@@ -108,11 +108,10 @@ class JobService:
             allowed = {"queued", "active"}
             if current not in allowed:
                 raise ValueError(f"No se puede pausar un job en estado '{current}'")
-            await rc.set_job_state(redis, job_id, {
-                **state,
-                "spec_status": "paused",
-                "status": "paused",
-            })
+            paused_state = {**state, "spec_status": "paused", "status": "paused"}
+            await rc.set_job_state(redis, job_id, paused_state)
+            # RM-01: publish pause event so /ws/downloads can emit job_paused
+            await rc.publish_progress(redis, job_id, paused_state)
             return UpdateJobResponse(job_id=job_id, status="paused")
 
         elif action == "resume":
@@ -120,18 +119,21 @@ class JobService:
                 raise ValueError(f"No se puede reanudar un job en estado '{current}'")
             url = _url_from_state(state)
             if url:
-                await rc.set_job_state(redis, job_id, {
+                resumed_state = {
                     **state,
                     "status": DownloadJobStatus.PENDING,
                     "spec_status": "active",   # D-04: paused→active según spec §1.5
                     "error": None,
-                })
+                }
+                await rc.set_job_state(redis, job_id, resumed_state)
                 await rc.enqueue_job(redis, {
                     "job_id": job_id,
                     "url": url,
                     "title": state.get("title", ""),
                     "quality": state.get("quality", "MASTER"),
                 })
+                # RM-01: publish resume event so /ws/downloads can emit job_resumed
+                await rc.publish_progress(redis, job_id, resumed_state)
             return UpdateJobResponse(job_id=job_id, status="active")  # D-04: era "queued"
 
         elif action == "retry":
@@ -140,19 +142,22 @@ class JobService:
                 raise ValueError(f"No se puede reintentar un job en estado '{current}'")
             url = _url_from_state(state)
             if url:
-                await rc.set_job_state(redis, job_id, {
+                retried_state = {
                     **state,
                     "status": DownloadJobStatus.PENDING,
                     "spec_status": "queued",
                     "error": None,
                     "progress": 0.0,
-                })
+                }
+                await rc.set_job_state(redis, job_id, retried_state)
                 await rc.enqueue_job(redis, {
                     "job_id": job_id,
                     "url": url,
                     "title": state.get("title", ""),
                     "quality": state.get("quality", "MASTER"),
                 })
+                # RM-01: publish retry event so /ws/downloads can emit job_resumed
+                await rc.publish_progress(redis, job_id, retried_state)
             return UpdateJobResponse(job_id=job_id, status="queued")
 
         raise ValueError(f"Acción desconocida: {action}")
