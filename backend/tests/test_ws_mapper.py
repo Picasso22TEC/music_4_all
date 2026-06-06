@@ -188,6 +188,36 @@ class TestUnknownStatus:
         assert result is None
 
 
+# ─── started → job_started ───────────────────────────────────────────────────
+
+class TestStarted:
+    def test_type_is_job_started(self) -> None:
+        result = flat_to_spec_message(_base("started", started_at="2024-01-01T00:00:00+00:00"))
+        assert result is not None
+        assert result["type"] == "job_started"
+
+    def test_job_id_preserved(self) -> None:
+        result = flat_to_spec_message(_base("started", started_at="2024-01-01T00:00:00+00:00"))
+        assert result is not None
+        assert result["job_id"] == "test-uuid-1234"
+
+    def test_started_at_preserved(self) -> None:
+        ts = "2024-06-01T12:00:00+00:00"
+        result = flat_to_spec_message(_base("started", started_at=ts))
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert payload["started_at"] == ts
+
+    def test_missing_started_at_uses_fallback(self) -> None:
+        result = flat_to_spec_message(_base("started"))
+        assert result is not None
+        payload = result["payload"]
+        assert isinstance(payload, dict)
+        assert isinstance(payload["started_at"], str)
+        assert "T" in str(payload["started_at"])
+
+
 # ─── Edge cases ───────────────────────────────────────────────────────────────
 
 class TestEdgeCases:

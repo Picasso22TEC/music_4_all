@@ -7,6 +7,7 @@ from app.core.sanitizer import sanitize_tidal_url
 
 class DownloadJobStatus(str, Enum):
     PENDING = "pending"
+    STARTED = "started"       # pub/sub-only: signals job_started; never stored in Redis state
     DOWNLOADING = "downloading"
     COMPLETED = "completed"
     FAILED = "failed"

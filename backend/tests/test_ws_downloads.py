@@ -120,6 +120,23 @@ class TestRelay:
         payload = msg["payload"]
         assert payload["progress_percent"] == pytest.approx(55.0)
 
+    def test_job_started_message_relayed(self) -> None:
+        flat = {
+            "type": "message",
+            "data": json.dumps({
+                "job_id": "abc-789",
+                "title": "Test Album",
+                "status": "started",
+                "started_at": "2024-06-01T12:00:00+00:00",
+            }),
+        }
+        client, _ = _setup(messages=[flat])
+        with client.websocket_connect("/ws/downloads") as ws:
+            msg = ws.receive_json()
+        assert msg["type"] == "job_started"
+        assert msg["job_id"] == "abc-789"
+        assert msg["payload"]["started_at"] == "2024-06-01T12:00:00+00:00"
+
     def test_unknown_status_dropped_not_delivered(self) -> None:
         # flat_to_spec_message returns None for unknown status → relay drops it
         flat = {

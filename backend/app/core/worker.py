@@ -12,6 +12,7 @@ Flujo:
 import asyncio
 import json
 import time
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -68,6 +69,14 @@ async def _process_job(
     start_time = time.monotonic()
     log.info("Job started", extra={"url": url, "title": title})
 
+    # Pub/sub-only event — emitted once before downloading begins.
+    # Sets startedAt in the frontend store via ws_mapper → job_started.
+    await rc.publish_progress(redis, job_id, {
+        "job_id": job_id,
+        "title": title,
+        "status": DownloadJobStatus.STARTED,
+        "started_at": datetime.now(UTC).isoformat(),
+    })
     await _update_state(redis, job_id, title, DownloadJobStatus.DOWNLOADING, 0.0)
 
     try:

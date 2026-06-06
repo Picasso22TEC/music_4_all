@@ -6,7 +6,7 @@ Legacy flat format published by worker:
     {
         "job_id": "uuid",
         "title": "Album Title",
-        "status": "downloading" | "completed" | "failed" | "paused" | "pending",
+        "status": "started" | "downloading" | "completed" | "failed" | "paused" | "pending",
         "progress": 45.0,
         "error": null,
         "file_path": null
@@ -14,10 +14,15 @@ Legacy flat format published by worker:
 
 Target spec format (technical-spec.md §5.3):
     {
-        "type": "progress" | "job_completed" | "job_error" | "job_paused" | "job_resumed",
+        "type": "job_started" | "progress" | "job_completed" | "job_error" | "job_paused" | "job_resumed",
         "job_id": "uuid",
         "payload": { ... }
     }
+
+Notes on "started" status in the channel:
+    - Published once at job start, immediately before the first "downloading" event.
+    - Contains "started_at" (ISO-8601). Populates startedAt in the frontend store.
+    - Pub/sub-only: Redis job state skips "started" and stores "downloading" directly.
 
 Notes on "pending" status in the channel:
     - Initial job creation does NOT call publish_progress, so "pending" only
@@ -42,6 +47,16 @@ def flat_to_spec_message(data: dict[str, object]) -> dict[str, object] | None:
     """
     job_id: str = str(data.get("job_id", ""))
     status: str = str(data.get("status", ""))
+
+    # ── started → job_started ────────────────────────────────────────────────
+    if status == "started":
+        return {
+            "type": "job_started",
+            "job_id": job_id,
+            "payload": {
+                "started_at": str(data.get("started_at") or datetime.now(UTC).isoformat()),
+            },
+        }
 
     # ── downloading → progress ────────────────────────────────────────────────
     if status == "downloading":
