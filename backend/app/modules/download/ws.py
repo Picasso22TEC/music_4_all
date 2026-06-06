@@ -86,7 +86,8 @@ async def websocket_downloads(websocket: WebSocket) -> None:
     Phases:
         Phase D — Auth check before accept (SEC-01)
         Phase C — Subscribe to REDIS_ALL_JOBS_CHANNEL, relay + transform
-        Phase C — Heartbeat: {"type":"ping"} → {"type":"pong","timestamp":...}
+        Phase C — Heartbeat: 35 s idle → server_ping; client ping → pong
+        Phase P2 — Send lock: serialises relay vs main-loop send_json calls
         Phase E — Clean lifecycle (pubsub, tasks, socket)
     """
     # ── Phase D: Validate session BEFORE accepting ────────────────────────────
@@ -103,6 +104,9 @@ async def websocket_downloads(websocket: WebSocket) -> None:
     redis = websocket.app.state.redis  # type: ignore[attr-defined]
     pubsub = redis.pubsub()
     await pubsub.subscribe(rc.REDIS_ALL_JOBS_CHANNEL)
+
+    # Serialises concurrent websocket.send_json() calls (relay vs main loop)
+    send_lock = asyncio.Lock()
 
     # ── Phase C: Relay task — Redis → WebSocket ───────────────────────────────
     async def relay_redis() -> None:
@@ -124,7 +128,8 @@ async def websocket_downloads(websocket: WebSocket) -> None:
                     if isinstance(flat, dict):
                         spec = flat_to_spec_message(flat)
                         if spec is not None:
-                            await websocket.send_json(spec)
+                            async with send_lock:
+                                await websocket.send_json(spec)
                 except json.JSONDecodeError:
                     pass
         except asyncio.CancelledError:
@@ -134,17 +139,25 @@ async def websocket_downloads(websocket: WebSocket) -> None:
 
     relay: asyncio.Task[None] = asyncio.create_task(relay_redis())
 
-    # ── Phase C: Main loop — handles client pings ─────────────────────────────
+    # ── Phase C+P1: Main loop — server heartbeat (35 s) + client ping ─────────
     try:
         while True:
             try:
-                incoming: object = await websocket.receive_json()
+                incoming: object = await asyncio.wait_for(
+                    websocket.receive_json(), timeout=35.0
+                )
                 if isinstance(incoming, dict) and incoming.get("type") == "ping":
-                    # Heartbeat pong per technical-spec.md §5.4
-                    await websocket.send_json({
-                        "type": "pong",
-                        "timestamp": int(time.time() * 1000),
-                    })
+                    async with send_lock:
+                        await websocket.send_json({
+                            "type": "pong",
+                            "timestamp": int(time.time() * 1000),
+                        })
+            except TimeoutError:
+                try:
+                    async with send_lock:
+                        await websocket.send_json({"type": "server_ping"})
+                except Exception:
+                    break
             except WebSocketDisconnect:
                 break
             except Exception:
