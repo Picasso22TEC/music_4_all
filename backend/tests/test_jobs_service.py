@@ -149,6 +149,18 @@ class TestResume:
             with pytest.raises(ValueError, match="No se puede reanudar"):
                 await JobService().update_job("job-123", UpdateJobRequest(action="resume"), app_state)
 
+    async def test_resume_raises_when_url_unavailable(self) -> None:
+        """resume with worker gone and missing album_id/track_id raises ValueError (RM-09.2)."""
+        reg = JobControlRegistry()  # no ctrl — simulates worker gone after restart
+        app_state = _make_app_state(reg, _PAUSED_STATE)
+
+        broken_state = {**_PAUSED_STATE, "album_id": None, "track_id": None}
+
+        with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = broken_state
+            with pytest.raises(ValueError, match="faltan album_id y track_id"):
+                await JobService().update_job("job-123", UpdateJobRequest(action="resume"), app_state)
+
 
 # ─── Cancel ───────────────────────────────────────────────────────────────────
 

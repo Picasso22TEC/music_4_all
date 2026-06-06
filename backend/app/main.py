@@ -23,6 +23,7 @@ from app.core.database import AsyncSessionLocal, engine
 from app.core.exceptions import ApiException
 from app.core.job_controls import JobControlRegistry
 from app.core.logging_config import get_logger, setup_logging
+from app.core.reconciliation import reconcile_stale_jobs
 from app.core.models import Base
 from app.core.rate_limiter import limiter
 from app.core.tidal import TidalDownloader
@@ -74,6 +75,10 @@ async def lifespan(app: FastAPI):
     app.state.pending_oauth = None
     app.state.pending_oauth_v2 = {}     # dict[device_code → {session, future}]
     app.state.job_controls = JobControlRegistry()
+
+    # RM-09.1: Mark any in-progress jobs from a previous process as failed
+    # before the worker starts, so they are never picked up as zombies.
+    await reconcile_stale_jobs(app.state.redis)
 
     worker_task = asyncio.create_task(
         start_worker(app.state.engine, app.state.redis, AsyncSessionLocal, app.state.job_controls)

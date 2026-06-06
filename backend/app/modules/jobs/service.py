@@ -143,21 +143,25 @@ class JobService:
             else:
                 # Worker gone (app restart / crash) — fall back to re-enqueue.
                 url = _url_from_state(state)
-                if url:
-                    resumed_state = {
-                        **state,
-                        "status": DownloadJobStatus.PENDING,
-                        "spec_status": "active",
-                        "error": None,
-                    }
-                    await rc.set_job_state(redis, job_id, resumed_state)
-                    await rc.enqueue_job(redis, {
-                        "job_id": job_id,
-                        "url": url,
-                        "title": state.get("title", ""),
-                        "quality": state.get("quality", "MASTER"),
-                    })
-                    await rc.publish_progress(redis, job_id, resumed_state)
+                if url is None:
+                    raise ValueError(
+                        f"No se puede reanudar el job '{job_id}': "
+                        "faltan album_id y track_id en el estado almacenado"
+                    )
+                resumed_state = {
+                    **state,
+                    "status": DownloadJobStatus.PENDING,
+                    "spec_status": "active",
+                    "error": None,
+                }
+                await rc.set_job_state(redis, job_id, resumed_state)
+                await rc.enqueue_job(redis, {
+                    "job_id": job_id,
+                    "url": url,
+                    "title": state.get("title", ""),
+                    "quality": state.get("quality", "MASTER"),
+                })
+                await rc.publish_progress(redis, job_id, resumed_state)
             return UpdateJobResponse(job_id=job_id, status="active")
 
         elif action == "retry":
