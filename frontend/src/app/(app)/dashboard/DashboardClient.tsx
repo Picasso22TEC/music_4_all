@@ -15,7 +15,7 @@ import {
   useResolveUrlQuery,
   useSearchQuery,
 } from '@/features/search'
-import { useStartDownloadMutation } from '@/features/downloads'
+import { useStartDownloadMutation, useDownloadsStore } from '@/features/downloads'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -88,7 +88,19 @@ export default function DashboardClient() {
 
   /** Triggered by AlbumCard.onDownload — maps to POST /downloads {albumId, quality} */
   function handleDownload(albumId: string) {
-    downloadMutation.mutate({ albumId, quality })
+    const album = albums.find((a) => a.id === albumId)
+    downloadMutation.mutate({ albumId, quality }, {
+      onSuccess: (result) => {
+        useDownloadsStore.getState().enqueue({
+          backendJobId: result.jobId,
+          albumId,
+          albumTitle: album?.title ?? 'Unknown Album',
+          artistName: album?.artist.name ?? 'Unknown Artist',
+          totalTracks: result.estimatedTracks,
+          qualityOverride: quality,
+        })
+      },
+    })
   }
 
   /** Triggered by AlbumCard.onOpen — AlbumDetailPanel deferred to Phase 6C */

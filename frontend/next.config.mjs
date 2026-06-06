@@ -15,12 +15,9 @@ const nextConfig = {
     ]
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'resources.tidal.com',
-      },
-    ],
+    // Bypass server-side image proxy — the Next.js container can't reach
+    // resources.tidal.com from inside Docker; browsers can reach it directly.
+    unoptimized: true,
   },
 }
 

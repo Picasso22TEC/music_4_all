@@ -10,7 +10,6 @@ ENV/
 build/
 develop-eggs/
 dist/
-downloads/
 eggs/
 .eggs/
 # lib/ y lib64/ solo para Python (no afectar frontend/src/lib)
@@ -55,8 +54,8 @@ backend/session.json
 .DS_Store
 Thumbs.db
 
-# Tidal
-downloads/
+# Tidal — root-level download folder only (not Next.js route dirs)
+/downloads/
 music/
 
 # SQLite — bases de datos locales de desarrollo
