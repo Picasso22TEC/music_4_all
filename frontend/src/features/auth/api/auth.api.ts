@@ -6,6 +6,20 @@ import type {
 } from '@/shared/types/api.types'
 import type { DeviceAuthCode, TidalPlan, TidalUser } from '@/entities'
 
+/**
+ * Ensures a Tidal OAuth URL has a valid https:// scheme.
+ * Tidal's Device Authorization API returns bare hostnames without scheme
+ * (e.g. "link.tidal.com/ABCDE"). An schemeless value used as <a href> or in
+ * window.open() is treated by browsers as a relative path, causing a 404.
+ * http:// is preserved as-is (dev/proxy environments).
+ */
+function ensureHttps(url: string | undefined | null): string {
+  const trimmed = (url ?? '').trim()
+  if (!trimmed) return ''
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
+  return `https://${trimmed}`
+}
+
 function mapUser(dto: SessionStatusResponseDTO['user']): TidalUser | null {
   if (!dto) return null
   return {
@@ -28,11 +42,17 @@ export const authApi = {
 
   async initDeviceAuth(): Promise<DeviceAuthCode> {
     const { data } = await client.post<DeviceAuthResponseDTO>('/session/device-auth', {})
+    const verificationUri = ensureHttps(data.verification_uri)
+    // Prefer verification_uri_complete; fall back to verification_uri + "/" + user_code
+    // if a future Tidal API version omits it.
+    const verificationUriComplete =
+      ensureHttps(data.verification_uri_complete) ||
+      (verificationUri && data.user_code ? `${verificationUri}/${data.user_code}` : verificationUri)
     return {
       deviceCode: data.device_code,
       userCode: data.user_code,
-      verificationUri: data.verification_uri,
-      verificationUriComplete: data.verification_uri_complete,
+      verificationUri,
+      verificationUriComplete,
       expiresIn: data.expires_in,
       interval: data.interval,
     }

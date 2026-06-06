@@ -18,6 +18,23 @@ from .schemas import (
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
+def _ensure_https(url: str) -> str:
+    """Prepend https:// to a URL that Tidal may return without a scheme.
+
+    Tidal's Device Authorization API returns bare hostnames such as
+    'link.tidal.com/ABCDE'.  Without a scheme, browsers treat the value as a
+    relative path and the user lands on a 404.  http:// is preserved as-is to
+    avoid breaking local/dev environments; https:// is left untouched.
+    """
+    url = url.strip()
+    if not url:
+        return ""
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return f"https://{url}"
+
+
 def _plan_from_session(session: object) -> str:
     try:
         user = getattr(session, "user", None)
@@ -88,17 +105,21 @@ class SessionService:
 
         link, future = await asyncio.to_thread(session.login_oauth)
 
-        # Extraer campos del link (getattr con defaults para robustez)
+        # Extraer campos del link (getattr con defaults para robustez ante cambios de API)
         device_code: str = str(getattr(link, "device_code", None) or uuid.uuid4())
         user_code: str = str(getattr(link, "user_code", "") or "")
-        verification_uri: str = str(
-            getattr(link, "verification_uri", "tidal.com/activate") or "tidal.com/activate"
-        )
-        verification_uri_complete: str = str(
-            getattr(link, "verification_uri_complete", "") or ""
-        )
         expires_in: int = int(getattr(link, "expires_in", 900) or 900)
         interval: int = int(getattr(link, "interval", 5) or 5)
+
+        # Normalizar esquema — Tidal devuelve URLs sin https:// (ej. "link.tidal.com/ABC")
+        verification_uri: str = _ensure_https(
+            str(getattr(link, "verification_uri", "tidal.com/activate") or "tidal.com/activate")
+        )
+        raw_complete: str = str(getattr(link, "verification_uri_complete", "") or "")
+        verification_uri_complete: str = _ensure_https(raw_complete)
+        # Fallback: si Tidal no devuelve verification_uri_complete, construirlo
+        if not verification_uri_complete and user_code:
+            verification_uri_complete = f"{verification_uri}/{user_code}"
 
         # Almacenar en dict v2 keyed by device_code
         if not hasattr(app_state, "pending_oauth_v2"):

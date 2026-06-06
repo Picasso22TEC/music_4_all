@@ -41,8 +41,13 @@ services:
       - TIDAL_QUALITY=LOSSLESS
       - REDIS_URL=redis://valkey:6379
       - DATABASE_URL=postgresql://music4all:music4all@postgres:5432/music4all
+      # uv uses copy mode because the bind-mount is a cross-filesystem Windows volume
+      - UV_LINK_MODE=copy
     volumes:
       - ./backend:/app
+      # Preserve the Linux venv built in the image — prevents the Windows host .venv
+      # from being used inside the Linux container (cross-OS path mismatch breaks certifi)
+      - backend_venv:/app/.venv
       - ./downloads:/app/downloads
     depends_on:
       postgres:
@@ -129,6 +134,7 @@ services:
 volumes:
   postgres_data:
   valkey_data:
+  backend_venv:
   prometheus_data:
   grafana_data:
   loki_data:

@@ -37,7 +37,12 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   startDeviceAuth: async () => {
     const data = await startDeviceAuth()
     set({ pendingAuth: data })
-    window.open(data.verification_uri_complete, '_blank')
+    const raw = data.verification_uri_complete ?? ''
+    const url =
+      raw.startsWith('http://') || raw.startsWith('https://')
+        ? raw
+        : `https://${raw}`
+    window.open(url, '_blank')
   },
 
   pollAuthStatus: async () => {
