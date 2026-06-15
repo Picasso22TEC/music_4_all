@@ -33,12 +33,17 @@ export default function DashboardClient() {
 
   // ── Auth v2 — redirect when not authenticated ───────────────────────────────
   const status = useAuthStore((s) => s.status)
+  const hasHydrated = useAuthStore((s) => s.hasHydrated)
 
   useEffect(() => {
+    // Wait for the persisted session to rehydrate — `status` defaults to
+    // 'unauthenticated' before then, which would otherwise bounce an
+    // already-authenticated user to /login and back.
+    if (!hasHydrated) return
     if (status === 'expired' || status === 'unauthenticated') {
       router.replace('/login')
     }
-  }, [status, router])
+  }, [status, hasHydrated, router])
 
   // ── Search state ────────────────────────────────────────────────────────────
   const [query,   setQuery]   = useState('')

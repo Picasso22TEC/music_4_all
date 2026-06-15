@@ -1,5 +1,8 @@
 """Fixtures reutilizables para todas las pruebas."""
 
+import os
+from datetime import datetime, timedelta
+
 import pytest
 from unittest.mock import Mock, MagicMock
 from fastapi.testclient import TestClient
@@ -10,6 +13,41 @@ from app.main import app
 def api_client():
     """Cliente HTTP para pruebas de FastAPI."""
     return TestClient(app)
+
+
+@pytest.fixture
+def temp_download_dir(tmp_path):
+    """Directorio temporal aislado para pruebas que escriben archivos descargados."""
+    return tmp_path
+
+
+@pytest.fixture
+def tidal_session():
+    """Datos de sesión Tidal real, cargados desde variables de entorno.
+
+    Se usa en pruebas marcadas con @pytest.mark.slow que requieren descargar
+    contenido real desde Tidal. Si las credenciales no están configuradas,
+    la prueba se omite (skip) en lugar de fallar.
+    """
+    access_token = os.environ.get("TIDAL_TEST_ACCESS_TOKEN")
+    refresh_token = os.environ.get("TIDAL_TEST_REFRESH_TOKEN")
+
+    if not access_token or not refresh_token:
+        pytest.skip(
+            "TIDAL_TEST_ACCESS_TOKEN / TIDAL_TEST_REFRESH_TOKEN no configurados: "
+            "se omite la prueba que requiere una sesión real de Tidal."
+        )
+
+    expiry_time = os.environ.get("TIDAL_TEST_EXPIRY_TIME")
+    if not expiry_time:
+        expiry_time = (datetime.now() + timedelta(hours=1)).isoformat()
+
+    return {
+        "token_type": os.environ.get("TIDAL_TEST_TOKEN_TYPE") or "Bearer",
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expiry_time": expiry_time,
+    }
 
 
 @pytest.fixture

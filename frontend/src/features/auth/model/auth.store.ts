@@ -14,6 +14,13 @@ interface AuthState {
   isRecoveryModalOpen: boolean
   /** Backend job ID to retry once the session is recovered (Phase 6E/6F) */
   jobIdToRetry: string | null
+  /**
+   * True once the persisted state has been read from localStorage.
+   * `status` defaults to 'unauthenticated' until then — pages must wait
+   * for this flag before redirecting based on `status`, otherwise an
+   * already-authenticated user gets bounced through /login and back.
+   */
+  hasHydrated: boolean
 }
 
 interface AuthActions {
@@ -43,6 +50,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       isCheckingSession: false,
       isRecoveryModalOpen: false,
       jobIdToRetry: null,
+      hasHydrated: false,
 
       setAuthenticated: (user, expiresAt) =>
         set({ status: 'authenticated', user, expiresAt }),
@@ -78,11 +86,11 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         expiresAt: s.expiresAt,
       }),
       onRehydrateStorage: () => (state) => {
-        if (!state) return
         // Mark as expired on rehydration if token has elapsed
-        if (state.expiresAt && new Date(state.expiresAt) < new Date()) {
+        if (state?.expiresAt && new Date(state.expiresAt) < new Date()) {
           state.status = 'expired'
         }
+        useAuthStore.setState({ hasHydrated: true })
       },
     }
   )

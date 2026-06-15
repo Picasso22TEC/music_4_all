@@ -69,6 +69,46 @@ jobs:
       - name: Build (type-check + compilation)
         run: pnpm build
 
+  # ── Frontend: E2E tests (Playwright, mocked backend) ────────────────────
+  test-e2e:
+    name: "Frontend — E2E Tests (Playwright)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Run E2E tests
+        run: pnpm exec playwright test
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
   # ── Backend: tests ────────────────────────────────────────────────────────
   test-backend:
     name: "Backend — Tests"
@@ -105,6 +145,13 @@ jobs:
     env:
       REDIS_URL: redis://localhost:6379
       DATABASE_URL: postgresql://music4all:music4all@localhost:5432/music4all
+      # Credenciales opcionales para tests/validation/*.py marcados @pytest.mark.slow
+      # (descargas reales desde Tidal). Si no están configurados como secrets,
+      # esos tests se omiten automáticamente (fixture `tidal_session`).
+      TIDAL_TEST_ACCESS_TOKEN: ${{ secrets.TIDAL_TEST_ACCESS_TOKEN }}
+      TIDAL_TEST_REFRESH_TOKEN: ${{ secrets.TIDAL_TEST_REFRESH_TOKEN }}
+      TIDAL_TEST_TOKEN_TYPE: ${{ secrets.TIDAL_TEST_TOKEN_TYPE }}
+      TIDAL_TEST_TRACK_ID: ${{ secrets.TIDAL_TEST_TRACK_ID }}
 
     steps:
       - uses: actions/checkout@v4

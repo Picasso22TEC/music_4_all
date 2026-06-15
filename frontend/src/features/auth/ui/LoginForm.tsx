@@ -36,18 +36,22 @@ export function LoginForm() {
   const router = useRouter()
 
   // v2 auth store — status and deviceAuth (camelCase)
-  const status     = useAuthStore((s) => s.status)
-  const deviceAuth = useAuthStore((s) => s.deviceAuth)
+  const status      = useAuthStore((s) => s.status)
+  const deviceAuth  = useAuthStore((s) => s.deviceAuth)
+  const hasHydrated = useAuthStore((s) => s.hasHydrated)
 
   const [error, setError] = useState<string | null>(null)
 
   // ── Redirect if already authenticated (store rehydrated from localStorage) ──
 
   useEffect(() => {
+    // Wait for rehydration — `status` defaults to 'unauthenticated' before
+    // then, so redirecting too early would just bounce straight back here.
+    if (!hasHydrated) return
     if (status === 'authenticated') {
       router.replace('/dashboard')
     }
-  }, [status, router])
+  }, [status, hasHydrated, router])
 
   // ── Device Auth initiation ─────────────────────────────────────────────────
 

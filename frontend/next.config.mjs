@@ -19,6 +19,24 @@ const nextConfig = {
     // resources.tidal.com from inside Docker; browsers can reach it directly.
     unoptimized: true,
   },
+  webpack: (config) => {
+    // Without this, Playwright writing screenshots/traces into
+    // test-results/ (or HTML reports into playwright-report/) during an
+    // E2E run is picked up by the dev-mode file watcher, which triggers a
+    // Fast Refresh full reload and resets in-progress page state mid-test.
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/test-results/**',
+        '**/playwright-report/**',
+        '**/blob-report/**',
+        '**/tests/e2e/**',
+      ],
+    }
+    return config
+  },
 }
 
 export default nextConfig

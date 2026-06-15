@@ -38,6 +38,7 @@ dev = [
     "ruff>=0.3.0",
     "bandit>=1.7.0",
     "locust>=2.20.0",
+    "responses>=0.26.1",
 ]
 
 [tool.ruff]
@@ -56,3 +57,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "slow: pruebas que descargan datos reales desde Tidal (requieren credenciales)",
+]

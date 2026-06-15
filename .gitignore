@@ -67,3 +67,8 @@ music/
 *.flac
 *.wav
 *.m4a
+
+# Playwright E2E
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
