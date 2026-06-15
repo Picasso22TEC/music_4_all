@@ -22,10 +22,10 @@ El frontend tiene **0% de cobertura automatizada** — este documento define el 
 | `tests/test_session_service.py` | Unit | `modules/session/service.py` (incluye `_ensure_https`, 14 tests según `docs/roadmap.md`) |
 | `tests/test_startup_reconciliation.py` | Integration | `core/reconciliation.py` (`reconcile_stale_jobs`) |
 | `tests/test_worker_concurrency.py` | Integration | `core/worker.py` (semáforo `max_concurrent_downloads`) |
-| `tests/test_ws_downloads.py` | Integration | `modules/download/ws.py` (`/ws/downloads`) — **1 test fallando** (TD-03) |
+| `tests/test_ws_downloads.py` | Integration | `modules/download/ws.py` (`/ws/downloads`) — 8/8 pasando (TD-03 resuelto) |
 | `tests/test_ws_mapper.py` | Unit | `modules/download/ws_mapper.py` (`flat_to_spec_message`) |
 | `tests/integration/test_api_endpoints.py` | Integration | Endpoints HTTP generales — probable cobertura indirecta de `auth`/`search`/`metadata`/`history` |
-| `tests/integration/test_download_flow.py` | Integration | Flujo de descarga end-to-end — **2 tests fallando** (TD-03, `KeyError: 'engine'`) |
+| `tests/integration/test_download_flow.py` | Integration | Flujo de descarga end-to-end — 13/13 pasando (TD-03 resuelto) |
 | `tests/validation/test_flac_validation.py` | Validation | Validación de archivos FLAC resultantes (fidelidad de audio) |
 | `tests/load/locustfile.py` | Load | `/health`, `/auth/status`, `/metrics`, `/metadata/search`, `/history`, `/history/stats` (no cubre descargas/WS — ver `PERFORMANCE_AUDIT.md` PERF-05) |
 
@@ -41,14 +41,14 @@ El frontend tiene **0% de cobertura automatizada** — este documento define el 
 | `modules/session` (v2 OAuth) | Unit | pytest (`test_session_service.py`, 14 tests `_ensure_https`) | Buena | Mantener | **Alta** |
 | `modules/search` | Integration (probable) | pytest | [REQUIERE VALIDACIÓN] | Media-Alta — incluir casos de `tidalapi` devolviendo `None`/excepciones (relacionado con TD-02 mypy) | **Alta** |
 | `modules/metadata` | Integration (probable) | pytest | [REQUIERE VALIDACIÓN] | Media | **Media** |
-| `modules/download` (legacy) | Integration | pytest (`test_download_flow.py` — 2/N fallando) | Parcial (fallas TD-03) | Corregir fixture, mantener | **Alta** |
+| `modules/download` (legacy) | Integration | pytest (`test_download_flow.py` — 13/13 pasando, TD-03 resuelto) | Buena | Mantener | **Alta** |
 | `modules/jobs` (v2) | Unit + Integration | pytest (`test_jobs_service.py`, `test_worker_concurrency.py`, `test_job_controls.py`) | Buena | Mantener; añadir caso de reutilización `DownloadRepository` (ver `ARCHITECTURE_AUDIT.md` AR-07) | **Alta** |
 | `modules/history` | Integration (probable) | pytest | [REQUIERE VALIDACIÓN] | Media — incluir caso de historial vacío (`GET /history/stats` con 0 registros, ya mencionado en `e2e-validation.md`) | **Media** |
 | `core/tidal.py` (`TidalDownloader`) | Unit (contrato) | pytest | Indirecta (vía integration) | **Tests de contrato dedicados** — 48 módulos dependen de esta clase (ver `ARCHITECTURE_AUDIT.md` AR-03) | **Crítica** |
 | `core/worker.py` | Integration | `test_worker_concurrency.py` | Buena | Añadir caso de re-encode FLAC con `max_concurrent_downloads=1` vs `3` (timing) | **Alta** |
 | `core/redis_client.py` | Integration (vía otros tests con Redis de CI) | pytest | Indirecta | Tests dedicados de TTL (`music4all:session`, `music4all:job:{id}` 24h) | **Media** |
 | `core/reconciliation.py` | Integration | `test_startup_reconciliation.py` | Buena | Mantener | **Alta** |
-| `modules/download/ws.py` (`/ws/downloads`, `/ws/progress/{job_id}`) | Integration | `test_ws_downloads.py` — **1 fallo** (race condition) | Parcial | Resolver TD-03 (race condition); añadir test de cierre 1008 sin sesión | **Crítica** |
+| `modules/download/ws.py` (`/ws/downloads`, `/ws/progress/{job_id}`) | Integration | `test_ws_downloads.py` — 8/8 pasando (TD-03 resuelto) | Buena | Añadir test de cierre 1008 sin sesión | **Crítica** |
 
 ## Frontend
 
@@ -120,7 +120,7 @@ El backend ya está razonablemente alineado con esta pirámide. El frontend est�
 |---|---|---|---|
 | `lint-backend` | `ruff check .`, `ruff format --check .` | ✅ Sí | — |
 | `build-frontend` | `pnpm install`, `pnpm lint`, `pnpm build` | ✅ Sí | Añadir `pnpm test` (Vitest) cuando exista |
-| `test-backend` | `pytest tests/ -v --tb=short \|\| echo ...` | ❌ No (TD-03) | Cambiar a gate real tras corregir los 3 tests fallando |
+| `test-backend` | `pytest tests/ -v --tb=short \|\| echo ...` | ❌ No (TD-03 — fix de tests ya aplicado, cambio de CI pendiente) | Cambiar a gate real: los 157 tests (3 antes fallando) ahora pasan |
 | `security-backend` | `bandit -r app/ -ll -f json -o ... \|\| true` | ❌ No (TD-04) | Bloquear en severidad High |
 | `docker-build` | Build de imágenes backend/frontend | ✅ Sí (si prerequisitos pasan) | — |
 | `deploy` | [STUB/INACTIVO] | N/A | Fuera de alcance de este plan |

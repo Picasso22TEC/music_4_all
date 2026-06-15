@@ -197,6 +197,40 @@ pnpm build
 pnpm lint
 ```
 
+## 11. Problemas conocidos
+
+### RB-07 — E2E Playwright/WebKit en Windows local: `worker process did not exit ... force-killed it` (exit code 1 con 100% de tests pasando)
+
+**Síntoma**
+
+Al ejecutar `pnpm exec playwright test` en local sobre Windows, los 7 tests del proyecto `webkit` pueden terminar todos en `ok` / `7 passed`, pero el proceso completo finaliza con **exit code 1** y un mensaje como:
+
+```
+worker process did not exit within 300000ms, force-killed it
+```
+
+En **CI (GitHub Actions, `ubuntu-latest`)** este problema **no se reproduce** — los 3 navegadores (`chromium`, `firefox`, `webkit`) pasan y el job termina con exit code 0.
+
+**Causa raíz**
+
+- Es un comportamiento conocido de Playwright en combinación con la arquitectura multi-proceso de WebKit en Windows (`Playwright.exe`, `WebKitWebProcess.exe`, `WebKitNetworkProcess.exe`, `WebKitGPUProcess.exe` bajo `%LOCALAPPDATA%\ms-playwright\webkit-*\`). De forma intermitente, alguno de estos procesos auxiliares no termina al llamar a `browser.close()`, lo que impide que el proceso *worker* de Node de Playwright finalice.
+- Playwright espera hasta `PWTEST_CHILD_PROCESS_TIMEOUT` (por defecto **300000 ms = 5 min**) antes de forzar (`force-kill`) la salida del worker. Cualquier `processError` de este tipo marca internamente `hasWorkerErrors = true`, lo que hace que el resultado global de la corrida sea "failed" (exit code 1) **independientemente de que todos los tests individuales hayan pasado**.
+- Es intermitente: no se reproduce en todas las corridas (verificado localmente — una corrida con timeout reducido a 10 s completó los 7 tests de `webkit` con exit code 0 sin colgarse).
+
+**Mitigación aplicada** (`frontend/playwright.config.ts`, `frontend/tests/e2e/global-teardown.ts`)
+
+No es posible eliminar el riesgo al 100% sin parchear Playwright, pero se aplican tres mitigaciones que reducen su frecuencia y acotan su costo, **sin desactivar `webkit` en local**:
+
+1. **Timeout de worker reducido en Windows local**: si `process.platform === 'win32'` y no hay `process.env.CI`, se fija `PWTEST_CHILD_PROCESS_TIMEOUT=30000` (30 s en vez de 5 min) al inicio de `playwright.config.ts`. Si el cuelgue ocurre, el `force-kill` llega en 30 s en vez de 5 min. **No afecta a CI** (`ubuntu-latest`), que mantiene el timeout por defecto.
+2. **`workers: 1` en Windows local**: reduce la cantidad de procesos WebKit concurrentes (uno de los factores que aumenta la probabilidad del cuelgue), serializando la ejecución de los 3 proyectos (`chromium`, `firefox`, `webkit`) solo en Windows local. CI ya usa `workers: 1`.
+3. **`globalTeardown` (`tests/e2e/global-teardown.ts`)**: al finalizar la corrida, en Windows hace `taskkill /F /IM <proceso> /T` best-effort sobre `Playwright.exe`, `WebKitWebProcess.exe`, `WebKitNetworkProcess.exe` y `WebKitGPUProcess.exe`, para no acumular procesos zombi entre corridas sucesivas. No-op en CI/Linux.
+
+**Guía para desarrolladores (Windows local)**
+
+- Si ves `7 passed` (o el total esperado) seguido de `worker process did not exit ... force-killed it` y exit code 1, **es el falso positivo conocido (RB-07)** — revisa el reporte (`playwright-report/index.html`) para confirmar que todos los tests están en verde; no indica una regresión.
+- CI (`ubuntu-latest`) no se ve afectado por este problema — un PR no debe bloquearse por esto.
+- Si necesitas iterar rápido sobre `webkit` sin esperar el `force-kill`, puedes correr ese proyecto por separado: `pnpm exec playwright test --project=webkit`.
+
 ---
 
 # Hallazgos

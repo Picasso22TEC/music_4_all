@@ -13,6 +13,7 @@ import asyncio
 import json
 import time
 
+import anyio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.core import redis_client as rc
@@ -164,18 +165,22 @@ async def websocket_downloads(websocket: WebSocket) -> None:
                 break
 
     # ── Phase E: Clean lifecycle ──────────────────────────────────────────────
+    # Shielded: if the surrounding task is being cancelled (e.g. abrupt client
+    # disconnect detected via task cancellation), the pubsub subscription and
+    # socket must still be released to avoid leaking Redis connections.
     finally:
-        relay.cancel()
-        await asyncio.gather(relay, return_exceptions=True)
-        try:
-            await pubsub.unsubscribe(rc.REDIS_ALL_JOBS_CHANNEL)
-        except Exception:
-            pass
-        try:
-            await pubsub.aclose()
-        except Exception:
-            pass
-        try:
-            await websocket.close()
-        except Exception:
-            pass
+        with anyio.CancelScope(shield=True):
+            relay.cancel()
+            await asyncio.gather(relay, return_exceptions=True)
+            try:
+                await pubsub.unsubscribe(rc.REDIS_ALL_JOBS_CHANNEL)
+            except Exception:
+                pass
+            try:
+                await pubsub.aclose()
+            except Exception:
+                pass
+            try:
+                await websocket.close()
+            except Exception:
+                pass

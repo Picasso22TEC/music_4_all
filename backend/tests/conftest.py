@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -13,6 +13,45 @@ from app.main import app
 def api_client():
     """Cliente HTTP para pruebas de FastAPI."""
     return TestClient(app)
+
+
+@pytest.fixture
+def api_client_with_state():
+    """Cliente HTTP de FastAPI con `app.state.engine`/`app.state.redis` mockeados.
+
+    `api_client` crea un `TestClient(app)` sin usarlo como context manager, por lo
+    que el `lifespan` de la app nunca se ejecuta y `app.state.engine` /
+    `app.state.redis` no existen (`AttributeError`). Este fixture inicializa
+    mocks mínimos para esos atributos -- requeridos por dependencias como
+    `get_authenticated_engine` y por endpoints que leen `app.state.redis` -- y
+    restaura el estado previo de `app.state` al finalizar para no afectar a
+    otras pruebas que comparten la misma instancia global de `app`.
+    """
+    had_engine = hasattr(app.state, "engine")
+    had_redis = hasattr(app.state, "redis")
+    prev_engine = getattr(app.state, "engine", None)
+    prev_redis = getattr(app.state, "redis", None)
+
+    engine_mock = MagicMock()
+    engine_mock.check_auth.return_value = True
+
+    redis_mock = MagicMock()
+    redis_mock.get = AsyncMock(return_value=None)
+
+    app.state.engine = engine_mock
+    app.state.redis = redis_mock
+
+    try:
+        yield TestClient(app)
+    finally:
+        if had_engine:
+            app.state.engine = prev_engine
+        else:
+            del app.state.engine
+        if had_redis:
+            app.state.redis = prev_redis
+        else:
+            del app.state.redis
 
 
 @pytest.fixture

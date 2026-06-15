@@ -122,17 +122,17 @@ class TestDownloadFlow:
 class TestDownloadError:
     """Pruebas de manejo de errores en descarga."""
 
-    def test_invalid_track_id(self, api_client):
+    def test_invalid_track_id(self, api_client_with_state):
         """Verificar error con track ID inválido."""
-        response = api_client.post("/download/start", params={"track_id": "-1"})
-        
+        response = api_client_with_state.post("/download/start", params={"track_id": "-1"})
+
         # Debe aceptar el request pero posiblemente fallar en validación
         assert response.status_code in (200, 400, 422)
 
-    def test_invalid_job_id(self, api_client):
+    def test_invalid_job_id(self, api_client_with_state):
         """Verificar manejo de job ID inválido."""
-        response = api_client.get("/download/status/invalid-job")
-        
+        response = api_client_with_state.get("/download/status/invalid-job")
+
         # Debe devolver 200 (hay endpoint) pero job no existe
         assert response.status_code in (200, 404)
 
