@@ -16,6 +16,7 @@ pause_event (threading.Event)
     When set the worker blocks (asyncio.sleep loop) until the event is cleared
     by PATCH { action: "resume" }.  The current track always completes first.
 """
+
 from __future__ import annotations
 
 import threading

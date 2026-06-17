@@ -11,6 +11,7 @@ Para headless (CI):
     uv run locust -f tests/load/locustfile.py --host http://localhost:8000 \\
         --headless -u 20 -r 5 --run-time 60s
 """
+
 from locust import HttpUser, between, task
 
 

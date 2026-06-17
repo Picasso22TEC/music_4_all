@@ -56,7 +56,9 @@ class MetadataRepository:
             )
 
         # Playlists
-        playlists = raw.get("playlists", []) if isinstance(raw, dict) else getattr(raw, "playlists", [])
+        playlists = (
+            raw.get("playlists", []) if isinstance(raw, dict) else getattr(raw, "playlists", [])
+        )
         for playlist in playlists:
             results.append(
                 SearchResult(

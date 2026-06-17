@@ -6,6 +6,7 @@ Covers:
     Concurrency cap     — at most N jobs run simultaneously
     Config              — MAX_CONCURRENT_DOWNLOADS exposed in Settings
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -16,6 +17,7 @@ from app.config import settings
 from app.core.worker import _run_with_semaphore
 
 # ─── _run_with_semaphore ──────────────────────────────────────────────────────
+
 
 class TestRunWithSemaphore:
     async def test_releases_slot_on_success(self) -> None:
@@ -62,6 +64,7 @@ class TestRunWithSemaphore:
 
 
 # ─── Concurrency cap ──────────────────────────────────────────────────────────
+
 
 class TestConcurrencyCap:
     async def test_at_most_n_tasks_run_concurrently(self) -> None:
@@ -124,6 +127,7 @@ class TestConcurrencyCap:
 
 
 # ─── Config ───────────────────────────────────────────────────────────────────
+
 
 class TestConfig:
     def test_max_concurrent_downloads_default_is_3(self) -> None:

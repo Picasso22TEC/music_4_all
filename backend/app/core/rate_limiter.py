@@ -2,6 +2,7 @@
 Configuración central del rate limiter (slowapi).
 Límites por IP usando Redis como backend para consistencia multi-instancia.
 """
+
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 

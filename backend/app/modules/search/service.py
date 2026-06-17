@@ -10,7 +10,9 @@ class SearchV2Service:
     def __init__(self) -> None:
         self._repo = SearchV2Repository()
 
-    async def search(self, query: str, limit: int, engine: TidalDownloader) -> SearchResultsResponse:
+    async def search(
+        self, query: str, limit: int, engine: TidalDownloader
+    ) -> SearchResultsResponse:
         return await asyncio.to_thread(self._repo.search, query, limit, engine)
 
     async def resolve_url(self, url: str, engine: TidalDownloader) -> ResolveUrlResponse:

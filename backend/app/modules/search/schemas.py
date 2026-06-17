@@ -19,12 +19,12 @@ class AlbumOut(BaseModel):
     id: str
     title: str
     artist: ArtistOut
-    cover: str                     # UUID formato Tidal
-    release_date: str              # "YYYY-MM-DD"
+    cover: str  # UUID formato Tidal
+    release_date: str  # "YYYY-MM-DD"
     number_of_tracks: int
-    duration: int                  # segundos
-    audio_quality: str             # "MASTER" | "HIRES" | "HIGH" | "NORMAL"
-    audio_modes: list[str]         # ["MQA", "DOLBY_ATMOS", ...]
+    duration: int  # segundos
+    audio_quality: str  # "MASTER" | "HIRES" | "HIGH" | "NORMAL"
+    audio_modes: list[str]  # ["MQA", "DOLBY_ATMOS", ...]
     upc: str | None = None
     label: LabelOut | None = None
     genre: str | None = None
@@ -39,7 +39,7 @@ class TrackOut(BaseModel):
     audio_modes: list[str]
     isrc: str | None = None
     artist: ArtistOut
-    album: dict[str, Any] | None = None   # {"id": str, "title": str}
+    album: dict[str, Any] | None = None  # {"id": str, "title": str}
 
 
 class PlaylistOut(BaseModel):
@@ -50,6 +50,7 @@ class PlaylistOut(BaseModel):
 
 
 # ─── Paginación ───────────────────────────────────────────────────────────────
+
 
 class PaginatedAlbums(BaseModel):
     items: list[AlbumOut]
@@ -74,6 +75,7 @@ class PaginatedPlaylists(BaseModel):
 
 # ─── Responses ────────────────────────────────────────────────────────────────
 
+
 class SearchResultsResponse(BaseModel):
     albums: PaginatedAlbums
     tracks: PaginatedTracks
@@ -81,7 +83,7 @@ class SearchResultsResponse(BaseModel):
 
 
 class ResolveUrlResponse(BaseModel):
-    type: str                      # "album" | "track" | "playlist"
+    type: str  # "album" | "track" | "playlist"
     id: str
     data: AlbumOut | TrackOut | PlaylistOut
 

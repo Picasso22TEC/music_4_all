@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,27 +24,23 @@ class HistoryRepository:
             quality=quality,
             cover_url=cover_url,
             job_id=job_id,
-            downloaded_at=datetime.now(timezone.utc),
+            downloaded_at=datetime.now(UTC),
         )
         session.add(record)
         await session.commit()
         await session.refresh(record)
         return record
 
-    async def get_all(
-        self, session: AsyncSession, limit: int = 100
-    ) -> list[DownloadRecord]:
+    async def get_all(self, session: AsyncSession, limit: int = 100) -> list[DownloadRecord]:
         result = await session.execute(
-            select(DownloadRecord)
-            .order_by(DownloadRecord.downloaded_at.desc())
-            .limit(limit)
+            select(DownloadRecord).order_by(DownloadRecord.downloaded_at.desc()).limit(limit)
         )
         return list(result.scalars().all())
 
     async def get_stats(self, session: AsyncSession) -> dict:
         total = await session.scalar(select(func.count(DownloadRecord.id))) or 0
 
-        today = datetime.now(timezone.utc).date()
+        today = datetime.now(UTC).date()
         today_count = (
             await session.scalar(
                 select(func.count(DownloadRecord.id)).where(
@@ -69,7 +65,7 @@ class HistoryRepository:
             id=str(uuid.uuid4()),
             event=event,
             detail=detail,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         session.add(log)
         await session.commit()

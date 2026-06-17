@@ -3,6 +3,7 @@ Logging estructurado en formato JSON.
 Cada evento incluye: timestamp, level, service, message.
 El worker añade job_id y otros campos de contexto vía LoggerAdapter.
 """
+
 import logging
 import sys
 

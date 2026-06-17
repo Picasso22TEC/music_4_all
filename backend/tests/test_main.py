@@ -1,9 +1,5 @@
 """Tests del backend - Punto de entrada para todas las pruebas."""
 
-import pytest
-from fastapi.testclient import TestClient
-from app.main import app
-
 
 class TestMainApp:
     """Tests principales de la aplicación."""

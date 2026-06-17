@@ -22,6 +22,7 @@ from .schemas import (
 
 # ─── Helpers de mapeo ─────────────────────────────────────────────────────────
 
+
 def _map_audio_quality(q: object) -> str:
     """Convierte quality de tidalapi al string del spec."""
     if q is None:
@@ -134,6 +135,7 @@ def _playlist_to_out(playlist: object) -> PlaylistOut:
 
 # ─── Repository ───────────────────────────────────────────────────────────────
 
+
 class SearchV2Repository:
     def search(self, query: str, limit: int, engine: TidalDownloader) -> SearchResultsResponse:
         try:
@@ -147,7 +149,9 @@ class SearchV2Repository:
             return SearchResultsResponse(
                 albums=PaginatedAlbums(items=[], total_number_of_items=0, limit=limit, offset=0),
                 tracks=PaginatedTracks(items=[], total_number_of_items=0, limit=limit, offset=0),
-                playlists=PaginatedPlaylists(items=[], total_number_of_items=0, limit=limit, offset=0),
+                playlists=PaginatedPlaylists(
+                    items=[], total_number_of_items=0, limit=limit, offset=0
+                ),
             )
 
         def _list(key: str) -> list:
@@ -191,7 +195,9 @@ class SearchV2Repository:
             return ResolveUrlResponse(type="track", id=str(item_id), data=_track_to_out(track))
         elif kind == "playlist":
             playlist = engine.session.playlist(item_id)
-            return ResolveUrlResponse(type="playlist", id=str(item_id), data=_playlist_to_out(playlist))
+            return ResolveUrlResponse(
+                type="playlist", id=str(item_id), data=_playlist_to_out(playlist)
+            )
 
         raise ValueError(f"Tipo no soportado: {kind}")
 

@@ -32,9 +32,13 @@ async def start_download(
     except ValueError as exc:
         raise ApiException("INVALID_URL", str(exc), 400, retriable=False) from exc
     except tidal_exc.ItemNotFound as exc:
-        raise ApiException("NOT_FOUND", "Recurso no encontrado en Tidal", 404, retriable=False) from exc
+        raise ApiException(
+            "NOT_FOUND", "Recurso no encontrado en Tidal", 404, retriable=False
+        ) from exc
     except (tidal_exc.UserNotLoggedIn, AttributeError) as exc:
-        raise ApiException("SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False) from exc
+        raise ApiException(
+            "SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False
+        ) from exc
     except RuntimeError as exc:
         raise ApiException("SERVER_ERROR", str(exc), 500, retriable=True) from exc
 

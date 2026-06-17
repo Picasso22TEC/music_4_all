@@ -10,6 +10,7 @@ from app.modules.session.service import SessionService, _ensure_https
 
 # ─── _ensure_https ────────────────────────────────────────────────────────────
 
+
 class TestEnsureHttps:
     def test_empty_string_returns_empty(self):
         assert _ensure_https("") == ""
@@ -44,6 +45,7 @@ class TestEnsureHttps:
 
 
 # ─── SessionService.start_device_auth ────────────────────────────────────────
+
 
 def _make_link(
     *,

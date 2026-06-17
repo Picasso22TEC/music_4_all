@@ -8,6 +8,7 @@ Covers:
     Mixed sets            — only stale jobs reconciled in a heterogeneous set
     WS events             — publish called for every reconciled job
 """
+
 from __future__ import annotations
 
 import json
@@ -46,11 +47,14 @@ def _persisted_state(redis: MagicMock) -> dict:
 
 # ─── Stale status detection ───────────────────────────────────────────────────
 
+
 class TestStaleDetection:
     async def test_downloading_job_marked_failed(self) -> None:
-        redis = _make_redis([
-            {"job_id": "j1", "status": "downloading", "spec_status": "active", "title": "X"},
-        ])
+        redis = _make_redis(
+            [
+                {"job_id": "j1", "status": "downloading", "spec_status": "active", "title": "X"},
+            ]
+        )
 
         count = await reconcile_stale_jobs(redis)
 
@@ -61,9 +65,11 @@ class TestStaleDetection:
         assert "reinicio" in state["error"].lower()
 
     async def test_started_job_marked_failed(self) -> None:
-        redis = _make_redis([
-            {"job_id": "j2", "status": "started", "spec_status": "", "title": "Y"},
-        ])
+        redis = _make_redis(
+            [
+                {"job_id": "j2", "status": "started", "spec_status": "", "title": "Y"},
+            ]
+        )
 
         count = await reconcile_stale_jobs(redis)
 
@@ -72,18 +78,22 @@ class TestStaleDetection:
 
     async def test_active_spec_status_alone_triggers_reconciliation(self) -> None:
         # spec_status=="active" is enough even if status field is unexpected
-        redis = _make_redis([
-            {"job_id": "j3", "status": "pending", "spec_status": "active", "title": "Z"},
-        ])
+        redis = _make_redis(
+            [
+                {"job_id": "j3", "status": "pending", "spec_status": "active", "title": "Z"},
+            ]
+        )
 
         count = await reconcile_stale_jobs(redis)
 
         assert count == 1
 
     async def test_ws_event_published_for_stale_job(self) -> None:
-        redis = _make_redis([
-            {"job_id": "j4", "status": "downloading", "spec_status": "active", "title": "A"},
-        ])
+        redis = _make_redis(
+            [
+                {"job_id": "j4", "status": "downloading", "spec_status": "active", "title": "A"},
+            ]
+        )
 
         await reconcile_stale_jobs(redis)
 
@@ -93,35 +103,50 @@ class TestStaleDetection:
 
 # ─── Untouched states ─────────────────────────────────────────────────────────
 
+
 class TestUntouchedStates:
     async def test_completed_job_untouched(self) -> None:
-        redis = _make_redis([
-            {"job_id": "c1", "status": "completed", "spec_status": "completed", "title": "B"},
-        ])
+        redis = _make_redis(
+            [
+                {"job_id": "c1", "status": "completed", "spec_status": "completed", "title": "B"},
+            ]
+        )
 
         assert await reconcile_stale_jobs(redis) == 0
         redis.setex.assert_not_awaited()
 
     async def test_paused_job_untouched(self) -> None:
-        redis = _make_redis([
-            {"job_id": "p1", "status": "paused", "spec_status": "paused", "title": "C"},
-        ])
+        redis = _make_redis(
+            [
+                {"job_id": "p1", "status": "paused", "spec_status": "paused", "title": "C"},
+            ]
+        )
 
         assert await reconcile_stale_jobs(redis) == 0
         redis.setex.assert_not_awaited()
 
     async def test_queued_job_untouched(self) -> None:
-        redis = _make_redis([
-            {"job_id": "q1", "status": "pending", "spec_status": "queued", "title": "D"},
-        ])
+        redis = _make_redis(
+            [
+                {"job_id": "q1", "status": "pending", "spec_status": "queued", "title": "D"},
+            ]
+        )
 
         assert await reconcile_stale_jobs(redis) == 0
         redis.setex.assert_not_awaited()
 
     async def test_error_job_untouched(self) -> None:
-        redis = _make_redis([
-            {"job_id": "e1", "status": "failed", "spec_status": "error", "title": "E", "error": "X"},
-        ])
+        redis = _make_redis(
+            [
+                {
+                    "job_id": "e1",
+                    "status": "failed",
+                    "spec_status": "error",
+                    "title": "E",
+                    "error": "X",
+                },
+            ]
+        )
 
         assert await reconcile_stale_jobs(redis) == 0
         redis.setex.assert_not_awaited()
@@ -134,15 +159,23 @@ class TestUntouchedStates:
 
 # ─── Mixed sets ───────────────────────────────────────────────────────────────
 
+
 class TestMixedSets:
     async def test_only_stale_jobs_reconciled(self) -> None:
-        redis = _make_redis([
-            {"job_id": "s1", "status": "downloading", "spec_status": "active", "title": "S1"},
-            {"job_id": "s2", "status": "started", "spec_status": "", "title": "S2"},
-            {"job_id": "ok1", "status": "completed", "spec_status": "completed", "title": "OK1"},
-            {"job_id": "ok2", "status": "paused", "spec_status": "paused", "title": "OK2"},
-            {"job_id": "ok3", "status": "pending", "spec_status": "queued", "title": "OK3"},
-        ])
+        redis = _make_redis(
+            [
+                {"job_id": "s1", "status": "downloading", "spec_status": "active", "title": "S1"},
+                {"job_id": "s2", "status": "started", "spec_status": "", "title": "S2"},
+                {
+                    "job_id": "ok1",
+                    "status": "completed",
+                    "spec_status": "completed",
+                    "title": "OK1",
+                },
+                {"job_id": "ok2", "status": "paused", "spec_status": "paused", "title": "OK2"},
+                {"job_id": "ok3", "status": "pending", "spec_status": "queued", "title": "OK3"},
+            ]
+        )
 
         count = await reconcile_stale_jobs(redis)
 
@@ -150,16 +183,18 @@ class TestMixedSets:
         assert redis.setex.await_count == 2
 
     async def test_original_fields_preserved_in_recovered_state(self) -> None:
-        redis = _make_redis([
-            {
-                "job_id": "j10",
-                "status": "downloading",
-                "spec_status": "active",
-                "title": "Preservation",
-                "progress": 42.0,
-                "album_id": "999",
-            },
-        ])
+        redis = _make_redis(
+            [
+                {
+                    "job_id": "j10",
+                    "status": "downloading",
+                    "spec_status": "active",
+                    "title": "Preservation",
+                    "progress": 42.0,
+                    "album_id": "999",
+                },
+            ]
+        )
 
         await reconcile_stale_jobs(redis)
 
@@ -170,6 +205,7 @@ class TestMixedSets:
 
 
 # ─── Idempotency ──────────────────────────────────────────────────────────────
+
 
 class TestIdempotency:
     async def test_second_call_on_already_failed_job_does_nothing(self) -> None:

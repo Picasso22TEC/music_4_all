@@ -27,7 +27,7 @@ class StartDownloadRequest(BaseModel):
 
 class StartDownloadResponse(BaseModel):
     job_id: str
-    status: str             # "queued"
+    status: str  # "queued"
     estimated_tracks: int
 
 

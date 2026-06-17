@@ -8,6 +8,7 @@ Covers:
     4. Relay        — Redis pubsub message → transformed spec message delivered
     5. Cleanup      — pubsub.unsubscribe + aclose called on disconnect
 """
+
 from __future__ import annotations
 
 import json
@@ -105,12 +106,14 @@ class TestRelay:
     def test_progress_message_transformed_and_delivered(self) -> None:
         flat = {
             "type": "message",
-            "data": json.dumps({
-                "job_id": "abc-123",
-                "status": "downloading",
-                "progress": 55.0,
-                "title": "Test Album",
-            }),
+            "data": json.dumps(
+                {
+                    "job_id": "abc-123",
+                    "status": "downloading",
+                    "progress": 55.0,
+                    "title": "Test Album",
+                }
+            ),
         }
         client, _ = _setup(messages=[flat])
         with client.websocket_connect("/ws/downloads") as ws:
@@ -123,12 +126,14 @@ class TestRelay:
     def test_job_started_message_relayed(self) -> None:
         flat = {
             "type": "message",
-            "data": json.dumps({
-                "job_id": "abc-789",
-                "title": "Test Album",
-                "status": "started",
-                "started_at": "2024-06-01T12:00:00+00:00",
-            }),
+            "data": json.dumps(
+                {
+                    "job_id": "abc-789",
+                    "title": "Test Album",
+                    "status": "started",
+                    "started_at": "2024-06-01T12:00:00+00:00",
+                }
+            ),
         }
         client, _ = _setup(messages=[flat])
         with client.websocket_connect("/ws/downloads") as ws:
@@ -140,17 +145,19 @@ class TestRelay:
     def test_enriched_progress_fields_delivered(self) -> None:
         flat = {
             "type": "message",
-            "data": json.dumps({
-                "job_id": "enr-001",
-                "status": "downloading",
-                "progress": 60.0,
-                "title": "OK Computer",
-                "current_track_filename": "03 - Karma Police.flac",
-                "completed_tracks": 2,
-                "total_tracks": 10,
-                "speed_mbps": 0.0,
-                "eta_seconds": 45,
-            }),
+            "data": json.dumps(
+                {
+                    "job_id": "enr-001",
+                    "status": "downloading",
+                    "progress": 60.0,
+                    "title": "OK Computer",
+                    "current_track_filename": "03 - Karma Police.flac",
+                    "completed_tracks": 2,
+                    "total_tracks": 10,
+                    "speed_mbps": 0.0,
+                    "eta_seconds": 45,
+                }
+            ),
         }
         client, _ = _setup(messages=[flat])
         with client.websocket_connect("/ws/downloads") as ws:
@@ -166,11 +173,13 @@ class TestRelay:
         # flat_to_spec_message returns None for unknown status → relay drops it
         flat = {
             "type": "message",
-            "data": json.dumps({
-                "job_id": "abc-456",
-                "status": "unknown_status",
-                "progress": 0.0,
-            }),
+            "data": json.dumps(
+                {
+                    "job_id": "abc-456",
+                    "status": "unknown_status",
+                    "progress": 0.0,
+                }
+            ),
         }
         client, _ = _setup(messages=[flat])
         with client.websocket_connect("/ws/downloads") as ws:

@@ -2,14 +2,13 @@
 Validación y sanitización de URLs de Tidal.
 Ninguna URL se procesa sin pasar por estas funciones.
 """
+
 import re
 from urllib.parse import urlparse
 
 _ALLOWED_SCHEMES = {"https", "http"}
 _ALLOWED_HOSTS = {"tidal.com", "listen.tidal.com", "www.tidal.com"}
-_TIDAL_PATH_RE = re.compile(
-    r"^/(browse/)?(album|track|playlist)/[\w\-]+", re.IGNORECASE
-)
+_TIDAL_PATH_RE = re.compile(r"^/(browse/)?(album|track|playlist)/[\w\-]+", re.IGNORECASE)
 
 
 def sanitize_tidal_url(url: str) -> str:
@@ -24,7 +23,7 @@ def sanitize_tidal_url(url: str) -> str:
     try:
         parsed = urlparse(url)
     except Exception:
-        raise ValueError("URL malformada")
+        raise ValueError("URL malformada") from None
 
     if parsed.scheme.lower() not in _ALLOWED_SCHEMES:
         raise ValueError(f"Esquema no permitido: {parsed.scheme!r}. Usar https://")

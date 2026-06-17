@@ -9,6 +9,7 @@ Tests cover all status values that the worker can publish:
     pending     → job_resumed     (published via PATCH resume / retry)
     unknown     → None (dropped)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -17,11 +18,13 @@ from app.modules.download.ws_mapper import flat_to_spec_message
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _base(status: str, **kwargs: object) -> dict[str, object]:
     return {"job_id": "test-uuid-1234", "title": "OK Computer", "status": status, **kwargs}
 
 
 # ─── downloading → progress ───────────────────────────────────────────────────
+
 
 class TestDownloading:
     def test_type_is_progress(self) -> None:
@@ -77,6 +80,7 @@ class TestDownloading:
 
 # ─── completed → job_completed ────────────────────────────────────────────────
 
+
 class TestCompleted:
     def test_type_is_job_completed(self) -> None:
         result = flat_to_spec_message(_base("completed", file_path="/tmp/album.zip"))
@@ -107,6 +111,7 @@ class TestCompleted:
 
 
 # ─── failed → job_error ───────────────────────────────────────────────────────
+
 
 class TestFailed:
     def test_type_is_job_error(self) -> None:
@@ -145,6 +150,7 @@ class TestFailed:
 
 # ─── paused → job_paused ──────────────────────────────────────────────────────
 
+
 class TestPaused:
     def test_type_is_job_paused(self) -> None:
         result = flat_to_spec_message(_base("paused"))
@@ -159,6 +165,7 @@ class TestPaused:
 
 # ─── pending → job_resumed ────────────────────────────────────────────────────
 
+
 class TestPending:
     def test_type_is_job_resumed(self) -> None:
         result = flat_to_spec_message(_base("pending"))
@@ -172,6 +179,7 @@ class TestPending:
 
 
 # ─── unknown / unhandled status → None ───────────────────────────────────────
+
 
 class TestUnknownStatus:
     @pytest.mark.parametrize("status", ["", "unknown", "queued", "active", "error"])
@@ -189,6 +197,7 @@ class TestUnknownStatus:
 
 
 # ─── started → job_started ───────────────────────────────────────────────────
+
 
 class TestStarted:
     def test_type_is_job_started(self) -> None:
@@ -219,6 +228,7 @@ class TestStarted:
 
 
 # ─── downloading → progress (RM-06 enriched fields) ─────────────────────────
+
 
 class TestDownloadingEnriched:
     def test_completed_tracks_from_data(self) -> None:
@@ -294,6 +304,7 @@ class TestDownloadingEnriched:
 
 
 # ─── Edge cases ───────────────────────────────────────────────────────────────
+
 
 class TestEdgeCases:
     def test_missing_job_id_becomes_empty_string(self) -> None:

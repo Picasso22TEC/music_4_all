@@ -30,6 +30,7 @@ Notes on "pending" status in the channel:
     - Both resume and retry re-enqueue the job as "pending", so both are mapped
       to "job_resumed" which signals the frontend that work is restarting.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

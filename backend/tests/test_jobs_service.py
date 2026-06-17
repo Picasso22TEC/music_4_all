@@ -7,6 +7,7 @@ Focuses on the new RM-07 behaviour:
              if worker gone: falls back to re-enqueue (existing path)
     cancel — sets cancel_event AND publishes WS event (bug fix)
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -49,17 +50,22 @@ def _make_app_state(registry: JobControlRegistry, state: dict) -> MagicMock:
 
 # ─── Pause ────────────────────────────────────────────────────────────────────
 
+
 class TestPause:
     async def test_pause_sets_pause_event_on_active_worker(self) -> None:
         reg = JobControlRegistry()
         ctrl = reg.register("job-123")
         app_state = _make_app_state(reg, _BASE_STATE)
 
-        with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get, \
-             patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock), \
-             patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock):
+        with (
+            patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get,
+            patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock),
+            patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock),
+        ):
             mock_get.return_value = _BASE_STATE
-            result = await JobService().update_job("job-123", UpdateJobRequest(action="pause"), app_state)
+            result = await JobService().update_job(
+                "job-123", UpdateJobRequest(action="pause"), app_state
+            )
 
         assert ctrl.pause_event.is_set()
         assert result.status == "paused"
@@ -68,11 +74,17 @@ class TestPause:
         reg = JobControlRegistry()  # no ctrl registered
         app_state = _make_app_state(reg, _BASE_STATE)
 
-        with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get, \
-             patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock) as mock_set, \
-             patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock) as mock_pub:
+        with (
+            patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get,
+            patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock) as mock_set,
+            patch(
+                "app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock
+            ) as mock_pub,
+        ):
             mock_get.return_value = _BASE_STATE
-            result = await JobService().update_job("job-123", UpdateJobRequest(action="pause"), app_state)
+            result = await JobService().update_job(
+                "job-123", UpdateJobRequest(action="pause"), app_state
+            )
 
         mock_set.assert_awaited_once()
         mock_pub.assert_awaited_once()
@@ -85,10 +97,13 @@ class TestPause:
         with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = _PAUSED_STATE
             with pytest.raises(ValueError, match="No se puede pausar"):
-                await JobService().update_job("job-123", UpdateJobRequest(action="pause"), app_state)
+                await JobService().update_job(
+                    "job-123", UpdateJobRequest(action="pause"), app_state
+                )
 
 
 # ─── Resume ───────────────────────────────────────────────────────────────────
+
 
 class TestResume:
     async def test_resume_clears_pause_event_when_worker_alive(self) -> None:
@@ -97,12 +112,16 @@ class TestResume:
         ctrl.pause_event.set()  # Simulate currently paused
         app_state = _make_app_state(reg, _PAUSED_STATE)
 
-        with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get, \
-             patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock), \
-             patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock), \
-             patch("app.modules.jobs.service.rc.enqueue_job", new_callable=AsyncMock) as mock_enq:
+        with (
+            patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get,
+            patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock),
+            patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock),
+            patch("app.modules.jobs.service.rc.enqueue_job", new_callable=AsyncMock) as mock_enq,
+        ):
             mock_get.return_value = _PAUSED_STATE
-            result = await JobService().update_job("job-123", UpdateJobRequest(action="resume"), app_state)
+            result = await JobService().update_job(
+                "job-123", UpdateJobRequest(action="resume"), app_state
+            )
 
         assert not ctrl.pause_event.is_set()
         mock_enq.assert_not_awaited()  # worker alive → no re-enqueue
@@ -114,9 +133,13 @@ class TestResume:
         ctrl.pause_event.set()
         app_state = _make_app_state(reg, _PAUSED_STATE)
 
-        with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get, \
-             patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock), \
-             patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock) as mock_pub:
+        with (
+            patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get,
+            patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock),
+            patch(
+                "app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock
+            ) as mock_pub,
+        ):
             mock_get.return_value = _PAUSED_STATE
             await JobService().update_job("job-123", UpdateJobRequest(action="resume"), app_state)
 
@@ -124,18 +147,23 @@ class TestResume:
         mock_pub.assert_awaited_once()
         _redis, _job_id, published_data = mock_pub.await_args.args
         from app.modules.download.schemas import DownloadJobStatus
+
         assert published_data.get("status") == DownloadJobStatus.PENDING
 
     async def test_resume_reenqueues_when_worker_gone(self) -> None:
         reg = JobControlRegistry()  # no ctrl for this job
         app_state = _make_app_state(reg, _PAUSED_STATE)
 
-        with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get, \
-             patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock), \
-             patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock), \
-             patch("app.modules.jobs.service.rc.enqueue_job", new_callable=AsyncMock) as mock_enq:
+        with (
+            patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get,
+            patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock),
+            patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock),
+            patch("app.modules.jobs.service.rc.enqueue_job", new_callable=AsyncMock) as mock_enq,
+        ):
             mock_get.return_value = _PAUSED_STATE
-            result = await JobService().update_job("job-123", UpdateJobRequest(action="resume"), app_state)
+            result = await JobService().update_job(
+                "job-123", UpdateJobRequest(action="resume"), app_state
+            )
 
         mock_enq.assert_awaited_once()  # fallback: re-enqueue
         assert result.status == "active"
@@ -147,7 +175,9 @@ class TestResume:
         with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = _BASE_STATE  # state is "active", not "paused"
             with pytest.raises(ValueError, match="No se puede reanudar"):
-                await JobService().update_job("job-123", UpdateJobRequest(action="resume"), app_state)
+                await JobService().update_job(
+                    "job-123", UpdateJobRequest(action="resume"), app_state
+                )
 
     async def test_resume_raises_when_url_unavailable(self) -> None:
         """resume with worker gone and missing album_id/track_id raises ValueError (RM-09.2)."""
@@ -159,10 +189,13 @@ class TestResume:
         with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = broken_state
             with pytest.raises(ValueError, match="faltan album_id y track_id"):
-                await JobService().update_job("job-123", UpdateJobRequest(action="resume"), app_state)
+                await JobService().update_job(
+                    "job-123", UpdateJobRequest(action="resume"), app_state
+                )
 
 
 # ─── Cancel ───────────────────────────────────────────────────────────────────
+
 
 class TestCancel:
     async def test_cancel_sets_cancel_event_on_active_worker(self) -> None:
@@ -170,9 +203,11 @@ class TestCancel:
         ctrl = reg.register("job-123")
         app_state = _make_app_state(reg, _BASE_STATE)
 
-        with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get, \
-             patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock), \
-             patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock):
+        with (
+            patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get,
+            patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock),
+            patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock),
+        ):
             mock_get.return_value = _BASE_STATE
             result = await JobService().cancel_job("job-123", app_state)
 
@@ -183,9 +218,13 @@ class TestCancel:
         reg = JobControlRegistry()
         app_state = _make_app_state(reg, _BASE_STATE)
 
-        with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get, \
-             patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock), \
-             patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock) as mock_pub:
+        with (
+            patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get,
+            patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock),
+            patch(
+                "app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock
+            ) as mock_pub,
+        ):
             mock_get.return_value = _BASE_STATE
             await JobService().cancel_job("job-123", app_state)
 
@@ -197,9 +236,13 @@ class TestCancel:
         reg = JobControlRegistry()  # no ctrl
         app_state = _make_app_state(reg, _BASE_STATE)
 
-        with patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get, \
-             patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock) as mock_set, \
-             patch("app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock) as mock_pub:
+        with (
+            patch("app.modules.jobs.service.rc.get_job_state", new_callable=AsyncMock) as mock_get,
+            patch("app.modules.jobs.service.rc.set_job_state", new_callable=AsyncMock) as mock_set,
+            patch(
+                "app.modules.jobs.service.rc.publish_progress", new_callable=AsyncMock
+            ) as mock_pub,
+        ):
             mock_get.return_value = _BASE_STATE
             result = await JobService().cancel_job("job-123", app_state)
 

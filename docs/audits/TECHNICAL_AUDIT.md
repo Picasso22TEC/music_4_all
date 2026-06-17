@@ -25,8 +25,8 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 |---|---|---|
 | Backend core (descarga, OAuth, búsqueda, historial, jobs) | ✅ Estable, en uso | `docs/architecture.md`, `docs/roadmap.md` |
 | Tests backend | 138/141 pasan (97.9%) | `docs/roadmap.md` §2.3 |
-| Lint backend (`ruff check`) | 104 errores (87 auto-fix) | `docs/roadmap.md` §2.1 |
-| Format backend (`ruff format --check`) | Bloqueante en CI (`lint-backend`) | `.github/workflows/ci.yml` |
+| Lint backend (`ruff check`) | ✅ 0 errores (resuelto TD-01) | `docs/roadmap.md` §2.1 |
+| Format backend (`ruff format --check`) | ✅ 0 errores (resuelto TD-01) | `.github/workflows/ci.yml` |
 | Type-check backend (`mypy`) | 49 errores en 11 archivos, **no en CI** | `docs/roadmap.md` §2.2 |
 | Bandit (seguridad estática) | 0 hallazgos medium/high al ejecutar localmente; CI con `\|\| true` (no bloqueante) | Research SECURITY_AUDIT |
 | Tests frontend | [INEXISTENTE] — sin Jest/Vitest/RTL/Playwright | `docs/roadmap.md` §2.5 |
@@ -35,7 +35,7 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 | Ruta `/downloads` | **No existe** como página, solo como widget `DownloadPanel` | Research UX (Hallazgo nuevo) |
 | `AlbumDetailPanel` | No conectado (`handleOpenAlbum` → `console.info`) | `docs/roadmap.md` §1 |
 | `PlayerBar` | Decorativo, sin elemento `<audio>` | Research UX (Hallazgo nuevo) |
-| Código muerto frontend | Confirmado sin referencias | `docs/roadmap.md` §1, research Architecture |
+| Código muerto frontend | ✅ Eliminado (resuelto TD-08) | `docs/roadmap.md` §1, research Architecture |
 | Código muerto backend (`app/api/v1/`, `app/services/`, `app/schemas/`) | Confirmado sin referencias (**hallazgo nuevo**) | Research Architecture |
 | `prefers-reduced-motion` | [INEXISTENTE] en código, pero asumido como "implementado" en `FRONTEND_VISION.md` §10 | Research UX (Hallazgo nuevo) |
 
@@ -45,11 +45,16 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 
 ## TD-01 — Errores de lint (`ruff check`) no resueltos
 
-- **Descripción**: 104 errores detectados por `ruff check .` en el backend, de los cuales 87 son auto-corregibles con `ruff check . --fix`. La mayoría son `F401` (imports sin usar), concentrados en archivos de tests.
-- **Evidencia**: `docs/roadmap.md` §2.1; `lint-backend` en `.github/workflows/ci.yml` ejecuta `ruff check .` y **sí bloquea** el pipeline si hay errores — por tanto, o bien estos 104 errores fueron contabilizados antes del último lint exitoso, o existen excepciones/excludes que los ocultan. **[REQUIERE VALIDACIÓN]**: confirmar si `ruff check .` actualmente pasa en CI (si pasa, este número está desactualizado y debe refrescarse).
-- **Impacto técnico**: imports sin usar no rompen funcionalidad, pero degradan legibilidad y pueden ocultar refactors incompletos.
-- **Impacto de negocio**: bajo directamente, pero incrementa el costo de onboarding de nuevos desarrolladores y el tiempo de code review.
-- **Recomendación**: ejecutar `ruff check . --fix` para resolver los 87 auto-corregibles en una PR dedicada de limpieza; triar manualmente los 17 restantes.
+- **Estado**: ✅ **Resuelto** (`ruff check` y `ruff format --check` pasan con 0 errores; 157 passed, 2 skipped en `pytest tests/ -q`).
+- **Descripción (original)**: 104 errores detectados por `ruff check .` en el backend, de los cuales 87 eran auto-corregibles con `ruff check . --fix`. La mayoría eran `F401` (imports sin usar), concentrados en archivos de tests.
+- **Resumen de cambios aplicados**:
+  - `ruff check . --fix`: 99 errores corregidos automáticamente (imports desordenados, `Union[X, None]` → `X | None`, `collections.abc`, `F401` en test helpers y archivos `api/v1/`).
+  - `ruff format .`: 64 archivos reformateados (espaciado, longitud de línea, comillas).
+  - Correcciones manuales restantes (12 errores):
+    - `core/sanitizer.py`: `raise ValueError(...) from None` (B904).
+    - `core/tidal.py`: `raise last_exception from e` (B904).
+    - `modules/download/schemas.py`: `DownloadJobStatus(str, Enum)` → `DownloadJobStatus(StrEnum)` (UP042).
+    - `schemas/__init__.py` / `services/__init__.py`: imports convertidos a re-exports explícitos (`X as X`) para satisfacer F401 (módulos de compatibilidad legacy).
 - **Esfuerzo estimado**: S (1 PR, < 1 día).
 - **Prioridad**: P2.
 - **Severidad**: **Low**.
@@ -126,11 +131,25 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 
 ## TD-08 — Código muerto frontend confirmado
 
-- **Descripción**: `frontend/src/store/useAppStore.ts`, `frontend/src/components/` (`DownloadButton.tsx`, `NeonTitle.tsx`, `ProgressBar.tsx`, `VinylCard.tsx`), `frontend/src/hooks/useWebSocket.ts`, `frontend/src/lib/` (`api.ts`, `theme.ts`), y los directorios vacíos `frontend/src/app/dashboard/`, `frontend/src/app/history/`, `frontend/src/app/login/` — todos confirmados **sin ninguna referencia real** (solo aparecen en comentarios que explícitamente los marcan como prohibidos, ver `frontend/src/app/(auth)/login/page.tsx:10`, `frontend/src/app/(app)/dashboard/page.tsx:8`, `frontend/src/app/(app)/history/page.tsx:7`).
-- **Evidencia**: `docs/roadmap.md` §1; research ARCHITECTURE_AUDIT punto 3 (grep exhaustivo, cero imports reales).
-- **Impacto técnico**: ninguno en runtime (no se importa). Aumenta el tamaño del repo y el ruido en búsquedas/IDE.
-- **Impacto de negocio**: riesgo de que un desarrollador nuevo edite estos archivos pensando que son parte del sistema activo (especialmente `VinylCard.tsx`, que podría confundirse con el trabajo de rediseño neón planeado en `FRONTEND_VISION.md`, donde el componente real a skinear es `AlbumCard`).
-- **Recomendación**: eliminar estos archivos y directorios en una PR de limpieza dedicada (`chore: remove dead pre-FSD frontend code`). Bajo riesgo dado que CLAUDE.md regla 4 ya los declara código muerto.
+- **Estado**: ✅ **Resuelto** (todos los archivos eliminados; `pnpm build` pasa sin errores).
+- **Descripción (original)**: `frontend/src/store/useAppStore.ts`, `frontend/src/components/` (`DownloadButton.tsx`, `NeonTitle.tsx`, `ProgressBar.tsx`, `VinylCard.tsx`), `frontend/src/hooks/useWebSocket.ts`, `frontend/src/lib/` (`api.ts`, `theme.ts`), y los directorios vacíos `frontend/src/app/dashboard/`, `frontend/src/app/history/`, `frontend/src/app/login/` — todos confirmados **sin ninguna referencia real** (solo aparecen en comentarios que explícitamente los marcan como prohibidos).
+- **Archivos eliminados**:
+  - `frontend/src/components/DownloadButton.tsx`
+  - `frontend/src/components/NeonTitle.tsx`
+  - `frontend/src/components/ProgressBar.tsx`
+  - `frontend/src/components/VinylCard.tsx`
+  - `frontend/src/components/` (directorio — ahora vacío, eliminado)
+  - `frontend/src/store/useAppStore.ts`
+  - `frontend/src/store/` (directorio — quedó vacío, eliminado)
+  - `frontend/src/hooks/useWebSocket.ts`
+  - `frontend/src/hooks/` (directorio — quedó vacío, eliminado)
+  - `frontend/src/lib/api.ts`
+  - `frontend/src/lib/theme.ts`
+  - `frontend/src/lib/` (directorio — quedó vacío, eliminado)
+  - `frontend/src/app/dashboard/` (directorio vacío)
+  - `frontend/src/app/history/` (directorio vacío)
+  - `frontend/src/app/login/` (directorio vacío)
+- **Verificación pre-eliminación**: grep exhaustivo confirmó 0 imports reales desde ningún archivo activo fuera de `_old/`; las únicas menciones eran en comentarios JSDoc que explícitamente los marcan como prohibidos.
 - **Esfuerzo estimado**: S (1 PR, verificar `pnpm build` tras eliminar).
 - **Prioridad**: P2.
 - **Severidad**: **Low**.
@@ -216,10 +235,10 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 | TD-12 | `PlayerBar` decorativo, sin reproducción real | Medium | Confirmado (nuevo) |
 | TD-13 | `prefers-reduced-motion` ausente, asumido por docs de diseño | Medium | Confirmado |
 | TD-14 | Duplicación OAuth legacy/v2 en memoria | Medium | Confirmado |
-| TD-01 | 104 errores ruff (87 auto-fix) | Low | Confirmado / requiere validación de vigencia |
+| TD-01 | ~~104 errores ruff (87 auto-fix)~~ | ~~Low~~ | ✅ **Resuelto** |
 | TD-06 | Inconsistencia Redis/Valkey CI vs compose | Low | Confirmado |
 | TD-07 | `SECRET_KEY` declarado sin uso | Low | Confirmado |
-| TD-08 | Código muerto frontend | Low | Confirmado |
+| TD-08 | ~~Código muerto frontend~~ | ~~Low~~ | ✅ **Resuelto** |
 | TD-09 | Código muerto backend (`api/v1`, `services`, `schemas`) | Low (potencial Medium) | Requiere validación |
 
 ---

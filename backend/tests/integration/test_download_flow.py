@@ -1,9 +1,5 @@
 """Tests de integración: flujo completo de descarga."""
 
-import pytest
-from unittest.mock import Mock, patch
-import asyncio
-
 
 class TestDownloadFlow:
     """Pruebas del flujo completo de descarga."""
@@ -22,7 +18,7 @@ class TestDownloadFlow:
         required_fields = ["type", "title", "artist", "items", "folder", "year", "quality_badge"]
         for field in required_fields:
             assert field in sample_metadata, f"Falta campo requerido: {field}"
-        
+
         # Validar items
         items = sample_metadata["items"]
         assert len(items) > 0
@@ -48,7 +44,7 @@ class TestDownloadFlow:
         required_fields = ["job_id", "status", "progress", "sample_rate", "bit_depth"]
         for field in required_fields:
             assert field in sample_download_job, f"Falta campo en job: {field}"
-        
+
         job = sample_download_job
         assert isinstance(job["progress"], (int, float))
         assert isinstance(job["sample_rate"], int)
@@ -71,15 +67,15 @@ class TestDownloadFlow:
     def test_progress_boundaries(self, sample_download_job):
         """Verificar límites de progreso."""
         job = sample_download_job
-        
+
         # Min: 0%
         job["progress"] = 0
         assert job["progress"] >= 0
-        
+
         # Max: 100%
         job["progress"] = 1.0
         assert job["progress"] <= 1.0
-        
+
         # Mid-range
         job["progress"] = 0.5
         assert 0 <= job["progress"] <= 1
@@ -102,19 +98,21 @@ class TestDownloadFlow:
     def test_quality_preservation(self, sample_download_job):
         """Verificar que calidad FLAC se preserve."""
         job = sample_download_job
-        
+
         # FLAC debe ser lossless con sample rates altos
         assert job["sample_rate"] >= 44100, "Sample rate muy bajo para FLAC"
         assert job["bit_depth"] >= 16, "Bit depth muy bajo para FLAC"
-        
+
         # Combinaciones válidas
         valid_combinations = [
-            (44100, 16), (44100, 24),  # CD quality y hi-res
-            (48000, 16), (48000, 24),  # 48kHz variants
-            (96000, 24),               # MQA Master Quality
-            (192000, 24)               # Ultra hi-res
+            (44100, 16),
+            (44100, 24),  # CD quality y hi-res
+            (48000, 16),
+            (48000, 24),  # 48kHz variants
+            (96000, 24),  # MQA Master Quality
+            (192000, 24),  # Ultra hi-res
         ]
-        
+
         current = (job["sample_rate"], job["bit_depth"])
         assert current in valid_combinations or job["sample_rate"] >= 44100
 
@@ -140,7 +138,7 @@ class TestDownloadError:
         """Simular timeout de red."""
         timeout_value = 0.001
         max_timeout = 30
-        
+
         assert timeout_value < max_timeout
         assert timeout_value > 0
 
@@ -155,14 +153,13 @@ class TestDownloadError:
     def test_error_recovery(self, sample_download_job):
         """Verificar que errores se registren correctamente."""
         job = sample_download_job.copy()
-        
+
         # Simular error
         job["status"] = "error"
         job["error"] = "Network timeout during download"
         job["progress"] = 0.35
-        
+
         assert job["status"] == "error"
         assert job["error"] is not None
         assert isinstance(job["error"], str)
         assert len(job["error"]) > 0
-

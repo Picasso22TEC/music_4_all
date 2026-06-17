@@ -2,10 +2,11 @@
 
 import os
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
-from unittest.mock import Mock, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
+
 from app.main import app
 
 
@@ -138,13 +139,13 @@ def sample_metadata():
                 "id": 123456789,
                 "name": "Test Track",
                 "artist": {"name": "Test Artist"},
-                "album": {"id": 987654321}
+                "album": {"id": 987654321},
             }
         ],
         "folder": "Test Artist - Test Album",
         "year": "2023",
         "quality_badge": "HIFI",
-        "quality_desc": "44.1kHz / 16bit"
+        "quality_desc": "44.1kHz / 16bit",
     }
 
 
@@ -161,5 +162,5 @@ def sample_download_job():
         "quality_text": "FLAC 48kHz/24bit",
         "sample_rate": 48000,
         "bit_depth": 24,
-        "error": None
+        "error": None,
     }

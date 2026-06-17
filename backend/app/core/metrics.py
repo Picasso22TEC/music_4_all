@@ -3,6 +3,7 @@ Métricas Prometheus personalizadas para Music 4 All.
 Las métricas HTTP generales (latencia, request count, error rate) son
 añadidas automáticamente por prometheus-fastapi-instrumentator en main.py.
 """
+
 from prometheus_client import Counter, Gauge, Histogram
 
 # ── Descargas ─────────────────────────────────────────────────────────────────

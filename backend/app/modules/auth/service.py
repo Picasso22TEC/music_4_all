@@ -22,9 +22,7 @@ class AuthService:
     def __init__(self) -> None:
         self.repository = AuthRepository()
 
-    async def get_status(
-        self, engine: TidalDownloader, app_state
-    ) -> AuthStatusResponse:
+    async def get_status(self, engine: TidalDownloader, app_state) -> AuthStatusResponse:
         if engine.check_auth():
             return AuthStatusResponse(authenticated=True)
 
@@ -49,9 +47,7 @@ class AuthService:
             return AuthStatusResponse(authenticated=True)
 
         app_state.pending_oauth = None
-        return AuthStatusResponse(
-            authenticated=False, message="Autorización fallida o expirada"
-        )
+        return AuthStatusResponse(authenticated=False, message="Autorización fallida o expirada")
 
     async def start_device_auth(self, app_state) -> DeviceAuthResponse:
         session = tidalapi.Session()

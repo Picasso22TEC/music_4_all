@@ -9,6 +9,7 @@ Flujo:
   5. Actualiza job state + publica estado final
   6. Registra métricas Prometheus
 """
+
 import asyncio
 import json
 import time
@@ -105,12 +106,16 @@ async def _process_job(
 
     # Pub/sub-only event — emitted once before downloading begins.
     # Sets startedAt in the frontend store via ws_mapper → job_started.
-    await rc.publish_progress(redis, job_id, {
-        "job_id": job_id,
-        "title": title,
-        "status": DownloadJobStatus.STARTED,
-        "started_at": datetime.now(UTC).isoformat(),
-    })
+    await rc.publish_progress(
+        redis,
+        job_id,
+        {
+            "job_id": job_id,
+            "title": title,
+            "status": DownloadJobStatus.STARTED,
+            "started_at": datetime.now(UTC).isoformat(),
+        },
+    )
     await _update_state(redis, job_id, title, DownloadJobStatus.DOWNLOADING, 0.0)
 
     try:
@@ -151,25 +156,33 @@ async def _process_job(
                 # speed_mbps stays 0.0 — no byte-count data available from TidalDownloader.
                 eta = round(elapsed * (100.0 - ovr) / ovr) if ovr > 0.0 else 0
                 asyncio.run_coroutine_threadsafe(
-                    rc.publish_progress(redis, job_id, {
-                        "job_id": job_id,
-                        "title": title,
-                        "status": DownloadJobStatus.DOWNLOADING,
-                        "progress": ovr,
-                        "completed_tracks": n_done,
-                        "total_tracks": total,
-                        "current_track_filename": name,
-                        "speed_mbps": 0.0,
-                        "eta_seconds": eta,
-                    }),
+                    rc.publish_progress(
+                        redis,
+                        job_id,
+                        {
+                            "job_id": job_id,
+                            "title": title,
+                            "status": DownloadJobStatus.DOWNLOADING,
+                            "progress": ovr,
+                            "completed_tracks": n_done,
+                            "total_tracks": total,
+                            "current_track_filename": name,
+                            "speed_mbps": 0.0,
+                            "eta_seconds": eta,
+                        },
+                    ),
                     loop,
                 )
+
             return cb
 
         try:
             ok, path_or_err, quality, _, _ = await asyncio.to_thread(
                 engine.download_single_track,
-                track, folder, make_cb(i, track_name, done), ctrl.cancel_event,
+                track,
+                folder,
+                make_cb(i, track_name, done),
+                ctrl.cancel_event,
             )
             # download_single_track returns (False, "Cancelado") when cancel_event fires.
             if ctrl.cancel_event.is_set():
@@ -187,15 +200,24 @@ async def _process_job(
                 cover = _cover_url(track)
                 async with session_factory() as session:
                     await _history_repo.save_download(
-                        session, title=track.name, artist=artist,
-                        quality=quality, cover_url=cover, job_id=job_id,
+                        session,
+                        title=track.name,
+                        artist=artist,
+                        quality=quality,
+                        cover_url=cover,
+                        job_id=job_id,
                     )
                     await _history_repo.save_audit(
-                        session, event="download.completed",
-                        detail=json.dumps({"job_id": job_id, "title": track.name, "quality": quality}),
+                        session,
+                        event="download.completed",
+                        detail=json.dumps(
+                            {"job_id": job_id, "title": track.name, "quality": quality}
+                        ),
                     )
             else:
-                log.warning("Track download failed", extra={"track": track.name, "error": path_or_err})
+                log.warning(
+                    "Track download failed", extra={"track": track.name, "error": path_or_err}
+                )
         except Exception as exc:
             log.error("Unexpected error downloading track", extra={"error": str(exc)})
             if ctrl.cancel_event.is_set():
@@ -224,14 +246,20 @@ async def _process_job(
 
         downloads_total.labels(status="completed").inc()
         log.info("Job completed", extra={"duration_s": round(duration, 1), "tracks": total})
-        await _update_state(redis, job_id, title, DownloadJobStatus.COMPLETED, 100.0,
-                            file_path=file_path)
+        await _update_state(
+            redis, job_id, title, DownloadJobStatus.COMPLETED, 100.0, file_path=file_path
+        )
     else:
         downloads_total.labels(status="failed").inc()
         log.warning("Job failed", extra={"done": done, "total": total})
-        await _update_state(redis, job_id, title, DownloadJobStatus.FAILED,
-                            round(done / total * 100, 1),
-                            error=f"{done}/{total} tracks completados")
+        await _update_state(
+            redis,
+            job_id,
+            title,
+            DownloadJobStatus.FAILED,
+            round(done / total * 100, 1),
+            error=f"{done}/{total} tracks completados",
+        )
 
 
 async def _run_with_semaphore(coro, semaphore: asyncio.Semaphore) -> None:
@@ -243,13 +271,21 @@ async def _run_with_semaphore(coro, semaphore: asyncio.Semaphore) -> None:
 
 
 async def _update_state(
-    redis, job_id: str, title: str,
-    status: DownloadJobStatus, progress: float,
-    error: str | None = None, file_path: str | None = None,
+    redis,
+    job_id: str,
+    title: str,
+    status: DownloadJobStatus,
+    progress: float,
+    error: str | None = None,
+    file_path: str | None = None,
 ) -> None:
     state = {
-        "job_id": job_id, "title": title, "status": status,
-        "progress": progress, "error": error, "file_path": file_path,
+        "job_id": job_id,
+        "title": title,
+        "status": status,
+        "progress": progress,
+        "error": error,
+        "file_path": file_path,
     }
     await rc.set_job_state(redis, job_id, state)
     await rc.publish_progress(redis, job_id, state)

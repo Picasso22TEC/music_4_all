@@ -5,9 +5,11 @@ Covers:
     JobControl       — cancel_event and pause_event defaults
     JobControlRegistry — register, get, unregister, len, idempotent unregister
 """
+
 from app.core.job_controls import JobControl, JobControlRegistry
 
 # ─── JobControl ───────────────────────────────────────────────────────────────
+
 
 class TestJobControl:
     def test_cancel_event_unset_by_default(self) -> None:
@@ -41,6 +43,7 @@ class TestJobControl:
 
 
 # ─── JobControlRegistry ───────────────────────────────────────────────────────
+
 
 class TestJobControlRegistry:
     def test_register_returns_job_control(self) -> None:

@@ -7,6 +7,7 @@ Legacy (compatible):
 RM-01 (nuevo):
     /ws/downloads           — canal unificado, con auth (SEC-01)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -26,6 +27,7 @@ router = APIRouter(prefix="/ws", tags=["websocket"])
 # ─────────────────────────────────────────────────────────────────────────────
 # Legacy WS — mantenido para compatibilidad con clientes anteriores
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.websocket("/progress/{job_id}")
 async def websocket_progress(websocket: WebSocket, job_id: str) -> None:
@@ -51,9 +53,7 @@ async def websocket_progress(websocket: WebSocket, job_id: str) -> None:
 
     try:
         while True:
-            message = await pubsub.get_message(
-                ignore_subscribe_messages=True, timeout=1.0
-            )
+            message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
             if message and message["type"] == "message":
                 data = json.loads(message["data"])
                 await websocket.send_json(data)
@@ -75,6 +75,7 @@ async def websocket_progress(websocket: WebSocket, job_id: str) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # RM-01: Unified WebSocket — todos los jobs, mensajes spec, con auth
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.websocket("/downloads")
 async def websocket_downloads(websocket: WebSocket) -> None:
@@ -144,15 +145,15 @@ async def websocket_downloads(websocket: WebSocket) -> None:
     try:
         while True:
             try:
-                incoming: object = await asyncio.wait_for(
-                    websocket.receive_json(), timeout=35.0
-                )
+                incoming: object = await asyncio.wait_for(websocket.receive_json(), timeout=35.0)
                 if isinstance(incoming, dict) and incoming.get("type") == "ping":
                     async with send_lock:
-                        await websocket.send_json({
-                            "type": "pong",
-                            "timestamp": int(time.time() * 1000),
-                        })
+                        await websocket.send_json(
+                            {
+                                "type": "pong",
+                                "timestamp": int(time.time() * 1000),
+                            }
+                        )
             except TimeoutError:
                 try:
                     async with send_lock:

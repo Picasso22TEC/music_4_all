@@ -1,13 +1,13 @@
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, field_validator
 
 from app.core.sanitizer import sanitize_tidal_url
 
 
-class DownloadJobStatus(str, Enum):
+class DownloadJobStatus(StrEnum):
     PENDING = "pending"
-    STARTED = "started"       # pub/sub-only: signals job_started; never stored in Redis state
+    STARTED = "started"  # pub/sub-only: signals job_started; never stored in Redis state
     DOWNLOADING = "downloading"
     COMPLETED = "completed"
     FAILED = "failed"

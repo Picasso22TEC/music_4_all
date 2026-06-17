@@ -1,9 +1,8 @@
-from collections import deque
-from threading import Condition, Event, Thread
-from pathlib import Path
 import time
+from collections import deque
+from pathlib import Path
+from threading import Condition, Event, Thread
 from uuid import uuid4
-from typing import Optional, Dict, Deque
 
 from app.core.tidal import TidalDownloader
 
@@ -21,17 +20,17 @@ class DownloadJob:
             self.title = getattr(track, "name", getattr(track, "title", "Desconocido"))
         self.progress = 0.0
         self.status = "queued"  # queued, downloading, done, error, cancelled
-        self.queue_position: Optional[int] = None
-        self.result_path: Optional[Path] = None
+        self.queue_position: int | None = None
+        self.result_path: Path | None = None
         self.quality_text = ""
-        self.sample_rate: Optional[int] = None
-        self.bit_depth: Optional[int] = None
+        self.sample_rate: int | None = None
+        self.bit_depth: int | None = None
         self.error_message = ""
         self.cancel_event = Event()
-        self.started_at: Optional[float] = None
-        self.finished_at: Optional[float] = None
+        self.started_at: float | None = None
+        self.finished_at: float | None = None
         self.updated_at: float = time.time()
-        self.eta_seconds: Optional[float] = None
+        self.eta_seconds: float | None = None
         self._lock = Event()
 
     def _set_status(self, status: str):
@@ -62,7 +61,7 @@ class DownloadJob:
                 self.track,
                 folder_name=self.folder_name,
                 progress_callback=self._update_progress,
-                cancel_event=self.cancel_event
+                cancel_event=self.cancel_event,
             )
             if ok:
                 self._set_status("done")
@@ -82,6 +81,7 @@ class DownloadJob:
             self.error_message = str(e) or f"Excepción sin mensaje: {type(e).__name__}"
             print(f"💥 [Job {self.job_id}] Excepción: {self.error_message}")
             import traceback
+
             traceback.print_exc()
         finally:
             self.finished_at = time.time()
@@ -107,8 +107,8 @@ class DownloadJob:
 class DownloadManager:
     def __init__(self, engine: TidalDownloader):
         self.engine = engine
-        self.jobs: Dict[str, DownloadJob] = {}
-        self._queue: Deque[DownloadJob] = deque()
+        self.jobs: dict[str, DownloadJob] = {}
+        self._queue: deque[DownloadJob] = deque()
         self._lock = Condition()
         self._worker = Thread(target=self._worker_loop, daemon=True)
         self._worker_started = False
@@ -147,14 +147,14 @@ class DownloadManager:
             self._lock.notify()
         return job.job_id
 
-    def get_job(self, job_id: str) -> Optional[DownloadJob]:
+    def get_job(self, job_id: str) -> DownloadJob | None:
         return self.jobs.get(job_id)
 
     def get_queue_size(self) -> int:
         with self._lock:
             return len(self._queue)
 
-    def get_snapshot(self, job_id: str) -> Optional[dict]:
+    def get_snapshot(self, job_id: str) -> dict | None:
         job = self.get_job(job_id)
         if not job:
             return None

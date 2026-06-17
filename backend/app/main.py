@@ -23,9 +23,9 @@ from app.core.database import AsyncSessionLocal, engine
 from app.core.exceptions import ApiException
 from app.core.job_controls import JobControlRegistry
 from app.core.logging_config import get_logger, setup_logging
-from app.core.reconciliation import reconcile_stale_jobs
 from app.core.models import Base
 from app.core.rate_limiter import limiter
+from app.core.reconciliation import reconcile_stale_jobs
 from app.core.tidal import TidalDownloader
 from app.core.worker import start_worker
 
@@ -73,7 +73,7 @@ async def lifespan(app: FastAPI):
 
     app.state.engine = TidalDownloader(session_data=session_data)
     app.state.pending_oauth = None
-    app.state.pending_oauth_v2 = {}     # dict[device_code → {session, future}]
+    app.state.pending_oauth_v2 = {}  # dict[device_code → {session, future}]
     app.state.job_controls = JobControlRegistry()
 
     # RM-09.1: Mark any in-progress jobs from a previous process as failed
@@ -133,6 +133,7 @@ Instrumentator(
 # ── OpenTelemetry ─────────────────────────────────────────────────────────────
 _setup_tracing()
 FastAPIInstrumentor.instrument_app(app)
+
 
 # ── Handler global de ApiException (produce {"error": {...}}) ─────────────────
 @app.exception_handler(ApiException)

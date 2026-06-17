@@ -26,7 +26,9 @@ async def search(
     try:
         return await _service.search(q, limit, engine)
     except (tidal_exc.UserNotLoggedIn, AttributeError) as exc:
-        raise ApiException("SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False) from exc
+        raise ApiException(
+            "SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False
+        ) from exc
     except Exception as exc:
         raise ApiException("SERVER_ERROR", str(exc), 500, retriable=True) from exc
 
@@ -44,9 +46,13 @@ async def resolve_url(
     except ValueError as exc:
         raise ApiException("INVALID_URL", str(exc), 400, retriable=False) from exc
     except tidal_exc.ItemNotFound as exc:
-        raise ApiException("NOT_FOUND", "Recurso no encontrado en Tidal", 404, retriable=False) from exc
+        raise ApiException(
+            "NOT_FOUND", "Recurso no encontrado en Tidal", 404, retriable=False
+        ) from exc
     except (tidal_exc.UserNotLoggedIn, AttributeError) as exc:
-        raise ApiException("SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False) from exc
+        raise ApiException(
+            "SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False
+        ) from exc
     except Exception as exc:
         raise ApiException("SERVER_ERROR", str(exc), 500, retriable=True) from exc
 
@@ -60,12 +66,18 @@ async def get_album_detail(
 ):
     """Detalle completo de un álbum con todos sus tracks."""
     if not album_id.isdigit():
-        raise ApiException("INVALID_URL", f"album_id debe ser numérico: {album_id}", 400, retriable=False)
+        raise ApiException(
+            "INVALID_URL", f"album_id debe ser numérico: {album_id}", 400, retriable=False
+        )
     try:
         return await _service.get_album_detail(album_id, engine)
     except tidal_exc.ItemNotFound as exc:
-        raise ApiException("NOT_FOUND", f"Álbum {album_id} no encontrado en Tidal", 404, retriable=False) from exc
+        raise ApiException(
+            "NOT_FOUND", f"Álbum {album_id} no encontrado en Tidal", 404, retriable=False
+        ) from exc
     except (tidal_exc.UserNotLoggedIn, AttributeError) as exc:
-        raise ApiException("SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False) from exc
+        raise ApiException(
+            "SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False
+        ) from exc
     except Exception as exc:
         raise ApiException("SERVER_ERROR", str(exc), 500, retriable=True) from exc

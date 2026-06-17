@@ -21,6 +21,7 @@ async def create_client(url: str) -> Redis:
 
 # ─── Session ──────────────────────────────────────────────────────────────────
 
+
 async def save_session(redis: Redis, session_data: dict) -> None:
     ttl = _ttl_from_session(session_data)
     await redis.setex(REDIS_SESSION_KEY, ttl, json.dumps(session_data))
@@ -48,6 +49,7 @@ def _ttl_from_session(session_data: dict) -> int:
 
 # ─── Download history (Redis list — cache rápido) ────────────────────────────
 
+
 async def push_history(redis: Redis, record: dict) -> None:
     await redis.lpush(REDIS_HISTORY_KEY, json.dumps(record))
     await redis.ltrim(REDIS_HISTORY_KEY, 0, HISTORY_MAX_SIZE - 1)
@@ -59,6 +61,7 @@ async def get_history(redis: Redis) -> list[dict]:
 
 
 # ─── Job queue (Redis List como cola FIFO) ────────────────────────────────────
+
 
 async def enqueue_job(redis: Redis, job: dict) -> None:
     """Empuja un job al final de la cola."""
@@ -76,6 +79,7 @@ async def dequeue_job(redis: Redis, timeout: int = 2) -> dict | None:
 
 # ─── Job state ────────────────────────────────────────────────────────────────
 
+
 async def set_job_state(redis: Redis, job_id: str, state: dict) -> None:
     """Persiste el estado de un job con TTL de 24h."""
     await redis.setex(f"{REDIS_JOB_PREFIX}{job_id}", JOB_TTL, json.dumps(state))
@@ -88,6 +92,7 @@ async def get_job_state(redis: Redis, job_id: str) -> dict | None:
 
 
 # ─── Pub/Sub de progreso ──────────────────────────────────────────────────────
+
 
 async def publish_progress(redis: Redis, job_id: str, data: dict) -> None:
     """Publica un update de progreso en el canal del job Y en el canal global (RM-01)."""

@@ -4,6 +4,7 @@ Startup reconciliation — marks stale active jobs as failed on server restart.
 Called once in lifespan, before start_worker(), so the worker never sees
 jobs that were in-flight during a previous process.
 """
+
 from __future__ import annotations
 
 import json

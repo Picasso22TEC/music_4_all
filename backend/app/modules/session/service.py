@@ -60,9 +60,7 @@ def _user_out_from_session(session: object) -> UserOut | None:
             id=str(getattr(user, "id", "") or ""),
             email=str(getattr(user, "email", "") or ""),
             country_code=str(
-                getattr(user, "country_code", "")
-                or getattr(session, "country_code", "")
-                or ""
+                getattr(user, "country_code", "") or getattr(session, "country_code", "") or ""
             ),
             plan=_plan_from_session(session),
         )
@@ -83,6 +81,7 @@ def _expires_at_from_session(session: object) -> str | None:
 
 
 # ─── Service ──────────────────────────────────────────────────────────────────
+
 
 class SessionService:
     async def get_status(self, engine: TidalDownloader) -> SessionStatusResponse:

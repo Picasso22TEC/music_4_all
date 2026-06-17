@@ -18,9 +18,7 @@ class DownloadRepository:
             tracks = list(album.tracks())
             year = album.release_date.year if album.release_date else ""
             title = album.name
-            folder = engine._sanitize_filename(
-                f"{album.artist.name} - [{year}] {album.name}"
-            )
+            folder = engine._sanitize_filename(f"{album.artist.name} - [{year}] {album.name}")
         elif kind == "playlist":
             playlist = engine.session.playlist(item_id)
             tracks = list(playlist.tracks(limit=None))

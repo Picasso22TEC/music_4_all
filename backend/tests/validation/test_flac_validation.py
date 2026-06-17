@@ -4,11 +4,9 @@ import json
 import os
 import shutil
 import subprocess
-import pytest
 from pathlib import Path
-import struct
-from unittest.mock import Mock, patch
 
+import pytest
 from mutagen.flac import FLAC
 
 
@@ -19,34 +17,34 @@ class TestFLACFormat:
         """Verificar que bytes mágicos sean válidos."""
         # Crear archivo con bytes mágicos correctos de FLAC
         test_file = tmp_path / "test.flac"
-        with open(test_file, 'wb') as f:
-            f.write(b'fLaC')  # Magic bytes de FLAC
-            f.write(b'\x00' * 100)  # Datos ficticios
+        with open(test_file, "wb") as f:
+            f.write(b"fLaC")  # Magic bytes de FLAC
+            f.write(b"\x00" * 100)  # Datos ficticios
 
         # Leer y validar
-        with open(test_file, 'rb') as f:
+        with open(test_file, "rb") as f:
             magic = f.read(4)
 
-        assert magic == b'fLaC', f"Magic bytes inválidos: {magic.hex()}"
+        assert magic == b"fLaC", f"Magic bytes inválidos: {magic.hex()}"
 
     def test_flac_not_mp4(self, tmp_path):
         """Verificar que NO sea MP4/AAC."""
         test_file = tmp_path / "fake.flac"
-        with open(test_file, 'wb') as f:
-            f.write(b'\x00\x00\x00\x1c')  # Magic bytes de MP4
-            f.write(b'ftypisom')
-            f.write(b'\x00' * 100)
+        with open(test_file, "wb") as f:
+            f.write(b"\x00\x00\x00\x1c")  # Magic bytes de MP4
+            f.write(b"ftypisom")
+            f.write(b"\x00" * 100)
 
-        with open(test_file, 'rb') as f:
+        with open(test_file, "rb") as f:
             magic = f.read(4)
 
-        assert magic != b'fLaC', "El archivo no debería ser FLAC si tiene magic bytes MP4"
+        assert magic != b"fLaC", "El archivo no debería ser FLAC si tiene magic bytes MP4"
 
     def test_flac_is_lossless(self):
         """Verificar que FLAC sea formato lossless."""
         formats_lossless = ["FLAC", "WAV", "ALAC"]
         formats_lossy = ["MP3", "AAC", "OGG"]
-        
+
         assert "FLAC" in formats_lossless
         assert "FLAC" not in formats_lossy
 
@@ -54,10 +52,10 @@ class TestFLACFormat:
         """Verificar que extensión sea correcta."""
         valid_extensions = [".flac", ".FLAC"]
         invalid_extensions = [".mp3", ".aac", ".m4a"]
-        
+
         test_file = "track.flac"
         ext = Path(test_file).suffix.lower()
-        
+
         assert ext in valid_extensions
         assert ext not in invalid_extensions
 
@@ -72,13 +70,13 @@ class TestFLACMetadata:
             "artist": "Test Artist",
             "album": "Test Album",
             "sample_rate": 48000,
-            "bit_depth": 24
+            "bit_depth": 24,
         }
 
         required_fields = ["title", "artist", "album", "sample_rate", "bit_depth"]
         for field in required_fields:
             assert field in metadata, f"Falta campo de metadatos: {field}"
-        
+
         assert isinstance(metadata["title"], str)
         assert len(metadata["title"]) > 0
 
@@ -89,9 +87,9 @@ class TestFLACMetadata:
             "artist": "Test Artist",
             "sample_rate": 48000,
             "bit_depth": 24,
-            "duration": 180.5
+            "duration": 180.5,
         }
-        
+
         assert isinstance(metadata["title"], str)
         assert isinstance(metadata["artist"], str)
         assert isinstance(metadata["sample_rate"], int)
@@ -104,7 +102,7 @@ class TestFLACMetadata:
             "title": "Test Track",
             "artist": "Test Artist",
         }
-        
+
         for key, value in metadata.items():
             if isinstance(value, str):
                 assert len(value.strip()) > 0, f"Campo {key} vacío"
@@ -113,13 +111,16 @@ class TestFLACMetadata:
 class TestFLACQuality:
     """Validación de calidad de audio FLAC."""
 
-    @pytest.mark.parametrize("sample_rate,bit_depth,channels", [
-        (44100, 16, 2),     # CD Quality
-        (48000, 16, 2),     # Professional
-        (48000, 24, 2),     # Hi-Res
-        (96000, 24, 2),     # MQA Master
-        (192000, 24, 2),    # Ultra Hi-Res
-    ])
+    @pytest.mark.parametrize(
+        "sample_rate,bit_depth,channels",
+        [
+            (44100, 16, 2),  # CD Quality
+            (48000, 16, 2),  # Professional
+            (48000, 24, 2),  # Hi-Res
+            (96000, 24, 2),  # MQA Master
+            (192000, 24, 2),  # Ultra Hi-Res
+        ],
+    )
     def test_valid_bitrate_combinations(self, sample_rate, bit_depth, channels):
         """Verificar combinaciones válidas de bitrate."""
         # Calcular bitrate teórico
@@ -128,7 +129,7 @@ class TestFLACQuality:
         # Bitrate debe ser positivo y en rango plausible
         assert bitrate > 0, "Bitrate debe ser positivo"
         assert bitrate <= 20_000_000, f"Bitrate demasiado alto: {bitrate}"
-        
+
         # Validar parámetros individuales
         assert sample_rate in (44100, 48000, 96000, 192000)
         assert bit_depth in (16, 24, 32)
@@ -138,10 +139,10 @@ class TestFLACQuality:
         """Verificar que sample rate sea válido."""
         valid_sample_rates = [44100, 48000, 96000, 192000]
         invalid_sample_rates = [32000, 88200, 176400]
-        
+
         test_rate = 48000
         assert test_rate in valid_sample_rates
-        
+
         for rate in invalid_sample_rates:
             assert rate not in valid_sample_rates or rate in [44100]
 
@@ -149,10 +150,10 @@ class TestFLACQuality:
         """Verificar que bit depth sea válido para FLAC."""
         valid_depths = [16, 24, 32]
         invalid_depths = [8, 12, 20]
-        
+
         test_depth = 24
         assert test_depth in valid_depths
-        
+
         for depth in invalid_depths:
             assert depth not in valid_depths
 
@@ -160,9 +161,9 @@ class TestFLACQuality:
         """Verificar que la compresión sea plausible."""
         file_size_mb = 5.0  # MB
         duration_seconds = 180  # 3 minutos
-        
+
         bitrate_mbps = (file_size_mb * 8) / duration_seconds
-        
+
         # Bitrate razonable para FLAC (típicamente 500-3000 kbps)
         assert 0.1 < bitrate_mbps < 3.0, f"Bitrate sospechoso: {bitrate_mbps} Mbps"
 
@@ -171,9 +172,9 @@ class TestFLACQuality:
         # CD Quality: 44.1kHz, 16-bit, Stereo
         uncompressed_bitrate = 44100 * 16 * 2 / 1_000_000  # Mbps
         flac_estimated_bitrate = 1.0  # Mbps (típico)
-        
+
         compression_ratio = uncompressed_bitrate / flac_estimated_bitrate
-        
+
         # FLAC típicamente comprime 40-50% del tamaño de PCM
         assert compression_ratio > 1, "FLAC debe comprimir"
         assert compression_ratio < 10, "Compresión no debe ser extrema"
@@ -187,10 +188,10 @@ class TestFLACBitrate:
         sample_rate = 48000
         bit_depth = 24
         channels = 2
-        
+
         bitrate = sample_rate * bit_depth * channels
         expected_bitrate = 2_304_000  # bits per second
-        
+
         assert bitrate == expected_bitrate
 
     def test_compression_efficiency(self):
@@ -208,6 +209,7 @@ class TestFLACBitrate:
 # Extracción de FLAC desde un contenedor MP4 (caso HI_RES_LOSSLESS de Tidal)
 # ---------------------------------------------------------------------------
 
+
 def _generate_flac_in_mp4(tmp_path: Path) -> Path:
     """Genera un archivo de audio FLAC y lo empaqueta en un contenedor MP4/.m4a.
 
@@ -219,18 +221,41 @@ def _generate_flac_in_mp4(tmp_path: Path) -> Path:
 
     subprocess.run(
         [
-            "ffmpeg", "-y", "-f", "lavfi",
-            "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
-            "-t", "1", "-c:a", "flac", "-loglevel", "error", str(flac_path),
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=channel_layout=stereo:sample_rate=44100",
+            "-t",
+            "1",
+            "-c:a",
+            "flac",
+            "-loglevel",
+            "error",
+            str(flac_path),
         ],
-        check=True, capture_output=True,
+        check=True,
+        capture_output=True,
     )
     subprocess.run(
         [
-            "ffmpeg", "-y", "-i", str(flac_path),
-            "-c:a", "copy", "-strict", "-2", "-f", "mp4", "-loglevel", "error", str(mp4_path),
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(flac_path),
+            "-c:a",
+            "copy",
+            "-strict",
+            "-2",
+            "-f",
+            "mp4",
+            "-loglevel",
+            "error",
+            str(mp4_path),
         ],
-        check=True, capture_output=True,
+        check=True,
+        capture_output=True,
     )
     return mp4_path
 
@@ -263,11 +288,22 @@ class TestFlacExtractionFromMp4:
         flac_path = tmp_path / "already.flac"
         subprocess.run(
             [
-                "ffmpeg", "-y", "-f", "lavfi",
-                "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
-                "-t", "1", "-c:a", "flac", "-loglevel", "error", str(flac_path),
+                "ffmpeg",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "anullsrc=channel_layout=stereo:sample_rate=44100",
+                "-t",
+                "1",
+                "-c:a",
+                "flac",
+                "-loglevel",
+                "error",
+                str(flac_path),
             ],
-            check=True, capture_output=True,
+            check=True,
+            capture_output=True,
         )
 
         downloader = TidalDownloader(log_callback=lambda *a, **k: None, session_data=None)
@@ -327,8 +363,18 @@ class TestRealFlacDownload:
 
             # ffprobe confirma codec/sample_rate/bit depth
             probe = subprocess.run(
-                ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", str(result_path)],
-                capture_output=True, text=True, check=True,
+                [
+                    "ffprobe",
+                    "-v",
+                    "quiet",
+                    "-print_format",
+                    "json",
+                    "-show_streams",
+                    str(result_path),
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
             )
             stream = json.loads(probe.stdout)["streams"][0]
             assert stream["codec_name"] == "flac"
@@ -336,4 +382,3 @@ class TestRealFlacDownload:
             assert stream["bits_per_raw_sample"] == "16"
         finally:
             downloader._cleanup_temp_dir()
-
