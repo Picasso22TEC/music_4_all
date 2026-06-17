@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { SessionRecoveryModal } from '@/features/auth'
+import { NeonParticles } from '@/shared/ui/NeonParticles'
 import { AppHeader } from '@/widgets/app-header'
 import { DownloadPanel } from '@/widgets/download-panel'
 import { PlayerBar } from '@/widgets/player-bar'
@@ -59,7 +60,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           tabIndex={-1}
           className="flex-1 overflow-y-auto pb-20 focus-visible:outline-none"
         >
-          {children}
+          {/* Decorative background — purely visual, isolated from downloads.store/auth.store */}
+          <div className="relative min-h-full">
+            <NeonParticles variant="default" density="low" />
+            {children}
+          </div>
         </main>
       </div>
 

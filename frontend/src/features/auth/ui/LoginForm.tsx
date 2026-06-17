@@ -7,6 +7,7 @@ import { cn } from '@/shared/lib/cn'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
+import { NeonParticles } from '@/shared/ui/NeonParticles'
 
 // Intra-feature imports — avoid barrel to prevent circular dependency
 import { useAuthStore } from '@/features/auth/model/auth.store'
@@ -111,8 +112,11 @@ export function LoginForm() {
 
   return (
     <main
-      className="flex min-h-screen flex-col items-center justify-center bg-surface-void p-4"
+      className="relative flex min-h-screen flex-col items-center justify-center bg-surface-void p-4"
     >
+      {/* Decorative background — purely visual, behind all content (Fase 2) */}
+      <NeonParticles variant="login" density="medium" />
+
       {/* Live region for screen reader announcements */}
       <div
         role="status"
