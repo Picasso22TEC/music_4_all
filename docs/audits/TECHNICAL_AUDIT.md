@@ -8,14 +8,14 @@
 
 # Executive Summary
 
-El núcleo funcional de Music 4 All (descarga Tidal → archivo → historial, OAuth Device Flow, búsqueda, colas, WebSocket de progreso) está **operativo y probado** (157/159 tests backend pasan, 2 skipped; 66/66 tests frontend pasan). De los 14 hallazgos originales (TD-01 a TD-14), **12 están resueltos**; quedan abiertos TD-05 (testing frontend — nota: ya existe Vitest configurado con 66 tests, pendiente ampliar cobertura) y TD-10 (página `/downloads` — nota: ya existe como ruta en `pnpm build`, pendiente confirmar alcance funcional completo).
+El núcleo funcional de Music 4 All (descarga Tidal → archivo → historial, OAuth Device Flow, búsqueda, colas, WebSocket de progreso) está **operativo y probado** (157/159 tests backend pasan, 2 skipped; 87/87 tests frontend pasan). De los 14 hallazgos originales (TD-01 a TD-14), **13 están resueltos**; queda abierto TD-05 (testing frontend — Vitest configurado con 87 tests incluyendo `LoginForm` y `useDownloadSocket`, pendiente `DownloadPanel`/`ProgressBar`/mappers y Playwright E2E).
 
 Histórico (estado al momento de redactar el resumen original, antes de las rondas de resolución):
 
 1. **Calidad de código backend**: 104 errores de `ruff` (87 auto-corregibles) y 49 errores de `mypy` no bloqueaban CI — ✅ resuelto (TD-01, TD-02).
 2. **Cobertura de pruebas desigual**: backend con suite madura pero 3 tests fallando sin bloquear el pipeline; CI con `bandit`/`pytest` no bloqueantes — ✅ resuelto (TD-03, TD-04).
 3. **Código muerto significativo**: en frontend (`src/store/useAppStore.ts`, `src/components/`, `src/hooks/`, `src/lib/`, rutas vacías) y en backend (`app/api/v1/`, `app/services/`, `app/schemas/`) — ✅ resuelto (TD-08, TD-09).
-4. **Funcionalidad incompleta expuesta en UI**: `/library`, `/settings` placeholders (✅ TD-10 parcial), `AlbumDetailPanel` no conectado (✅ TD-11), `PlayerBar` decorativo sin `<audio>` (✅ TD-12, etiquetado "Próximamente").
+4. **Funcionalidad incompleta expuesta en UI**: `/library`, `/settings`, `/downloads` placeholders (✅ TD-10), `AlbumDetailPanel` no conectado (✅ TD-11), `PlayerBar` decorativo sin `<audio>` (✅ TD-12, etiquetado "Próximamente").
 
 Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el sistema no funciona" — el flujo principal siempre funcionó. Las brechas de mayor severidad (**High**) que enmascaraban regresiones (CI no bloqueante ante fallos de tests/bandit) y el código muerto que confundía a nuevos colaboradores (rutas duplicadas legacy/v2, módulos backend huérfanos) ya están cerrados.
 
@@ -31,10 +31,9 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 | Format backend (`ruff format --check`) | ✅ 0 errores (resuelto TD-01) | `.github/workflows/ci.yml` |
 | Type-check backend (`mypy`) | ✅ 0 errores en 69 archivos (resuelto TD-02) | `docs/roadmap.md` §2.2 |
 | Bandit (seguridad estática) | ✅ 0 hallazgos medium/high; CI bloqueante (resuelto TD-04) | `.github/workflows/ci.yml` |
-| Tests frontend | [INEXISTENTE] — sin Jest/Vitest/RTL/Playwright | `docs/roadmap.md` §2.5 |
+| Tests frontend | ⚠️ Vitest + RTL — 87 tests (stores, hooks, `LoginForm`, `useDownloadSocket`); falta `DownloadPanel`/`ProgressBar`/mappers y Playwright (TD-05) | `docs/qa/TEST_PLAN.md` |
 | Lint/build frontend | `pnpm lint` + `pnpm build` bloqueantes en CI | `.github/workflows/ci.yml` |
-| Páginas frontend `/library`, `/settings` | ✅ Implementadas (resuelto TD-10 parcial) | `docs/roadmap.md` §1, research UX |
-| Ruta `/downloads` | **No existe** como página, solo como widget `DownloadPanel` | Research UX (Hallazgo nuevo) |
+| Páginas frontend `/library`, `/settings`, `/downloads` | ✅ Implementadas (resuelto TD-10) | `docs/roadmap.md` §1, research UX |
 | `AlbumDetailPanel` | ✅ Conectado con modal, tracklist y descarga selectiva (resuelto TD-11) | `docs/roadmap.md` §1 |
 | Middleware de rutas | ✅ Activado en `src/middleware.ts` con cookie `music4all_session` | Hallazgo nuevo |
 | `PlayerBar` | ✅ Decorativo pero etiquetado "Próximamente" (resuelto TD-12) | `frontend/src/widgets/player-bar/ui/PlayerBar.tsx` |
@@ -118,14 +117,19 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-05 — Ausencia total de testing frontend
 
-- **Descripción**: no existe configuración de Jest, Vitest, React Testing Library ni Playwright. La validación del frontend depende exclusivamente de `pnpm lint` + `pnpm build` (type-check) + pruebas manuales en navegador.
-- **Evidencia**: `docs/roadmap.md` §2.5; confirmado ausencia en `frontend/package.json` (sin `devDependencies` de testing).
-- **Impacto técnico**: cualquier regresión en lógica de componentes (stores de Zustand, hooks de TanStack Query, máquina de estados de `LoginForm`, `useDownloadSocket`) solo se detecta manualmente o en producción.
-- **Impacto de negocio**: mayor riesgo de regresiones visibles para el usuario final (UI rota, WebSocket desconectado, flujo OAuth roto) que no se detectan antes de merge.
-- **Recomendación**: ver roadmap detallado en [`docs/qa/TEST_PLAN.md`](../qa/TEST_PLAN.md) — introducir Vitest + React Testing Library para unit/integration de stores y componentes críticos (`LoginForm`, `DownloadPanel`, `AlbumCard`), y Playwright para E2E del flujo OAuth + descarga.
-- **Esfuerzo estimado**: L (configuración inicial + primeros tests críticos: 1 sprint).
+- **Estado**: ⚠️ **Ampliado, no resuelto del todo** (Vitest + RTL configurado desde hace varias rondas; cobertura pasó de 66 a 87 tests con la incorporación de `LoginForm` y `useDownloadSocket`; `DownloadPanel`, `ProgressBar`, mappers `entities/*` y Playwright E2E siguen pendientes).
+- **Descripción (original)**: no existía configuración de Jest, Vitest, React Testing Library ni Playwright. La validación del frontend dependía exclusivamente de `pnpm lint` + `pnpm build` (type-check) + pruebas manuales en navegador.
+- **Resumen de cambios aplicados (esta ronda)**:
+  - `frontend/tests/unit/components/LoginForm.test.tsx` (11 tests) — cubre la máquina de estados OAuth real del componente (`src/features/auth/ui/LoginForm.tsx`): botón inicial "Connect with Tidal", inicio de `useInitDeviceAuthMutation`, transición a paso 2 (código + URL de verificación) cuando `auth.store` recibe `deviceAuth`, mensaje de error si la mutación falla, indicador de polling, cancelar y volver al paso 1, auto-redirección a `/dashboard` cuando `useDeviceAuthPollingQuery` reporta `status: 'authorized'`, error cuando el código expira, y redirección inmediata si ya hay sesión autenticada. Mockea `useInitDeviceAuthMutation`/`useDeviceAuthPollingQuery` (no axios directamente — el componente no llama a `/api/v1/auth/*`, usa `/session/device-auth` vía TanStack Query) y usa el `useAuthStore` real (igual patrón que `auth.store.test.ts`).
+  - `frontend/tests/unit/hooks/useDownloadSocket.test.ts` (10 tests) — mock manual de `WebSocket` (sin dependencia nueva `vitest-websocket-mock`) que permite simular `open`/`message`/`close`. Cubre `job_started`, `progress`, `job_completed`, `job_error` (incluyendo el flag `pendingAuthRecovery` en 401/403 retriable), reconexión automática tras un cierre inesperado, y que deja de reconectar tras desmontar el hook (`destroyed` flag).
+  - **Hallazgo durante la implementación**: la reconexión de `useDownloadSocket` (`src/features/downloads/hooks/useDownloadSocket.ts`, método `onclose`) no distingue el código de cierre — reconecta igual ante un cierre limpio (1000) que ante uno inesperado; solo se detiene cuando el hook se desmonta (`disconnect()` → `destroyed = true`). Se documentó con un test que fija ese comportamiento explícitamente (`useDownloadSocket.test.ts`, describe "reconnection") en vez de simularlo como si ya existiera una distinción por código — evaluar si conviene añadir esa distinción en un cambio de producto separado.
+  - `frontend/tests/setup.ts`: se añadió `afterEach(cleanup)` de `@testing-library/react` — sin él, los primeros tests de componentes (`render()`) dejaban el DOM de jsdom acumulado entre tests y rompían queries de un solo elemento (`getByRole`/`getByText`) en los tests siguientes. Necesario para cualquier test futuro que use `render()`.
+- **Pendiente**: `widgets/download-panel/ui/DownloadPanel.tsx` (render + pause/resume/cancel/clear), `shared/ui/ProgressBar` (variantes), mappers de `entities/*` (coordinado con `ARCHITECTURE_AUDIT.md` AR-01), y Playwright E2E (bloqueado por TP-06 — mock del flujo OAuth real, ver `docs/qa/TEST_PLAN.md`).
+- **Verificación**: `pnpm vitest run` (87/87 pasan), `pnpm lint` (0 warnings/errors), `pnpm build` (compila).
+- **Evidencia**: `frontend/tests/unit/components/LoginForm.test.tsx`, `frontend/tests/unit/hooks/useDownloadSocket.test.ts`, `frontend/tests/setup.ts`, `docs/qa/TEST_PLAN.md` (matriz de testing frontend actualizada).
+- **Esfuerzo estimado (restante)**: M — `DownloadPanel`/`ProgressBar`/mappers (Fase 3b de `TEST_PLAN.md`); L para Playwright E2E (Fase 4, bloqueada por TP-06).
 - **Prioridad**: P1.
-- **Severidad**: **High**.
+- **Severidad**: **High** → reducida a **Medium** (la lógica más crítica — máquina de estados OAuth y parsing/reconexión WS — ya tiene red de seguridad automatizada).
 
 ## TD-06 — Inconsistencia de imagen Redis/Valkey entre CI y entorno real
 
@@ -186,17 +190,22 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-10 — Funcionalidad incompleta expuesta en la navegación (`/library`, `/settings`, `/downloads`)
 
-- **Estado**: ⚠️ **Parcialmente resuelto** (`/library` y `/settings` implementadas; `/downloads` como página sigue pendiente).
-- **Descripción (original)**: `(app)/library/page.tsx` y `(app)/settings/page.tsx` eran `return null` (placeholders "Phase 3+"). Adicionalmente, **no existe ninguna página `/downloads`** bajo `frontend/src/app/(app)/` — solo existe el widget `DownloadPanel` (overlay). Tanto `Sidebar` (`NAV_ITEMS`) como `AppHeader` (`PAGE_TITLES`) referencian las tres rutas.
+- **Estado**: ✅ **Resuelto** (`/library`, `/settings` y `/downloads` implementadas; `pnpm lint` y `pnpm build` en verde, 66/66 tests frontend pasan).
+- **Descripción (original)**: `(app)/library/page.tsx` y `(app)/settings/page.tsx` eran `return null` (placeholders "Phase 3+"). Adicionalmente, **no existía ninguna página `/downloads`** bajo `frontend/src/app/(app)/` — solo existía el widget `DownloadPanel` (overlay). Tanto `Sidebar` (`NAV_ITEMS`) como `AppHeader` (`PAGE_TITLES`) ya referenciaban las tres rutas.
 - **Resumen de cambios aplicados**:
   - `(app)/library/page.tsx`: implementada con Card de estado vacío y estilo consistente al Dashboard (icon musical, mensaje orientativo).
   - `(app)/settings/page.tsx`: implementada con dos secciones — `QualitySelector` para `audioQuality` y botones toggles (1–5) para `concurrentDownloads`; valores leídos/escritos en `useSettingsStore` (Zustand persist).
   - `src/middleware.ts` (nuevo, ubicación correcta para Next.js): protección de rutas con cookie `music4all_session`. Redirige rutas protegidas → `/login` si sin sesión; `/login` → `/dashboard` si con sesión. El cookie es sincronizado por `auth.store` en `setAuthenticated`, `setExpired`, `clearSession` y `onRehydrateStorage`.
-- **Pendiente**: página `/downloads` como vista de página completa (el widget `DownloadPanel` sigue siendo el acceso principal).
-- **Evidencia**: `docs/roadmap.md` §1; research UX_AUDIT puntos 1 y 8.
-- **Esfuerzo estimado (pendiente)**: M (página `/downloads` mínima).
-- **Prioridad**: P2 (reducida desde P1 — /library y /settings ya no están rotos).
-- **Severidad**: **Medium** (reducida desde High — la mayor parte del daño de UX está corregido).
+  - `(app)/downloads/page.tsx`: implementada como vista de página completa de la cola de descargas (antes placeholder mínimo que ya duplicaba el filtrado de `useDownloadPanel`). Usa el mismo `downloads.store` que `DownloadPanel` — **no** vuelve a montar `useDownloadSocket()` porque el widget ya lo hace como singleton en `(app)/layout.tsx`, y la conexión WS persiste independientemente de la ruta activa. Estados cubiertos: vacío (Card con mensaje orientativo), cola con jobs (lista completa agrupada active+paused → queued → error → completed, igual orden que el panel), badges de resumen (`active`, `queued`, `error`, `Offline` cuando `wsConnected` es `false`) y botón "Clear N completed". Controles por job (pause/resume/cancel/check-session) idénticos a los del panel, vía `DownloadJobItem` reutilizado de `widgets/download-panel`.
+  - **Eliminación de duplicación** (requisito explícito de no duplicar lógica del panel): se extrajeron dos hooks nuevos en `features/downloads/model/`:
+    - `useDownloadQueue()` — centraliza la categorización de la cola (`activeJobs`/`pausedJobs`/`queuedJobs`/`completedJobs`/`errorJobs`, `visibleJobs` ordenado, `glowEligible`, contadores) que antes vivía duplicada entre `useDownloadPanel` (widget) y el placeholder de `/downloads`.
+    - `useDownloadActions()` — centraliza `pause`/`resume`/`cancel` (mutaciones PATCH/DELETE `/downloads/{id}`) que antes se repetían como funciones inline idénticas en `DownloadPanel.tsx` y en la página.
+    - `widgets/download-panel/model/useDownloadPanel.ts` y `widgets/download-panel/ui/DownloadPanel.tsx` se refactorizaron para consumir ambos hooks en vez de su lógica inline; el comportamiento visual/funcional del overlay no cambió.
+- **Verificación**: `pnpm lint` (0 warnings/errors), `pnpm build` (compila, incluye `/downloads` en la tabla de rutas estáticas generadas), `pnpm vitest run` (66/66 tests pasan, sin tests rotos por el refactor de `downloads.store`/hooks).
+- **Evidencia**: `frontend/src/app/(app)/downloads/page.tsx`, `frontend/src/features/downloads/model/useDownloadQueue.ts`, `frontend/src/features/downloads/model/useDownloadActions.ts`.
+- **Esfuerzo estimado**: ~~M~~ — completado.
+- **Prioridad**: P2.
+- **Severidad**: ~~**Medium**~~ → resuelto.
 
 ## TD-11 — `AlbumDetailPanel` no conectado
 
@@ -262,10 +271,10 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 | ID | Riesgo | Severidad | Tipo |
 |---|---|---|---|
 | TD-03 | CI no bloquea ante fallos reales de pytest (`\|\| echo`) | High | Confirmado |
-| TD-05 | Sin testing frontend — regresiones solo detectables manualmente | High | Confirmado |
-| TD-10 | ⚠️ Navegación: `/downloads` sin página (parcial — /library, /settings resueltos) | Medium | Parcialmente resuelto |
+| TD-05 | Testing frontend parcial — `DownloadPanel`/`ProgressBar`/mappers y Playwright E2E aún sin cobertura | Medium | Confirmado |
 | TD-02 | ~~49 errores mypy, excepciones de tidalapi inexistentes~~ | ~~Medium~~ | ✅ **Resuelto** |
 | TD-04 | ~~Bandit no bloqueante (`\|\| true`)~~ | ~~Medium~~ | ✅ **Resuelto** |
+| TD-10 | ~~Navegación: `/downloads` sin página~~ | ~~Medium~~ | ✅ **Resuelto** |
 | TD-11 | ~~`AlbumDetailPanel` no conectado~~ | ~~Medium~~ | ✅ **Resuelto** |
 | TD-12 | ~~`PlayerBar` decorativo, sin reproducción real~~ | ~~Medium~~ | ✅ **Resuelto** |
 | TD-13 | ~~`prefers-reduced-motion` ausente, asumido por docs de diseño~~ | ~~Medium~~ | ✅ **Resuelto** |
@@ -281,8 +290,8 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 # Recomendaciones
 
 1. ~~**Cerrar el gap de CI no bloqueante primero (TD-03, TD-04)**~~ — ✅ resuelto.
-2. **Resolver la navegación rota (TD-10)** antes de invertir en el rediseño visual — `/downloads` ya existe como ruta (`pnpm build` la lista), pendiente confirmar su alcance funcional completo frente al widget `DownloadPanel`.
-3. **Ampliar testing frontend (TD-05)** — ya existe Vitest configurado (66 tests pasando); pendiente ampliar cobertura a componentes críticos identificados en `docs/qa/TEST_PLAN.md` (LoginForm, DownloadPanel) y considerar Playwright E2E.
+2. ~~**Resolver la navegación rota (TD-10)**~~ — ✅ resuelto: `/downloads` implementada como página completa, reutilizando el store y la lógica del `DownloadPanel` vía `useDownloadQueue`/`useDownloadActions`.
+3. **Ampliar testing frontend (TD-05)** — 87 tests pasando (Vitest + RTL), incluyendo `LoginForm` y `useDownloadSocket`; pendiente `DownloadPanel`, `ProgressBar`, mappers `entities/*` (ver `docs/qa/TEST_PLAN.md` Fase 3b) y Playwright E2E.
 4. ~~**Limpieza de código muerto (TD-08, TD-09)**~~ — ✅ resuelto.
 5. **Errores mypy relacionados con `tidalapi` (subset de TD-02)** — ✅ resuelto.
 
@@ -294,9 +303,9 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 |---|---|---|---|---|
 | **Fase 1 — Higiene de CI** | Corregir fixture de `test_download_flow.py`, investigar race condition WS, ajustar `|| echo`/`|| true` a umbrales reales | TD-03, TD-04 | S–M | ✅ Completada |
 | **Fase 2 — Limpieza de código muerto** | Eliminar dead code frontend (TD-08) y validar/eliminar backend (TD-09) | TD-08, TD-09 | S | ✅ Completada |
-| **Fase 3 — Navegación y placeholders** | Decisión sobre `/library`, `/settings`, `/downloads`, `PlayerBar` (ocultar vs. implementar mínimo) | TD-10, TD-12 | S–M | ⚠️ TD-12 resuelto; TD-10 pendiente de confirmar alcance de `/downloads` |
+| **Fase 3 — Navegación y placeholders** | Decisión sobre `/library`, `/settings`, `/downloads`, `PlayerBar` (ocultar vs. implementar mínimo) | TD-10, TD-12 | S–M | ✅ Completada |
 | **Fase 4 — Calidad de tipos** | Resolver errores mypy de `tidalapi` (excepciones/opcionales), luego el resto; introducir `mypy` informativo en CI | TD-02 | M | ✅ Completada |
-| **Fase 5 — Testing frontend** | Configurar Vitest + RTL, primeros tests de stores y `LoginForm`/`DownloadPanel`; Playwright para E2E OAuth/descarga | TD-05 | L | ⚠️ Vitest configurado (66 tests); Playwright E2E pendiente |
+| **Fase 5 — Testing frontend** | Configurar Vitest + RTL, primeros tests de stores y `LoginForm`/`DownloadPanel`; Playwright para E2E OAuth/descarga | TD-05 | L | ⚠️ Vitest configurado (87 tests: stores, hooks, `LoginForm`, `useDownloadSocket`); `DownloadPanel`/`ProgressBar`/mappers y Playwright E2E pendientes |
 | **Fase 6 — Consolidación OAuth** | Unificar lógica de device-auth legacy/v2 | TD-14 | M | ✅ Completada |
 | **Fase 7 — Accesibilidad de animaciones** | Implementar `prefers-reduced-motion` global (prerrequisito del rediseño visual, ver `IMPLEMENTATION_PLAN.md` Fase 0) | TD-13 | S | ✅ Completada |
 | **Fase 8 — Lint final** | Resolver remanente de `ruff` (TD-01), unificar Redis/Valkey en CI (TD-06), limpiar `SECRET_KEY` (TD-07) | TD-01, TD-06, TD-07 | S | ✅ Completada |
@@ -308,8 +317,8 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 | Prioridad | Hallazgos |
 |---|---|
 | **P0** | ~~TD-03~~ ✅ |
-| **P1** | ~~TD-02 (subset tidalapi)~~ ✅, ~~TD-04~~ ✅, TD-05 (parcial), TD-10 (parcial), ~~TD-13~~ ✅ |
-| **P2** | ~~TD-01~~ ✅, ~~TD-08~~ ✅, ~~TD-09~~ ✅, ~~TD-11~~ ✅, ~~TD-12~~ ✅, ~~TD-14~~ ✅ |
+| **P1** | ~~TD-02 (subset tidalapi)~~ ✅, ~~TD-04~~ ✅, TD-05 (parcial), ~~TD-13~~ ✅ |
+| **P2** | ~~TD-01~~ ✅, ~~TD-08~~ ✅, ~~TD-09~~ ✅, ~~TD-10~~ ✅, ~~TD-11~~ ✅, ~~TD-12~~ ✅, ~~TD-14~~ ✅ |
 | **P3** | ~~TD-06~~ ✅, ~~TD-07~~ ✅ |
 
 ---
@@ -318,6 +327,6 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 1. ~~Validar el estado actual de `ruff check .` en CI (TD-01)~~ — ✅ hecho.
 2. ~~Corregir el fixture de `tests/integration/test_download_flow.py`~~ — ✅ hecho (TD-03).
-3. Confirmar el alcance funcional completo de `/downloads` como página (TD-10) — la ruta ya existe en el build de Next.js, falta validar contra `docs/qa/E2E_VALIDATION.md` si cubre el mismo flujo que el widget `DownloadPanel`.
+3. ~~Confirmar el alcance funcional completo de `/downloads` como página (TD-10)~~ — ✅ hecho: implementada como vista completa de la cola, comparte store/lógica con `DownloadPanel` vía `useDownloadQueue`/`useDownloadActions`.
 4. ~~Ejecutar `grep -r` exhaustivo de validación para TD-09~~ — ✅ hecho (incluyó hallazgo adicional: `scripts/test_download.py` huérfano, eliminado en la misma limpieza).
-5. Ampliar cobertura de Vitest (TD-05) a los componentes críticos restantes (`LoginForm`, `DownloadPanel`) y evaluar Playwright para E2E del flujo OAuth + descarga.
+5. ~~Ampliar cobertura de Vitest (TD-05) a `LoginForm`~~ — ✅ hecho (11 tests) junto con `useDownloadSocket` (10 tests). Pendiente: `DownloadPanel`, `ProgressBar`, mappers `entities/*`, y evaluar Playwright para E2E del flujo OAuth + descarga.

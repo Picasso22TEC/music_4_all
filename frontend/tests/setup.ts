@@ -1,9 +1,15 @@
+import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
-import { expect, vi } from 'vitest'
+import { afterEach, expect, vi } from 'vitest'
 
 // Extend Vitest's expect with @testing-library/jest-dom matchers
 // (toBeVisible, toHaveTextContent, etc.) for future component tests.
 expect.extend(matchers)
+
+// Unmount + remove rendered components from jsdom after every test.
+// Without this, render() calls across tests pile up in the same document,
+// breaking single-element queries (getByRole/getByText) on shared markup.
+afterEach(cleanup)
 
 // ── next/navigation — used by any component that calls useRouter / usePathname ─
 vi.mock('next/navigation', () => ({

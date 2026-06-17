@@ -3,9 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { cn } from '@/shared/lib/cn'
-import { useUpdateDownloadMutation, useCancelDownloadMutation } from '@/features/downloads'
-import { useDownloadsStore } from '@/features/downloads'
-import { useDownloadSocket } from '@/features/downloads'
+import { useDownloadActions, useDownloadsStore, useDownloadSocket } from '@/features/downloads'
 import { openSessionRecovery } from '@/features/auth'
 
 import { useDownloadPanel } from '../model/useDownloadPanel'
@@ -44,21 +42,8 @@ export function DownloadPanel() {
     completedCount,
   } = useDownloadPanel()
 
-  const updateMutation = useUpdateDownloadMutation()
-  const cancelMutation = useCancelDownloadMutation()
-  const removeJob      = useDownloadsStore((s) => s.removeJob)
-
-  function handlePause(backendJobId: string) {
-    updateMutation.mutate({ jobId: backendJobId, action: 'pause' })
-  }
-
-  function handleResume(backendJobId: string) {
-    updateMutation.mutate({ jobId: backendJobId, action: 'resume' })
-  }
-
-  function handleCancel(backendJobId: string) {
-    cancelMutation.mutate(backendJobId)
-  }
+  const { pause, resume, cancel } = useDownloadActions()
+  const removeJob = useDownloadsStore((s) => s.removeJob)
 
   /** Manual "Check Session" from DownloadJobItem error state */
   function handleCheckSession(backendJobId: string) {
@@ -186,9 +171,9 @@ export function DownloadPanel() {
                     <DownloadJobItem
                       job={job}
                       glowActive={glowEligible.has(job.id)}
-                      onPause={handlePause}
-                      onResume={handleResume}
-                      onCancel={handleCancel}
+                      onPause={pause}
+                      onResume={resume}
+                      onCancel={cancel}
                       onRemove={removeJob}
                       onCheckSession={handleCheckSession}
                     />
