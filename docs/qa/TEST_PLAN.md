@@ -8,7 +8,7 @@
 
 El backend tiene **141 tests** distribuidos en `backend/tests/` (raíz + `integration/` + `validation/`), ejecutados con `pytest` (modo `asyncio_mode = "auto"`), **sin reporte de cobertura configurado** (`pytest-cov` ausente de `pyproject.toml`). La cobertura es fuerte en jobs/worker/WS/sesión (archivos dedicados `test_job_controls.py`, `test_jobs_service.py`, `test_worker_concurrency.py`, `test_ws_downloads.py`, `test_ws_mapper.py`, `test_session_service.py`, `test_startup_reconciliation.py`) pero **no hay archivos de test dedicados visibles para `auth`, `search`, `metadata`, `history`** como módulos aislados — su cobertura, si existe, está dentro de `test_api_endpoints.py` (integración) — **[REQUIERE VALIDACIÓN]**.
 
-El frontend tiene **0% de cobertura automatizada** — este documento define el plan de adopción por fases.
+El frontend tenía **0% de cobertura automatizada**. Actualmente cuenta con **66 tests unitarios** (Vitest + RTL) cubriendo `auth.store`, `downloads.store`, `useDebounce` y `useUrlDetection`. El plan de adopción por fases completa la pirámide hacia componentes y E2E — **TD-08 parcialmente resuelto** (stores + hooks cubiertos; componentes y mappers pendientes).
 
 ---
 
@@ -63,8 +63,9 @@ El frontend tiene **0% de cobertura automatizada** — este documento define el 
 | `widgets/player-bar` | — | [INEXISTENTE] | Vitest + RTL | 0% | Baja | **Baja** |
 | `shared/ui/ProgressBar`, `Button`, `Toast`, `QualitySelector` | — | [INEXISTENTE] | Vitest + RTL (snapshot/props) | 0% | Media — contrato de props usado por 3+ consumidores (ver `DESIGN_SYSTEM_VISION.md`) | **Media** |
 | `entities/album`, `entities/track`, `entities/download-job`, `entities/session` | — | [INEXISTENTE] | Vitest (unit de mappers, una vez movidos desde `shared/` per `ARCHITECTURE_AUDIT.md` AR-01) | 0% | Alta — lógica de mapeo API→dominio | **Alta** |
-| Stores Zustand (`auth.store`, `downloads.store`, `player.store`, `settings.store`) | — | [INEXISTENTE] | Vitest (unit de reducers/acciones + persistencia) | 0% | Alta — persistencia y rehidratación (`onRehydrateStorage`) son lógica crítica | **Crítica** |
-| `middleware.ts` | — | [INEXISTENTE] | Vitest (cuando RM-03 se implemente) | 0% | N/A hoy (scaffolding sin activar) | **N/A** |
+| Stores Zustand (`auth.store`, `downloads.store`, `player.store`, `settings.store`) | Unit | Vitest ✅ | Vitest | **Alta** (`auth.store`: 14 tests, `downloads.store`: 17 tests — TD-08 parcialmente resuelto) | Añadir `player.store`, `settings.store`; tests de `onRehydrateStorage` con localStorage pre-poblado | **Crítica** |
+| Hooks (`useDebounce`, `useUrlDetection`) | Unit | Vitest ✅ | Vitest | **Alta** (9 + 14 tests — TD-08 parcialmente resuelto) | Añadir `useDownloadSocket` (contract test de mensajes WS) | **Alta** |
+| `middleware.ts` | — | Vitest (cuando RM-03 se implemente) | Vitest | ✅ Activado (cookie `music4all_session`) | Tests de middleware: redirige sin cookie → `/login`; con cookie en `/login` → `/dashboard` | **Media** |
 
 ---
 
@@ -119,12 +120,12 @@ El backend ya está razonablemente alineado con esta pirámide. El frontend est�
 | Job actual (`ci.yml`) | Qué ejecuta | Gate real | Cambio propuesto |
 |---|---|---|---|
 | `lint-backend` | `ruff check .`, `ruff format --check .` | ✅ Sí | — |
-| `build-frontend` | `pnpm install`, `pnpm lint`, `pnpm build` | ✅ Sí | Añadir `pnpm test` (Vitest) cuando exista |
+| `build-frontend` | `pnpm install`, `pnpm lint`, `pnpm build` | ✅ Sí | — |
 | `test-backend` | `pytest tests/ -v --tb=short \|\| echo ...` | ❌ No (TD-03 — fix de tests ya aplicado, cambio de CI pendiente) | Cambiar a gate real: los 157 tests (3 antes fallando) ahora pasan |
 | `security-backend` | `bandit -r app/ -ll -f json -o ... \|\| true` | ❌ No (TD-04) | Bloquear en severidad High |
 | `docker-build` | Build de imágenes backend/frontend | ✅ Sí (si prerequisitos pasan) | — |
 | `deploy` | [STUB/INACTIVO] | N/A | Fuera de alcance de este plan |
-| **Nuevo: `test-frontend`** | Vitest (unit/integration) | A definir | Crear cuando se adopte Vitest (Fase 2 de adopción) |
+| `test-frontend` ✅ | Vitest (unit) — 66 tests: `auth.store`, `downloads.store`, `useDebounce`, `useUrlDetection` | ✅ Sí | Ampliar cobertura a componentes y hooks WS (Fases 3-5) |
 | **Nuevo: `e2e`** | Playwright contra `docker compose up` | A definir | Crear cuando se adopte Playwright (Fase 4 de adopción) |
 
 ---
@@ -168,7 +169,7 @@ El backend ya está razonablemente alineado con esta pirámide. El frontend est�
 | TP-01 | Sin `pytest-cov` configurado — cobertura backend real desconocida | Medium | Añadir `pytest-cov` + reporte informativo en CI | S | P2 |
 | TP-02 | Cobertura de `auth`/`search`/`metadata`/`history` como módulos aislados [REQUIERE VALIDACIÓN] | Medium | Revisar `tests/integration/test_api_endpoints.py` y confirmar qué cubre por módulo; añadir tests unitarios donde falten | M | P2 |
 | TP-03 | `core/tidal.py` sin tests de contrato dedicados (48 dependientes) | Medium | Tests de contrato para `TidalDownloader.check_auth`, `download_single_track`, métodos de búsqueda | M | P2 |
-| TP-04 | Frontend 0% cobertura — sin red de seguridad para refactors (incl. AR-01 de `ARCHITECTURE_AUDIT.md`) | High | Plan de adopción Vitest (Fases 1-4 arriba) | L | P1 |
+| TP-04 | ⚠️ Frontend cobertura parcial — stores y hooks cubiertos (66 tests), componentes y mappers pendientes (incl. AR-01 de `ARCHITECTURE_AUDIT.md`) | Medium | Continuar plan Vitest Fases 3-5: componentes críticos (`LoginForm`, `DownloadPanel`), mappers `entities/*`, contract testing WS | L | P1 |
 | TP-05 | Sin Contract Testing de mensajes WS | Medium | Esquema compartido + fixtures (ver propuesta arriba) | M | P2 |
 | TP-06 | E2E OAuth bloqueado por interacción humana real | Medium | Definir estrategia de mock de `tidalapi`/`app.state.engine` para CI | M | P2 |
 | TP-07 | Datos de prueba para `test_flac_validation.py` sin origen documentado | Low | Documentar en `TEST_PLAN.md`/README de tests cómo se generan/obtienen los archivos de muestra | XS | P3 |
@@ -201,7 +202,7 @@ El backend ya está razonablemente alineado con esta pirámide. El frontend est�
 | Fase | Alcance | Hallazgos | Esfuerzo |
 |---|---|---|---|
 | **Fase 1** | `pytest-cov` informativo; auditar cobertura real de `auth`/`search`/`metadata`/`history`/`tidal.py` | TP-01, TP-02, TP-03 | S |
-| **Fase 2** | Configurar Vitest + RTL; tests de stores Zustand | TP-04 (parte 1) | M |
+| **Fase 2** ✅ | Vitest + RTL configurado; 66 tests unitarios: `auth.store`, `downloads.store`, `useDebounce`, `useUrlDetection`; job `test-frontend` en CI | TP-04 (parte 1) — **COMPLETADO** | M |
 | **Fase 3** | Tests de mappers `entities/*` (coordinado con AR-01) y componentes críticos (`LoginForm`, `DownloadPanel`) | TP-04 (parte 2) | M |
 | **Fase 4** | Decidir estrategia de mock Tidal; configurar Playwright; 3-5 escenarios E2E | TP-06, TP-04 (parte 3) | L |
 | **Fase 5** | Contract testing WS | TP-05 | M |
@@ -222,6 +223,6 @@ El backend ya está razonablemente alineado con esta pirámide. El frontend est�
 # Próximos Pasos
 
 1. Ejecutar Fase 1 (cobertura informativa + auditoría de cobertura existente) — desbloquea decisiones informadas para el resto del plan.
-2. Iniciar Fase 2 (Vitest + stores) en paralelo con la corrección de TD-03 (no son bloqueantes entre sí).
+2. ~~Iniciar Fase 2 (Vitest + stores)~~ — **COMPLETADO** (66 tests unitarios funcionando, job `test-frontend` en CI).
 3. Decidir TP-06 (estrategia de mock Tidal) con backend dev antes de comenzar Fase 4.
 4. Coordinar Fase 3 (mappers `entities/*`) con la ejecución de `ARCHITECTURE_AUDIT.md` AR-01 — mismo código, mismo momento.
