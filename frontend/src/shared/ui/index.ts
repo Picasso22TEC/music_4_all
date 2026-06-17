@@ -14,3 +14,6 @@ export * from './Toast'
 
 // ── Phase 6B.1 additions ──────────────────────────────────────────────────────
 export * from './QualitySelector'
+
+// ── Phase 2 (visual transformation) — decorative background ───────────────────
+export * from './NeonParticles'
