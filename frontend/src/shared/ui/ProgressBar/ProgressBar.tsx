@@ -1,3 +1,6 @@
+'use client'
+
+import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { cn } from '@/shared/lib/cn'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -17,27 +20,32 @@ export interface ProgressBarProps {
   className?: string
 }
 
-// ─── Style maps (design-system §3.7) ─────────────────────────────────────────
+// ─── Style maps (Fase 3 — brillo neón dinámico) ──────────────────────────────
 
 const SIZES: Record<ProgressBarSize, string> = {
-  sm: 'h-0.5',   // 2px
-  md: 'h-1',     // 4px
-  lg: 'h-2',     // 8px
+  sm: 'h-1',  // 4px
+  md: 'h-2',  // 8px
+  lg: 'h-3',  // 12px
 }
 
 const FILL_COLORS: Record<ProgressBarVariant, string> = {
-  default:       'bg-teal-500',
-  download:      'bg-semantic-info',
+  default:       'bg-teal-400',
+  download:      'bg-teal-400',
   success:       'bg-semantic-success',
   error:         'bg-semantic-error',
-  indeterminate: 'bg-teal-500',
+  indeterminate: 'bg-teal-400',
 }
 
+// Brillo fijo (box-shadow) por variante — aplicado mientras animated=true.
 const ANIMATED_GLOWS: Partial<Record<ProgressBarVariant, string>> = {
-  download: 'shadow-glow-download',
+  download: 'shadow-glow-active',
   success:  'shadow-glow-success',
   error:    'shadow-glow-error',
 }
+
+// Shimmer del estado indeterminate — sweep de luz sobre teal-400 (tokens, sin hex sueltos)
+const SHIMMER_GRADIENT =
+  'bg-gradient-to-r from-teal-700 via-teal-300 to-teal-700 bg-[length:200%_100%]'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -49,8 +57,13 @@ export function ProgressBar({
   label,
   className,
 }: ProgressBarProps) {
+  const reducedMotion = useReducedMotion()
   const isIndeterminate = variant === 'indeterminate'
   const clampedValue = Math.min(100, Math.max(0, value))
+
+  const glowClass = animated ? ANIMATED_GLOWS[variant] : undefined
+  // "Brillo pulsante" — solo download, y solo si el usuario no pide menos movimiento.
+  const pulseClass = animated && variant === 'download' && !reducedMotion ? 'animate-pulse-neon' : undefined
 
   return (
     <div
@@ -61,29 +74,24 @@ export function ProgressBar({
       aria-label={label}
       aria-valuetext={isIndeterminate ? 'Loading…' : `${clampedValue}%`}
       className={cn(
-        // Track — design-system §3.7: "Track fondo: surface-rack"
-        'relative w-full overflow-hidden rounded-none bg-surface-rack',
+        // Track — Fase 3: fondo surface-rack, completamente redondeado
+        'relative w-full overflow-hidden rounded-full bg-surface-rack',
         SIZES[size],
         className
       )}
     >
       <div
-        // Fill — spec §3.7: "Border-radius: radius-none — las barras son rectangulares"
         className={cn(
-          'absolute left-0 top-0 h-full rounded-none',
-          FILL_COLORS[variant],
-          // Transition for normal progress (spec: "300ms ease-out")
-          !isIndeterminate && 'transition-[width] duration-300 ease-out',
-          // Indeterminate animation
-          isIndeterminate && 'animate-progress-indeterminate',
-          // Glow when animated (spec §3.7 — "Glow en download activo")
-          animated && ANIMATED_GLOWS[variant],
+          'absolute left-0 top-0 h-full rounded-full',
+          isIndeterminate ? SHIMMER_GRADIENT : FILL_COLORS[variant],
+          // Transición suave del ancho/brillo (spec: "transition-all duration-300")
+          'transition-all duration-300',
+          // Shimmer solo si se permite animación (a11y — prefers-reduced-motion)
+          isIndeterminate && !reducedMotion && 'animate-shimmer',
+          glowClass,
+          pulseClass
         )}
-        style={
-          isIndeterminate
-            ? { width: '40%' }
-            : { width: `${clampedValue}%` }
-        }
+        style={isIndeterminate ? { width: '100%' } : { width: `${clampedValue}%` }}
       />
     </div>
   )
