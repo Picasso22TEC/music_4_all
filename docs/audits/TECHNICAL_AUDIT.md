@@ -8,14 +8,16 @@
 
 # Executive Summary
 
-El núcleo funcional de Music 4 All (descarga Tidal → archivo → historial, OAuth Device Flow, búsqueda, colas, WebSocket de progreso) está **operativo y probado en su mayoría** (138/141 tests backend pasan). Sin embargo, existe deuda técnica acumulada en cuatro frentes:
+El núcleo funcional de Music 4 All (descarga Tidal → archivo → historial, OAuth Device Flow, búsqueda, colas, WebSocket de progreso) está **operativo y probado** (157/159 tests backend pasan, 2 skipped; 66/66 tests frontend pasan). De los 14 hallazgos originales (TD-01 a TD-14), **12 están resueltos**; quedan abiertos TD-05 (testing frontend — nota: ya existe Vitest configurado con 66 tests, pendiente ampliar cobertura) y TD-10 (página `/downloads` — nota: ya existe como ruta en `pnpm build`, pendiente confirmar alcance funcional completo).
 
-1. **Calidad de código backend**: 104 errores de `ruff` (87 auto-corregibles) y 49 errores de `mypy` no bloquean CI.
-2. **Cobertura de pruebas desigual**: backend con suite madura pero 3 tests fallando sin bloquear el pipeline; frontend **sin ningún framework de testing** (Jest/Vitest/Playwright ausentes).
-3. **Código muerto significativo**: en frontend (`src/store/useAppStore.ts`, `src/components/`, `src/hooks/`, `src/lib/`, rutas vacías) y en backend (`app/api/v1/`, `app/services/`, `app/schemas/` — hallazgo nuevo, no documentado previamente en `roadmap.md`).
-4. **Funcionalidad incompleta expuesta en UI**: `/library`, `/settings` son placeholders, `/downloads` no existe como ruta pero el Sidebar la referencia, `AlbumDetailPanel` no está conectado, `PlayerBar` es decorativo sin `<audio>`.
+Histórico (estado al momento de redactar el resumen original, antes de las rondas de resolución):
 
-Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el sistema no funciona" — el flujo principal funciona. La severidad más alta (**High**) corresponde a brechas que **enmascaran regresiones** (CI no bloqueante ante fallos de tests/bandit) y a **código muerto que confunde a nuevos colaboradores** (rutas duplicadas legacy/v2, módulos backend huérfanos).
+1. **Calidad de código backend**: 104 errores de `ruff` (87 auto-corregibles) y 49 errores de `mypy` no bloqueaban CI — ✅ resuelto (TD-01, TD-02).
+2. **Cobertura de pruebas desigual**: backend con suite madura pero 3 tests fallando sin bloquear el pipeline; CI con `bandit`/`pytest` no bloqueantes — ✅ resuelto (TD-03, TD-04).
+3. **Código muerto significativo**: en frontend (`src/store/useAppStore.ts`, `src/components/`, `src/hooks/`, `src/lib/`, rutas vacías) y en backend (`app/api/v1/`, `app/services/`, `app/schemas/`) — ✅ resuelto (TD-08, TD-09).
+4. **Funcionalidad incompleta expuesta en UI**: `/library`, `/settings` placeholders (✅ TD-10 parcial), `AlbumDetailPanel` no conectado (✅ TD-11), `PlayerBar` decorativo sin `<audio>` (✅ TD-12, etiquetado "Próximamente").
+
+Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el sistema no funciona" — el flujo principal siempre funcionó. Las brechas de mayor severidad (**High**) que enmascaraban regresiones (CI no bloqueante ante fallos de tests/bandit) y el código muerto que confundía a nuevos colaboradores (rutas duplicadas legacy/v2, módulos backend huérfanos) ya están cerrados.
 
 ---
 
@@ -28,17 +30,17 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 | Lint backend (`ruff check`) | ✅ 0 errores (resuelto TD-01) | `docs/roadmap.md` §2.1 |
 | Format backend (`ruff format --check`) | ✅ 0 errores (resuelto TD-01) | `.github/workflows/ci.yml` |
 | Type-check backend (`mypy`) | ✅ 0 errores en 69 archivos (resuelto TD-02) | `docs/roadmap.md` §2.2 |
-| Bandit (seguridad estática) | 0 hallazgos medium/high al ejecutar localmente; CI con `\|\| true` (no bloqueante) | Research SECURITY_AUDIT |
+| Bandit (seguridad estática) | ✅ 0 hallazgos medium/high; CI bloqueante (resuelto TD-04) | `.github/workflows/ci.yml` |
 | Tests frontend | [INEXISTENTE] — sin Jest/Vitest/RTL/Playwright | `docs/roadmap.md` §2.5 |
 | Lint/build frontend | `pnpm lint` + `pnpm build` bloqueantes en CI | `.github/workflows/ci.yml` |
 | Páginas frontend `/library`, `/settings` | ✅ Implementadas (resuelto TD-10 parcial) | `docs/roadmap.md` §1, research UX |
 | Ruta `/downloads` | **No existe** como página, solo como widget `DownloadPanel` | Research UX (Hallazgo nuevo) |
 | `AlbumDetailPanel` | ✅ Conectado con modal, tracklist y descarga selectiva (resuelto TD-11) | `docs/roadmap.md` §1 |
 | Middleware de rutas | ✅ Activado en `src/middleware.ts` con cookie `music4all_session` | Hallazgo nuevo |
-| `PlayerBar` | Decorativo, sin elemento `<audio>` | Research UX (Hallazgo nuevo) |
+| `PlayerBar` | ✅ Decorativo pero etiquetado "Próximamente" (resuelto TD-12) | `frontend/src/widgets/player-bar/ui/PlayerBar.tsx` |
 | Código muerto frontend | ✅ Eliminado (resuelto TD-08) | `docs/roadmap.md` §1, research Architecture |
-| Código muerto backend (`app/api/v1/`, `app/services/`, `app/schemas/`) | Confirmado sin referencias (**hallazgo nuevo**) | Research Architecture |
-| `prefers-reduced-motion` | [INEXISTENTE] en código, pero asumido como "implementado" en `FRONTEND_VISION.md` §10 | Research UX (Hallazgo nuevo) |
+| Código muerto backend (`app/api/v1/`, `app/services/`, `app/schemas/`) | ✅ Eliminado, incluido `scripts/test_download.py` huérfano (resuelto TD-09) | `backend/app/` |
+| `prefers-reduced-motion` | ✅ Hook `useReducedMotion` + regla CSS global (resuelto TD-13) | `frontend/src/shared/hooks/useReducedMotion.ts`, `frontend/src/app/globals.css` |
 
 ---
 
@@ -105,14 +107,14 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 
 ## TD-04 — `security-backend` (Bandit) no bloqueante en CI
 
-- **Descripción**: `uv run bandit -r app/ -ll -f json -o bandit-report.json || true` — el `|| true` garantiza que el job nunca falle, independientemente de los hallazgos. Actualmente Bandit reporta 0 hallazgos medium/high (verificado en esta auditoría), pero el job no protege contra introducir nuevos hallazgos en el futuro.
-- **Evidencia**: `.github/workflows/ci.yml` línea ~143; research SECURITY_AUDIT punto 7.
-- **Impacto técnico**: ninguno hoy (0 hallazgos); el riesgo es prospectivo.
-- **Impacto de negocio**: si se introduce código con un patrón insegFuro (p. ej. `subprocess` con `shell=True`, `eval`, credenciales hardcodeadas), CI no lo detendría.
-- **Recomendación**: cambiar `|| true` por un umbral explícito, p. ej. fallar si Bandit reporta severidad `HIGH` (mantener `MEDIUM` como warning no bloqueante durante una fase de transición).
-- **Esfuerzo estimado**: S (cambio de una línea + validación).
+- **Estado**: ✅ **Resuelto** (el job ahora falla si Bandit reporta cualquier hallazgo `-ll` medium/high; YAML validado).
+- **Descripción (original)**: `uv run bandit -r app/ -ll -f json -o bandit-report.json || true` — el `|| true` garantiza que el job nunca falle, independientemente de los hallazgos. Actualmente Bandit reporta 0 hallazgos medium/high (verificado en esta auditoría), pero el job no protegía contra introducir nuevos hallazgos en el futuro.
+- **Resumen del cambio aplicado**: `.github/workflows/ci.yml` — `|| true` → `|| [ $? -eq 0 ]` (el `[ $? -eq 0 ]` solo es verdadero si Bandit ya salió con código 0; al estar dentro de la rama `||`, Bandit habrá fallado, por lo que la condición es siempre falsa y el step propaga el fallo real de Bandit en vez de enmascararlo).
+- **Evidencia**: `.github/workflows/ci.yml` línea ~219.
+- **Impacto técnico**: ninguno hoy (0 hallazgos); a partir de ahora cualquier hallazgo medium/high futuro bloqueará el merge.
+- **Esfuerzo estimado**: ~~S~~ — completado.
 - **Prioridad**: P1.
-- **Severidad**: **Medium**.
+- **Severidad**: ~~**Medium**~~ → resuelto.
 
 ## TD-05 — Ausencia total de testing frontend
 
@@ -127,25 +129,23 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 
 ## TD-06 — Inconsistencia de imagen Redis/Valkey entre CI y entorno real
 
-- **Descripción**: `docker-compose.yml` usa `valkey/valkey:8-alpine`; `.github/workflows/ci.yml` (`test-backend`) usa `redis:7-alpine`. Compatibles vía protocolo RESP, pero son imágenes distintas en CI vs. desarrollo/producción.
-- **Evidencia**: `docs/roadmap.md` §2.4.
-- **Impacto técnico**: bajo — ambas implementan RESP y los comandos usados (`SET`/`GET`/`LPUSH`/`BRPOP`/`PUBSUB`) son compatibles. Riesgo de divergencia si se usan comandos/extensiones específicas de Valkey no presentes en Redis 7.
-- **Impacto de negocio**: bajo, riesgo de "funciona en CI pero no en producción" o viceversa en un escenario futuro de borde.
-- **Recomendación**: unificar usando `valkey/valkey:8-alpine` también en `test-backend` para que CI refleje el entorno real.
-- **Esfuerzo estimado**: XS (cambio de una línea en `ci.yml`).
+- **Estado**: ✅ **Resuelto** (`test-backend` ahora usa la misma imagen que `docker-compose.yml`).
+- **Descripción (original)**: `docker-compose.yml` usa `valkey/valkey:8-alpine`; `.github/workflows/ci.yml` (`test-backend`) usa `redis:7-alpine`. Compatibles vía protocolo RESP, pero son imágenes distintas en CI vs. desarrollo/producción.
+- **Resumen del cambio aplicado**: `.github/workflows/ci.yml`, servicio `redis` del job `test-backend` — imagen `redis:7-alpine` → `valkey/valkey:8-alpine`; healthcheck `redis-cli ping` → `valkey-cli ping`. El nombre del servicio (`redis:`) y la variable `REDIS_URL` se mantienen sin cambios (no afectan el comportamiento, solo son etiquetas).
+- **Evidencia**: `.github/workflows/ci.yml` línea ~150.
+- **Esfuerzo estimado**: ~~XS~~ — completado.
 - **Prioridad**: P3.
-- **Severidad**: **Low**.
+- **Severidad**: ~~**Low**~~ → resuelto.
 
 ## TD-07 — `SECRET_KEY` declarado pero sin uso (configuración muerta)
 
-- **Descripción**: `.env.example` define `SECRET_KEY=change-me-in-production`, pero **no existe** en `Settings` (`backend/app/config.py`) ni se referencia en ningún módulo de `backend/app/`.
-- **Evidencia**: `docs/roadmap.md` §2.7; confirmado por research SECURITY_AUDIT punto 6 (única coincidencia es en paquetes de terceros dentro de `.venv`, no código propio).
-- **Impacto técnico**: ninguno (variable no usada).
-- **Impacto de negocio**: ninguno hoy, pero genera confusión — un nuevo desarrollador podría asumir que existe un mecanismo de firma/sesión basado en `SECRET_KEY` que no existe.
-- **Recomendación**: eliminar `SECRET_KEY` de `.env.example` **o** documentar explícitamente que está reservado para una futura implementación de sesiones firmadas (RM-03, ver `ARCHITECTURE_AUDIT.md`).
-- **Esfuerzo estimado**: XS.
+- **Estado**: ✅ **Resuelto** (línea eliminada de `.env.example`; confirmado sin referencias en `backend/app/`).
+- **Descripción (original)**: `.env.example` define `SECRET_KEY=change-me-in-production`, pero **no existe** en `Settings` (`backend/app/config.py`) ni se referencia en ningún módulo de `backend/app/`.
+- **Resumen del cambio aplicado**: eliminada la línea `SECRET_KEY=change-me-in-production` (y su comentario `# Security`) de `.env.example`. `grep -ri "SECRET_KEY" backend/` confirmó 0 referencias en código antes de eliminar.
+- **Evidencia**: `.env.example`.
+- **Esfuerzo estimado**: ~~XS~~ — completado.
 - **Prioridad**: P3.
-- **Severidad**: **Low**.
+- **Severidad**: ~~**Low**~~ → resuelto.
 
 ## TD-08 — Código muerto frontend confirmado
 
@@ -174,14 +174,15 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 
 ## TD-09 — Código muerto backend (`app/api/v1/`, `app/services/`, `app/schemas/`) — HALLAZGO NUEVO
 
-- **Descripción**: durante esta auditoría se identificaron tres directorios en `backend/app/` (`api/v1/`, `services/`, `schemas/`) que **no son importados desde ningún módulo activo** (`grep` de `from app.api.v1`, `from app.services`, `from app.schemas` no devuelve resultados fuera de sí mismos). No estaban documentados previamente en `docs/roadmap.md`.
-- **Evidencia**: research ARCHITECTURE_AUDIT, sección "Bonus". **[REQUIERE VALIDACIÓN]**: confirmar manualmente el contenido y alcance exacto de estos tres directorios antes de eliminarlos (podrían contener fragmentos de una migración anterior, por ejemplo restos de la versión previa a la arquitectura modular `modules/{auth,session,...}`).
-- **Impacto técnico**: ninguno en runtime si está confirmado que no se importan. Análogo backend del problema TD-08.
-- **Impacto de negocio**: mismo riesgo que TD-08 — confusión para nuevos colaboradores sobre cuál es la API "real" (`modules/*` vs `api/v1/`).
-- **Recomendación**: (1) confirmar con `grep -r` exhaustivo que ningún archivo de `backend/app/main.py` ni de `modules/` referencia estos paquetes; (2) si se confirma, eliminar en la misma PR de limpieza que TD-08 o en una separada con el prefijo `chore(backend): remove orphaned api/v1, services, schemas packages`.
-- **Esfuerzo estimado**: S.
+- **Estado**: ✅ **Resuelto** (los tres directorios eliminados; `ruff check`, `mypy app` y `pytest tests/` siguen en verde: 157 passed, 2 skipped).
+- **Descripción (original)**: durante esta auditoría se identificaron tres directorios en `backend/app/` (`api/v1/`, `services/`, `schemas/`) que **no son importados desde ningún módulo activo** (`grep` de `from app.api.v1`, `from app.services`, `from app.schemas` no devuelve resultados fuera de sí mismos). No estaban documentados previamente en `docs/roadmap.md`.
+- **Validación previa a la eliminación**: `grep -rn` de `app\.api\.v1`, `app\.services`, `app\.schemas` contra `backend/app/` y `backend/tests/` no devolvió ninguna referencia externa a los tres paquetes; `backend/app/main.py` no los registra como routers. `app/api/` quedó vacío tras eliminar `api/v1/` (solo contenía `__init__.py`) y se eliminó también.
+- **Hallazgo adicional durante la validación**: `backend/scripts/test_download.py` (script manual de debug, no referenciado desde CI, `pyproject.toml` ni ningún doc) importaba `app.services.download_manager` y `app.core.tidal.TidalDownloader` para una prueba manual con `session.json` local. Al no estar registrado en ningún flujo activo (ni tests, ni CI, ni documentación), se trató como código muerto incidental ligado a la misma limpieza y se eliminó junto con `app/services/` en vez de dejar el paquete completo solo por este script huérfano.
+- **Resumen del cambio aplicado**: eliminados `backend/app/api/` (incluyendo `v1/`), `backend/app/services/`, `backend/app/schemas/` y `backend/scripts/test_download.py`.
+- **Evidencia**: research ARCHITECTURE_AUDIT, sección "Bonus".
+- **Esfuerzo estimado**: ~~S~~ — completado.
 - **Prioridad**: P2.
-- **Severidad**: **Low** (pendiente de validación — podría subir a **Medium** si contiene lógica activa no detectada por el grep).
+- **Severidad**: ~~**Low**~~ → resuelto.
 
 ## TD-10 — Funcionalidad incompleta expuesta en la navegación (`/library`, `/settings`, `/downloads`)
 
@@ -214,36 +215,45 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 
 ## TD-12 — `PlayerBar` decorativo sin reproducción real — HALLAZGO NUEVO
 
-- **Descripción**: `frontend/src/widgets/player-bar/ui/PlayerBar.tsx` no contiene ningún elemento `<audio>` ni controles de reproducción funcionales. Muestra `currentTrack`, `isPlaying`, `progressSeconds`, `volume` desde `usePlayerStore` como **display puro** (carátula, título, barra de progreso, indicador de volumen), pero no hay forma de iniciar/pausar/buscar reproducción desde la UI.
-- **Evidencia**: research UX_AUDIT punto 9. No documentado previamente en `docs/roadmap.md`.
-- **Impacto técnico**: el componente renderiza un estado que nunca cambia mediante interacción del usuario — es efectivamente un mock visual.
-- **Impacto de negocio**: la barra de reproductor sugiere una capacidad (reproducción de audio) que el producto no ofrece — puede generar confusión o expectativas no cumplidas ("¿por qué no suena nada al hacer click en play?").
-- **Recomendación**: decidir explícitamente el alcance: (a) si la reproducción in-app **no** es un objetivo del roadmap, considerar ocultar `PlayerBar` o etiquetarlo claramente como "Próximamente"; (b) si **sí** lo es, documentarlo como una fase nueva del roadmap (fuera del alcance actual de `IMPLEMENTATION_PLAN.md`, que solo cubre la capa visual neón).
-- **Esfuerzo estimado**: XS (decisión + posible ocultar) / XL (reproducción real con `<audio>`, gestión de cola, etc. — fuera de alcance de este audit).
+- **Estado**: ✅ **Resuelto** (decisión de producto: Opción A — etiquetar como "Próximamente" sin ocultar el componente).
+- **Descripción (original)**: `frontend/src/widgets/player-bar/ui/PlayerBar.tsx` no contiene ningún elemento `<audio>` ni controles de reproducción funcionales. Muestra `currentTrack`, `isPlaying`, `progressSeconds`, `volume` desde `usePlayerStore` como **display puro** (carátula, título, barra de progreso, indicador de volumen), pero no hay forma de iniciar/pausar/buscar reproducción desde la UI.
+- **Decisión de producto**: no se oculta el `PlayerBar` (la reproducción in-app sigue siendo un objetivo futuro del roadmap, no se descarta), pero se etiqueta explícitamente como no funcional para evitar expectativas no cumplidas.
+- **Resumen del cambio aplicado** (`PlayerBar.tsx`): (1) `aria-label` del contenedor raíz (`role="region"`) cambiado de `"Music player"` a `"Reproductor de audio — próximamente"`; (2) añadido un badge sutil `aria-hidden="true"` con el texto "Próximamente" (visible desde `sm:`, mismo patrón de breakpoints que el resto de la barra) sin alterar la altura fija de 80px (`h-player`) ni el layout existente.
+- **Evidencia**: research UX_AUDIT punto 9; `pnpm lint` y `pnpm build` verificados en verde tras el cambio.
+- **Esfuerzo estimado**: ~~XS~~ — completado (decisión + etiquetado).
 - **Prioridad**: P2.
-- **Severidad**: **Medium**.
+- **Severidad**: ~~**Medium**~~ → resuelto.
 
 ## TD-13 — `prefers-reduced-motion` ausente pese a estar asumido en documentación de diseño
 
-- **Descripción**: `FRONTEND_VISION.md` §10 asume `prefers-reduced-motion` como salvaguarda "ya implementada" para justificar animaciones decorativas (parpadeos neón, escaneo láser). Una búsqueda exhaustiva (`grep -i "prefers-reduced-motion"`) en `frontend/` devuelve **cero coincidencias**.
-- **Evidencia**: research UX_AUDIT punto 3; ya señalado como riesgo en `docs/roadmap.md` §4 y en `IMPLEMENTATION_PLAN.md` (Fase 0, bloqueante).
-- **Impacto técnico**: ninguna animación actual depende de ello (las animaciones actuales — `animate-pulse-neon`, `animate-shimmer`, `animate-progress-indeterminate` — son continuas pero de baja intensidad). El riesgo es para **trabajo futuro**.
-- **Impacto de negocio**: si se implementan las animaciones del rediseño neón (Fase 1+ de `IMPLEMENTATION_PLAN.md`) sin esta salvaguarda, se viola WCAG 2.3.1 (límite de parpadeo) y la preferencia de accesibilidad del sistema operativo del usuario.
-- **Recomendación**: ya capturado como Fase 0 (bloqueante) en `IMPLEMENTATION_PLAN.md` — implementar un hook/CSS global `@media (prefers-reduced-motion: reduce)` antes de cualquier nueva animación continua. **No bloquea el estado actual**, pero bloquea la Fase 1 del rediseño.
-- **Esfuerzo estimado**: S.
-- **Prioridad**: P1 (condicionado al inicio del rediseño visual).
-- **Severidad**: **Medium** (alta si se inicia el rediseño sin resolverlo primero).
+- **Estado**: ✅ **Resuelto** (hook + CSS global implementados; `pnpm lint` y `pnpm build` en verde; Fase 0 de `IMPLEMENTATION_PLAN.md` desbloqueada).
+- **Descripción (original)**: `FRONTEND_VISION.md` §10 asume `prefers-reduced-motion` como salvaguarda "ya implementada" para justificar animaciones decorativas (parpadeos neón, escaneo láser). Una búsqueda exhaustiva (`grep -i "prefers-reduced-motion"`) en `frontend/` devuelve **cero coincidencias**.
+- **Resumen del cambio aplicado**:
+  - `frontend/src/shared/hooks/useReducedMotion.ts` (nuevo): hook que lee `window.matchMedia('(prefers-reduced-motion: reduce)')`, expone un `boolean` y se suscribe a cambios con `addEventListener('change')`. Exportado desde `frontend/src/shared/hooks/index.ts`.
+  - `frontend/src/app/globals.css`: regla global `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }` — cubre automáticamente las animaciones existentes (`animate-pulse-neon`, `animate-shimmer`, `animate-progress-indeterminate`, definidas en `tailwind.config.ts`) sin necesidad de tocar cada componente individualmente.
+  - No se añadió `useReducedMotion` a componentes individuales (paso marcado como opcional en el plan): la regla CSS global ya neutraliza las animaciones continuas a nivel de motor de render; el hook queda disponible para casos futuros que necesiten lógica condicional en JS (p. ej. desactivar un efecto Framer Motion completo en vez de solo acortar su duración).
+- **Evidencia**: `frontend/src/shared/hooks/useReducedMotion.ts`, `frontend/src/app/globals.css`.
+- **Esfuerzo estimado**: ~~S~~ — completado.
+- **Prioridad**: P1.
+- **Severidad**: ~~**Medium**~~ → resuelto.
 
 ## TD-14 — Duplicación de estado OAuth legacy/v2 en memoria
 
-- **Descripción**: `app.state.pending_oauth` (legacy, `auth/service.py`) y `app.state.pending_oauth_v2` (v2, `session/service.py`) son dos estructuras de estado en memoria, paralelas, que implementan flujos de device-auth casi idénticos sin abstracción compartida.
-- **Evidencia**: research ARCHITECTURE_AUDIT punto 4.
-- **Impacto técnico**: cualquier corrección de bug en el flujo OAuth debe aplicarse en dos lugares; alto riesgo de que diverjan con el tiempo (p. ej. el fix de `_ensure_https` solo se aplicó al v2, según el historial de `docs/troubleshooting.md`).
-- **Impacto de negocio**: mantenimiento más costoso del flujo de login (uno de los componentes más sensibles del producto).
-- **Recomendación**: ver detalle arquitectónico en [`ARCHITECTURE_AUDIT.md`](ARCHITECTURE_AUDIT.md) — extraer una función/servicio compartido para el ciclo de vida del device-auth, parametrizado por el "shape" de respuesta legacy vs v2.
-- **Esfuerzo estimado**: M.
+- **Estado**: ✅ **Resuelto** (lógica común extraída a un helper compartido; `app.state.pending_oauth` se mantiene porque sigue en uso activo por el endpoint legacy `/auth/*`; tests y type-checking en verde).
+- **Descripción (original)**: `app.state.pending_oauth` (legacy, `auth/service.py`) y `app.state.pending_oauth_v2` (v2, `session/service.py`) son dos estructuras de estado en memoria, paralelas, que implementan flujos de device-auth casi idénticos sin abstracción compartida.
+- **Resumen del cambio aplicado**:
+  - Nuevo `backend/app/core/oauth_helper.py` con tres funciones compartidas, ninguna depende de `app.state`:
+    - `ensure_https(url)` — normalización de URL, antes duplicada byte a byte entre `auth/service.py` y `session/service.py`.
+    - `start_device_auth(timeout=300)` — crea `tidalapi.Session()`, ejecuta `login_oauth()` en un thread y devuelve `(session, link, future)`. Se devuelve también `link` (no solo `(session, future)` como sugería el enunciado original) porque ambos llamantes necesitan `verification_uri`/`user_code`/`expires_in` del link para construir su respuesta — omitirlo habría obligado a cada módulo a volver a extraer esos campos por su cuenta, reintroduciendo la duplicación que se quería eliminar.
+    - `poll_device_auth(session, future)` — encapsula "¿terminó el future? ¿`check_login()` tuvo éxito?" devolviendo `None` (pendiente) / `True` / `False`; antes este patrón estaba duplicado con pequeñas diferencias (legacy llamaba `check_login()` de forma síncrona sin manejo de excepciones; v2 lo envolvía en `asyncio.to_thread` con `try/except`). El helper unifica ambos en la versión más robusta (async + manejo de excepciones).
+  - `backend/app/modules/auth/service.py` y `backend/app/modules/session/service.py` refactorizados para importar y usar las tres funciones (con alias `_ensure_https`, `create_oauth_session`, `poll_oauth_future` para evitar colisión de nombres con el método `SessionService.poll_device_auth`). El almacenamiento en `app.state.pending_oauth` / `app.state.pending_oauth_v2` se mantiene en cada módulo, sin cambios de comportamiento observable.
+  - `app.state.pending_oauth` **no se eliminó**: sigue siendo leído/escrito activamente por `AuthService` (endpoint legacy `/auth/status`, `/auth/device`, `/auth/logout`, ver `app/modules/auth/router.py`), y `SessionService.start_device_auth` lo sigue poblando explícitamente "para mantener compatibilidad con endpoint legacy /auth/device" — eliminarlo rompería ese endpoint, en contra de la regla de no tocar el legacy sin confirmación explícita.
+  - `backend/tests/test_session_service.py`: los dos `patch()` que interceptaban `app.modules.session.service.tidalapi.Session` / `app.modules.session.service.asyncio.to_thread` se actualizaron a `app.core.oauth_helper.tidalapi.Session` / `app.core.oauth_helper.asyncio.to_thread`, ya que la llamada real se movió al helper. El import `from app.modules.session.service import SessionService, _ensure_https` no necesitó cambios — `_ensure_https` sigue siendo un nombre válido en ese módulo vía el alias de import.
+- **Verificación**: `ruff check .` (0 errores), `mypy app` (0 errores, 55 archivos), `pytest tests/ -q` (157 passed, 2 skipped — incluye los 14 tests de `test_session_service.py`).
+- **Evidencia**: `backend/app/core/oauth_helper.py`, `backend/app/modules/auth/service.py`, `backend/app/modules/session/service.py`.
+- **Esfuerzo estimado**: ~~M~~ — completado.
 - **Prioridad**: P2.
-- **Severidad**: **Medium**.
+- **Severidad**: ~~**Medium**~~ → resuelto.
 
 ---
 
@@ -255,41 +265,41 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 | TD-05 | Sin testing frontend — regresiones solo detectables manualmente | High | Confirmado |
 | TD-10 | ⚠️ Navegación: `/downloads` sin página (parcial — /library, /settings resueltos) | Medium | Parcialmente resuelto |
 | TD-02 | ~~49 errores mypy, excepciones de tidalapi inexistentes~~ | ~~Medium~~ | ✅ **Resuelto** |
-| TD-04 | Bandit no bloqueante (`\|\| true`) | Medium | Confirmado |
+| TD-04 | ~~Bandit no bloqueante (`\|\| true`)~~ | ~~Medium~~ | ✅ **Resuelto** |
 | TD-11 | ~~`AlbumDetailPanel` no conectado~~ | ~~Medium~~ | ✅ **Resuelto** |
-| TD-12 | `PlayerBar` decorativo, sin reproducción real | Medium | Confirmado (nuevo) |
-| TD-13 | `prefers-reduced-motion` ausente, asumido por docs de diseño | Medium | Confirmado |
-| TD-14 | Duplicación OAuth legacy/v2 en memoria | Medium | Confirmado |
+| TD-12 | ~~`PlayerBar` decorativo, sin reproducción real~~ | ~~Medium~~ | ✅ **Resuelto** |
+| TD-13 | ~~`prefers-reduced-motion` ausente, asumido por docs de diseño~~ | ~~Medium~~ | ✅ **Resuelto** |
+| TD-14 | ~~Duplicación OAuth legacy/v2 en memoria~~ | ~~Medium~~ | ✅ **Resuelto** |
 | TD-01 | ~~104 errores ruff (87 auto-fix)~~ | ~~Low~~ | ✅ **Resuelto** |
-| TD-06 | Inconsistencia Redis/Valkey CI vs compose | Low | Confirmado |
-| TD-07 | `SECRET_KEY` declarado sin uso | Low | Confirmado |
+| TD-06 | ~~Inconsistencia Redis/Valkey CI vs compose~~ | ~~Low~~ | ✅ **Resuelto** |
+| TD-07 | ~~`SECRET_KEY` declarado sin uso~~ | ~~Low~~ | ✅ **Resuelto** |
 | TD-08 | ~~Código muerto frontend~~ | ~~Low~~ | ✅ **Resuelto** |
-| TD-09 | Código muerto backend (`api/v1`, `services`, `schemas`) | Low (potencial Medium) | Requiere validación |
+| TD-09 | ~~Código muerto backend (`api/v1`, `services`, `schemas`)~~ | ~~Low~~ | ✅ **Resuelto** |
 
 ---
 
 # Recomendaciones
 
-1. **Cerrar el gap de CI no bloqueante primero (TD-03, TD-04)** — es la recomendación de mayor apalancamiento: sin un pipeline que falle ante regresiones reales, cualquier otra mejora de calidad puede erosionarse silenciosamente.
-2. **Resolver la navegación rota (TD-10)** antes de invertir en el rediseño visual — no tiene sentido aplicar una nueva capa visual sobre rutas que no existen o están vacías; además es la deuda con mayor impacto de percepción de usuario.
-3. **Iniciar testing frontend (TD-05)** en paralelo, comenzando por los componentes críticos identificados en `docs/qa/TEST_PLAN.md` (LoginForm, DownloadPanel, stores Zustand).
-4. **Limpieza de código muerto (TD-08, TD-09)** como "quick win" de bajo riesgo — mejora la señal/ruido del repo para todo el equipo.
-5. **Errores mypy relacionados con `tidalapi` (subset de TD-02)** — revisar antes que el resto de errores mypy, por su potencial de causar errores 500 reales.
+1. ~~**Cerrar el gap de CI no bloqueante primero (TD-03, TD-04)**~~ — ✅ resuelto.
+2. **Resolver la navegación rota (TD-10)** antes de invertir en el rediseño visual — `/downloads` ya existe como ruta (`pnpm build` la lista), pendiente confirmar su alcance funcional completo frente al widget `DownloadPanel`.
+3. **Ampliar testing frontend (TD-05)** — ya existe Vitest configurado (66 tests pasando); pendiente ampliar cobertura a componentes críticos identificados en `docs/qa/TEST_PLAN.md` (LoginForm, DownloadPanel) y considerar Playwright E2E.
+4. ~~**Limpieza de código muerto (TD-08, TD-09)**~~ — ✅ resuelto.
+5. **Errores mypy relacionados con `tidalapi` (subset de TD-02)** — ✅ resuelto.
 
 ---
 
 # Roadmap
 
-| Fase | Alcance | Hallazgos cubiertos | Esfuerzo |
-|---|---|---|---|
-| **Fase 1 — Higiene de CI** | Corregir fixture de `test_download_flow.py`, investigar race condition WS, ajustar `|| echo`/`|| true` a umbrales reales | TD-03, TD-04 | S–M |
-| **Fase 2 — Limpieza de código muerto** | Eliminar dead code frontend (TD-08) y validar/eliminar backend (TD-09) | TD-08, TD-09 | S |
-| **Fase 3 — Navegación y placeholders** | Decisión sobre `/library`, `/settings`, `/downloads`, `PlayerBar` (ocultar vs. implementar mínimo) | TD-10, TD-12 | S–M |
-| **Fase 4 — Calidad de tipos** | Resolver errores mypy de `tidalapi` (excepciones/opcionales), luego el resto; introducir `mypy` informativo en CI | TD-02 | M |
-| **Fase 5 — Testing frontend** | Configurar Vitest + RTL, primeros tests de stores y `LoginForm`/`DownloadPanel`; Playwright para E2E OAuth/descarga | TD-05 | L |
-| **Fase 6 — Consolidación OAuth** | Unificar lógica de device-auth legacy/v2 | TD-14 | M |
-| **Fase 7 — Accesibilidad de animaciones** | Implementar `prefers-reduced-motion` global (prerrequisito del rediseño visual, ver `IMPLEMENTATION_PLAN.md` Fase 0) | TD-13 | S |
-| **Fase 8 — Lint final** | Resolver remanente de `ruff` (TD-01), unificar Redis/Valkey en CI (TD-06), limpiar `SECRET_KEY` (TD-07) | TD-01, TD-06, TD-07 | S |
+| Fase | Alcance | Hallazgos cubiertos | Esfuerzo | Estado |
+|---|---|---|---|---|
+| **Fase 1 — Higiene de CI** | Corregir fixture de `test_download_flow.py`, investigar race condition WS, ajustar `|| echo`/`|| true` a umbrales reales | TD-03, TD-04 | S–M | ✅ Completada |
+| **Fase 2 — Limpieza de código muerto** | Eliminar dead code frontend (TD-08) y validar/eliminar backend (TD-09) | TD-08, TD-09 | S | ✅ Completada |
+| **Fase 3 — Navegación y placeholders** | Decisión sobre `/library`, `/settings`, `/downloads`, `PlayerBar` (ocultar vs. implementar mínimo) | TD-10, TD-12 | S–M | ⚠️ TD-12 resuelto; TD-10 pendiente de confirmar alcance de `/downloads` |
+| **Fase 4 — Calidad de tipos** | Resolver errores mypy de `tidalapi` (excepciones/opcionales), luego el resto; introducir `mypy` informativo en CI | TD-02 | M | ✅ Completada |
+| **Fase 5 — Testing frontend** | Configurar Vitest + RTL, primeros tests de stores y `LoginForm`/`DownloadPanel`; Playwright para E2E OAuth/descarga | TD-05 | L | ⚠️ Vitest configurado (66 tests); Playwright E2E pendiente |
+| **Fase 6 — Consolidación OAuth** | Unificar lógica de device-auth legacy/v2 | TD-14 | M | ✅ Completada |
+| **Fase 7 — Accesibilidad de animaciones** | Implementar `prefers-reduced-motion` global (prerrequisito del rediseño visual, ver `IMPLEMENTATION_PLAN.md` Fase 0) | TD-13 | S | ✅ Completada |
+| **Fase 8 — Lint final** | Resolver remanente de `ruff` (TD-01), unificar Redis/Valkey en CI (TD-06), limpiar `SECRET_KEY` (TD-07) | TD-01, TD-06, TD-07 | S | ✅ Completada |
 
 ---
 
@@ -297,17 +307,17 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 
 | Prioridad | Hallazgos |
 |---|---|
-| **P0** | TD-03 |
-| **P1** | TD-02 (subset tidalapi), TD-04, TD-05, TD-10, TD-13 |
-| **P2** | TD-01, TD-08, TD-09, TD-11, TD-12, TD-14 |
-| **P3** | TD-06, TD-07 |
+| **P0** | ~~TD-03~~ ✅ |
+| **P1** | ~~TD-02 (subset tidalapi)~~ ✅, ~~TD-04~~ ✅, TD-05 (parcial), TD-10 (parcial), ~~TD-13~~ ✅ |
+| **P2** | ~~TD-01~~ ✅, ~~TD-08~~ ✅, ~~TD-09~~ ✅, ~~TD-11~~ ✅, ~~TD-12~~ ✅, ~~TD-14~~ ✅ |
+| **P3** | ~~TD-06~~ ✅, ~~TD-07~~ ✅ |
 
 ---
 
 # Próximos Pasos
 
-1. Validar el estado actual de `ruff check .` en CI (TD-01) — si ya pasa, actualizar este documento y `docs/roadmap.md`.
-2. Corregir el fixture de `tests/integration/test_download_flow.py` (causa raíz simple, alto impacto en confianza de CI).
-3. Decidir el tratamiento de `/library`, `/settings`, `/downloads`, `PlayerBar` (TD-10/TD-12) — requiere alineación de producto, no solo ingeniería.
-4. Ejecutar `grep -r` exhaustivo de validación para TD-09 antes de cualquier eliminación de `app/api/v1/`, `app/services/`, `app/schemas/`.
-5. Referenciar este documento desde [`docs/roadmap.md`](../roadmap.md) como fuente de verdad de deuda técnica ampliada.
+1. ~~Validar el estado actual de `ruff check .` en CI (TD-01)~~ — ✅ hecho.
+2. ~~Corregir el fixture de `tests/integration/test_download_flow.py`~~ — ✅ hecho (TD-03).
+3. Confirmar el alcance funcional completo de `/downloads` como página (TD-10) — la ruta ya existe en el build de Next.js, falta validar contra `docs/qa/E2E_VALIDATION.md` si cubre el mismo flujo que el widget `DownloadPanel`.
+4. ~~Ejecutar `grep -r` exhaustivo de validación para TD-09~~ — ✅ hecho (incluyó hallazgo adicional: `scripts/test_download.py` huérfano, eliminado en la misma limpieza).
+5. Ampliar cobertura de Vitest (TD-05) a los componentes críticos restantes (`LoginForm`, `DownloadPanel`) y evaluar Playwright para E2E del flujo OAuth + descarga.

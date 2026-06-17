@@ -78,9 +78,9 @@ class TestStartDeviceAuth:
     async def _call(self, link: MagicMock) -> object:
         app_state = _make_app_state()
         with (
-            patch("app.modules.session.service.tidalapi.Session"),
+            patch("app.core.oauth_helper.tidalapi.Session"),
             patch(
-                "app.modules.session.service.asyncio.to_thread",
+                "app.core.oauth_helper.asyncio.to_thread",
                 new_callable=AsyncMock,
             ) as mock_thread,
         ):

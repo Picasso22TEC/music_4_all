@@ -7,6 +7,9 @@ from datetime import UTC, datetime
 import tidalapi
 
 from app.core import redis_client as rc
+from app.core.oauth_helper import ensure_https as _ensure_https
+from app.core.oauth_helper import poll_device_auth as poll_oauth_future
+from app.core.oauth_helper import start_device_auth as create_oauth_session
 from app.core.tidal import TidalDownloader
 
 from .schemas import (
@@ -17,22 +20,6 @@ from .schemas import (
 )
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
-
-
-def _ensure_https(url: str) -> str:
-    """Prepend https:// to a URL that Tidal may return without a scheme.
-
-    Tidal's Device Authorization API returns bare hostnames such as
-    'link.tidal.com/ABCDE'.  Without a scheme, browsers treat the value as a
-    relative path and the user lands on a 404.  http:// is preserved as-is to
-    avoid breaking local/dev environments; https:// is left untouched.
-    """
-    url = url.strip()
-    if not url:
-        return ""
-    if url.startswith("http://") or url.startswith("https://"):
-        return url
-    return f"https://{url}"
 
 
 def _plan_from_session(session: object) -> str:
@@ -100,9 +87,7 @@ class SessionService:
         )
 
     async def start_device_auth(self, app_state: object) -> DeviceAuthInitResponse:
-        session = tidalapi.Session()
-
-        link, future = await asyncio.to_thread(session.login_oauth)
+        session, link, future = await create_oauth_session()
 
         # Extraer campos del link (getattr con defaults para robustez ante cambios de API)
         device_code: str = str(getattr(link, "device_code", None) or uuid.uuid4())
@@ -156,33 +141,29 @@ class SessionService:
         future = entry["future"]
         session: tidalapi.Session = entry["session"]
 
-        if not future.done():
+        authorized = await poll_oauth_future(session, future)
+        if authorized is None:
             return DeviceAuthPollResponse(status="pending")
 
-        # Future completado — verificar si el login tuvo éxito
-        try:
-            is_logged = await asyncio.to_thread(session.check_login)
-            if is_logged:
-                engine.session = session
+        if authorized:
+            engine.session = session
 
-                session_data = await asyncio.to_thread(engine.get_session_data)
-                if session_data:
-                    await rc.save_session(app_state.redis, session_data)  # type: ignore[attr-defined]
+            session_data = await asyncio.to_thread(engine.get_session_data)
+            if session_data:
+                await rc.save_session(app_state.redis, session_data)  # type: ignore[attr-defined]
 
-                user = await asyncio.to_thread(_user_out_from_session, session)
-                expires_at = await asyncio.to_thread(_expires_at_from_session, session)
+            user = await asyncio.to_thread(_user_out_from_session, session)
+            expires_at = await asyncio.to_thread(_expires_at_from_session, session)
 
-                # Limpiar entradas
-                del pending_v2[device_code]
-                app_state.pending_oauth = None  # type: ignore[attr-defined]
+            # Limpiar entradas
+            del pending_v2[device_code]
+            app_state.pending_oauth = None  # type: ignore[attr-defined]
 
-                return DeviceAuthPollResponse(
-                    status="authorized",
-                    user=user,
-                    expires_at=expires_at,
-                )
-        except Exception:
-            pass
+            return DeviceAuthPollResponse(
+                status="authorized",
+                user=user,
+                expires_at=expires_at,
+            )
 
         # Login fallido o denegado
         pending_v2.pop(device_code, None)

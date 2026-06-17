@@ -22,7 +22,7 @@ export function PlayerBar() {
   return (
     <div
       role="region"
-      aria-label="Music player"
+      aria-label="Reproductor de audio — próximamente"
       className={cn(
         // Position — fixed bottom, full width (wireframes §16 — z-sticky:200)
         'fixed bottom-0 left-0 right-0',
@@ -128,6 +128,14 @@ export function PlayerBar() {
           {Math.round(volume * 100)}%
         </span>
       </div>
+
+      {/* ── "Próximamente" badge — reproducción real aún no implementada (TD-12) ── */}
+      <span
+        aria-hidden="true"
+        className="hidden sm:inline-flex shrink-0 items-center rounded-full border border-subtle bg-surface-rack px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-disabled"
+      >
+        Próximamente
+      </span>
     </div>
   )
 }

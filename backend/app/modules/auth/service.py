@@ -1,21 +1,10 @@
-import asyncio
-
-import tidalapi
-
+from app.core.oauth_helper import ensure_https as _ensure_https
+from app.core.oauth_helper import poll_device_auth as poll_oauth_future
+from app.core.oauth_helper import start_device_auth as create_oauth_session
 from app.core.tidal import TidalDownloader
 
 from .repository import AuthRepository
 from .schemas import AuthStatusResponse, DeviceAuthResponse
-
-
-def _ensure_https(url: str) -> str:
-    """Prepend https:// if the URL has no scheme (Tidal omits it)."""
-    url = url.strip()
-    if not url:
-        return ""
-    if url.startswith("http://") or url.startswith("https://"):
-        return url
-    return f"https://{url}"
 
 
 class AuthService:
@@ -30,28 +19,27 @@ class AuthService:
         if pending is None:
             return AuthStatusResponse(authenticated=False, message="Sin sesión activa")
 
-        future = pending["future"]
         session = pending["session"]
+        future = pending["future"]
 
-        if not future.done():
+        authorized = await poll_oauth_future(session, future)
+        if authorized is None:
             return AuthStatusResponse(
                 authenticated=False, message="Esperando autorización del usuario"
             )
 
-        if session.check_login():
+        app_state.pending_oauth = None
+        if authorized:
             engine.session = session
             session_data = engine.get_session_data()
             if session_data:
                 await self.repository.save_session(app_state.redis, session_data)
-            app_state.pending_oauth = None
             return AuthStatusResponse(authenticated=True)
 
-        app_state.pending_oauth = None
         return AuthStatusResponse(authenticated=False, message="Autorización fallida o expirada")
 
     async def start_device_auth(self, app_state) -> DeviceAuthResponse:
-        session = tidalapi.Session()
-        link, future = await asyncio.to_thread(session.login_oauth)
+        session, link, future = await create_oauth_session()
         app_state.pending_oauth = {"session": session, "future": future, "link": link}
 
         return DeviceAuthResponse(
