@@ -31,9 +31,10 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 | Bandit (seguridad estática) | 0 hallazgos medium/high al ejecutar localmente; CI con `\|\| true` (no bloqueante) | Research SECURITY_AUDIT |
 | Tests frontend | [INEXISTENTE] — sin Jest/Vitest/RTL/Playwright | `docs/roadmap.md` §2.5 |
 | Lint/build frontend | `pnpm lint` + `pnpm build` bloqueantes en CI | `.github/workflows/ci.yml` |
-| Páginas frontend `/library`, `/settings` | Placeholders (`return null`) | `docs/roadmap.md` §1, research UX |
+| Páginas frontend `/library`, `/settings` | ✅ Implementadas (resuelto TD-10 parcial) | `docs/roadmap.md` §1, research UX |
 | Ruta `/downloads` | **No existe** como página, solo como widget `DownloadPanel` | Research UX (Hallazgo nuevo) |
-| `AlbumDetailPanel` | No conectado (`handleOpenAlbum` → `console.info`) | `docs/roadmap.md` §1 |
+| `AlbumDetailPanel` | ✅ Conectado con modal, tracklist y descarga selectiva (resuelto TD-11) | `docs/roadmap.md` §1 |
+| Middleware de rutas | ✅ Activado en `src/middleware.ts` con cookie `music4all_session` | Hallazgo nuevo |
 | `PlayerBar` | Decorativo, sin elemento `<audio>` | Research UX (Hallazgo nuevo) |
 | Código muerto frontend | ✅ Eliminado (resuelto TD-08) | `docs/roadmap.md` §1, research Architecture |
 | Código muerto backend (`app/api/v1/`, `app/services/`, `app/schemas/`) | Confirmado sin referencias (**hallazgo nuevo**) | Research Architecture |
@@ -184,23 +185,30 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 
 ## TD-10 — Funcionalidad incompleta expuesta en la navegación (`/library`, `/settings`, `/downloads`)
 
-- **Descripción**: `(app)/library/page.tsx` y `(app)/settings/page.tsx` son `return null` (placeholders explícitos "Phase 3+"). Adicionalmente, **no existe ninguna página `/downloads`** bajo `frontend/src/app/(app)/` — solo existe el widget `DownloadPanel` (overlay). Sin embargo, tanto el `Sidebar` (`NAV_ITEMS`) como `AppHeader` (`PAGE_TITLES`) referencian las tres rutas como destinos de navegación.
-- **Evidencia**: `docs/roadmap.md` §1; research UX_AUDIT puntos 1 y 8 (hallazgo de `/downloads` es **nuevo**, no documentado en `roadmap.md`).
-- **Impacto técnico**: navegar a `/library` o `/settings` renderiza una página vacía (sin error 500, comportamiento "esperado" según `docs/e2e-validation.md` línea 23). Navegar a `/downloads` probablemente produce un 404 de Next.js (ruta no definida) — **[REQUIERE VALIDACIÓN]** runtime para confirmar si existe un `not-found.tsx` que lo capture con gracia.
-- **Impacto de negocio**: experiencia de usuario rota — la navegación principal promete 3 de 5 destinos que están vacíos o no existen. Esto es especialmente visible para un usuario nuevo explorando la app.
-- **Recomendación**: opciones a corto plazo (sin desarrollo nuevo): (a) ocultar temporalmente los items de navegación de `/library`, `/settings`, `/downloads` del `Sidebar`/`AppHeader` hasta que existan; o (b) crear una página `/downloads` mínima que reutilice `DownloadPanel`/`DownloadJobItem` en modo de página completa (esfuerzo menor que `/library`/`/settings`). Detalle de priorización en [`docs/audits/UX_AUDIT.md`](UX_AUDIT.md).
-- **Esfuerzo estimado**: XS (ocultar nav items) / M (página `/downloads` mínima).
-- **Prioridad**: P1.
-- **Severidad**: **High** (impacto directo en percepción de calidad del producto).
+- **Estado**: ⚠️ **Parcialmente resuelto** (`/library` y `/settings` implementadas; `/downloads` como página sigue pendiente).
+- **Descripción (original)**: `(app)/library/page.tsx` y `(app)/settings/page.tsx` eran `return null` (placeholders "Phase 3+"). Adicionalmente, **no existe ninguna página `/downloads`** bajo `frontend/src/app/(app)/` — solo existe el widget `DownloadPanel` (overlay). Tanto `Sidebar` (`NAV_ITEMS`) como `AppHeader` (`PAGE_TITLES`) referencian las tres rutas.
+- **Resumen de cambios aplicados**:
+  - `(app)/library/page.tsx`: implementada con Card de estado vacío y estilo consistente al Dashboard (icon musical, mensaje orientativo).
+  - `(app)/settings/page.tsx`: implementada con dos secciones — `QualitySelector` para `audioQuality` y botones toggles (1–5) para `concurrentDownloads`; valores leídos/escritos en `useSettingsStore` (Zustand persist).
+  - `src/middleware.ts` (nuevo, ubicación correcta para Next.js): protección de rutas con cookie `music4all_session`. Redirige rutas protegidas → `/login` si sin sesión; `/login` → `/dashboard` si con sesión. El cookie es sincronizado por `auth.store` en `setAuthenticated`, `setExpired`, `clearSession` y `onRehydrateStorage`.
+- **Pendiente**: página `/downloads` como vista de página completa (el widget `DownloadPanel` sigue siendo el acceso principal).
+- **Evidencia**: `docs/roadmap.md` §1; research UX_AUDIT puntos 1 y 8.
+- **Esfuerzo estimado (pendiente)**: M (página `/downloads` mínima).
+- **Prioridad**: P2 (reducida desde P1 — /library y /settings ya no están rotos).
+- **Severidad**: **Medium** (reducida desde High — la mayor parte del daño de UX está corregido).
 
 ## TD-11 — `AlbumDetailPanel` no conectado
 
-- **Descripción**: `handleOpenAlbum` en `DashboardClient.tsx` solo ejecuta `console.info` — el panel de detalle de álbum (Phase 6C) no está implementado/conectado.
+- **Estado**: ✅ **Resuelto** (`pnpm lint` + `pnpm build` pasan con 0 errores; modal visible en `/dashboard`).
+- **Descripción (original)**: `handleOpenAlbum` en `DashboardClient.tsx` solo ejecutaba `console.info` — el panel de detalle de álbum (Phase 6C) no estaba implementado.
+- **Resumen de cambios aplicados** (en `DashboardClient.tsx`):
+  - Estado: `detailAlbumId: string | null` y `selectedTrackIds: Set<string>`.
+  - Query: `useAlbumDetailQuery(detailAlbumId)` de `@/features/album-detail`.
+  - Modal (shared/ui `Modal` size `lg`): portada del álbum, artista, año, número de pistas, lista de tracks con checkboxes (número de pista, título, duración `MM:SS`), checkbox "Seleccionar todas" + contador de selección.
+  - Acciones de descarga: si todas las pistas seleccionadas → `POST /downloads { albumId }` (un job); si selección parcial → un `POST /downloads { trackId }` por pista seleccionada; botón "Descargar álbum completo" siempre disponible.
+  - Todos los jobs se encolán en `useDownloadsStore.enqueue()` con los metadatos correspondientes.
 - **Evidencia**: `docs/roadmap.md` §1.
-- **Impacto técnico**: el callback `onOpen` de `AlbumCard` no tiene efecto visible para el usuario.
-- **Impacto de negocio**: funcionalidad de exploración de álbum (ver tracklist antes de descargar) ausente.
-- **Recomendación**: priorizar según roadmap de producto — no es bloqueante para el flujo de descarga actual (búsqueda → descarga directa funciona).
-- **Esfuerzo estimado**: M.
+- **Esfuerzo estimado**: ~~M~~ — completado.
 - **Prioridad**: P2.
 - **Severidad**: **Medium**.
 
@@ -245,10 +253,10 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 |---|---|---|---|
 | TD-03 | CI no bloquea ante fallos reales de pytest (`\|\| echo`) | High | Confirmado |
 | TD-05 | Sin testing frontend — regresiones solo detectables manualmente | High | Confirmado |
-| TD-10 | Navegación promete `/library`, `/settings`, `/downloads` inexistentes/vacíos | High | Confirmado |
+| TD-10 | ⚠️ Navegación: `/downloads` sin página (parcial — /library, /settings resueltos) | Medium | Parcialmente resuelto |
 | TD-02 | ~~49 errores mypy, excepciones de tidalapi inexistentes~~ | ~~Medium~~ | ✅ **Resuelto** |
 | TD-04 | Bandit no bloqueante (`\|\| true`) | Medium | Confirmado |
-| TD-11 | `AlbumDetailPanel` no conectado | Medium | Confirmado |
+| TD-11 | ~~`AlbumDetailPanel` no conectado~~ | ~~Medium~~ | ✅ **Resuelto** |
 | TD-12 | `PlayerBar` decorativo, sin reproducción real | Medium | Confirmado (nuevo) |
 | TD-13 | `prefers-reduced-motion` ausente, asumido por docs de diseño | Medium | Confirmado |
 | TD-14 | Duplicación OAuth legacy/v2 en memoria | Medium | Confirmado |

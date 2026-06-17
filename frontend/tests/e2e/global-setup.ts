@@ -66,6 +66,14 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
       { key: AUTH_STORAGE_KEY, expiresAt }
     )
 
+    // Set session cookie so middleware allows access to protected routes
+    // (middleware checks music4all_session before client-side auth.store can hydrate)
+    const cookieExpiry = Math.floor(Date.now() / 1000) + 7200
+    const baseHost = new URL(baseURL).hostname
+    await page.context().addCookies([
+      { name: 'music4all_session', value: '1', domain: baseHost, path: '/', expires: cookieExpiry },
+    ])
+
     await page.route('**/api/search**', async (route) => {
       await route.fulfill({ json: buildSearchResponse() })
     })

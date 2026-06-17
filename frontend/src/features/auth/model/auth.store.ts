@@ -40,6 +40,21 @@ interface AuthActions {
   clearJobIdToRetry: () => void
 }
 
+// ── Cookie helpers — kept thin; cookie is non-httpOnly by design (RM-03 tracks future upgrade) ──
+
+function setSessionCookie(expiresAt: string): void {
+  if (typeof window === 'undefined') return
+  const maxAge = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)
+  if (maxAge > 0) {
+    document.cookie = `music4all_session=1; path=/; max-age=${maxAge}; SameSite=Lax`
+  }
+}
+
+function clearSessionCookie(): void {
+  if (typeof window === 'undefined') return
+  document.cookie = 'music4all_session=; path=/; max-age=0; SameSite=Lax'
+}
+
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
     (set) => ({
@@ -52,18 +67,25 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       jobIdToRetry: null,
       hasHydrated: false,
 
-      setAuthenticated: (user, expiresAt) =>
-        set({ status: 'authenticated', user, expiresAt }),
+      setAuthenticated: (user, expiresAt) => {
+        setSessionCookie(expiresAt)
+        set({ status: 'authenticated', user, expiresAt })
+      },
 
-      setExpired: () => set({ status: 'expired' }),
+      setExpired: () => {
+        clearSessionCookie()
+        set({ status: 'expired' })
+      },
 
-      clearSession: () =>
+      clearSession: () => {
+        clearSessionCookie()
         set({
           status: 'unauthenticated',
           user: null,
           expiresAt: null,
           deviceAuth: null,
-        }),
+        })
+      },
 
       setDeviceAuth: (deviceAuth) => set({ deviceAuth }),
       clearDeviceAuth: () => set({ deviceAuth: null }),
@@ -89,6 +111,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         // Mark as expired on rehydration if token has elapsed
         if (state?.expiresAt && new Date(state.expiresAt) < new Date()) {
           state.status = 'expired'
+        }
+        // Sync session cookie so middleware sees the auth state on next navigation
+        if (state?.status === 'authenticated' && state.expiresAt) {
+          setSessionCookie(state.expiresAt)
+        } else {
+          clearSessionCookie()
         }
         useAuthStore.setState({ hasHydrated: true })
       },

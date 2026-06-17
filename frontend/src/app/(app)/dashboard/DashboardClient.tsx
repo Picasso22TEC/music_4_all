@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 
 import type { Album, AudioQuality } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
-import { QualitySelector } from '@/shared/ui'
+import { Button, Modal, QualitySelector } from '@/shared/ui'
+import { cn } from '@/shared/lib/cn'
 
 import { useAuthStore } from '@/features/auth'
 import {
@@ -16,6 +17,15 @@ import {
   useSearchQuery,
 } from '@/features/search'
 import { useStartDownloadMutation, useDownloadsStore } from '@/features/downloads'
+import { useAlbumDetailQuery } from '@/features/album-detail'
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatSeconds(total: number): string {
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -108,10 +118,80 @@ export default function DashboardClient() {
     })
   }
 
-  /** Triggered by AlbumCard.onOpen — AlbumDetailPanel deferred to Phase 6C */
+  // ── Album detail panel ──────────────────────────────────────────────────────
+
+  const [detailAlbumId,    setDetailAlbumId]    = useState<string | null>(null)
+  const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set())
+
+  const albumDetailQuery = useAlbumDetailQuery(detailAlbumId)
+  const detailAlbum  = albumDetailQuery.data?.album
+  const detailTracks = albumDetailQuery.data?.tracks ?? []
+
   function handleOpenAlbum(albumId: string) {
-    // TODO: AlbumDetailPanel — Phase 6C
-    console.info('[Dashboard] Open album detail:', albumId)
+    setDetailAlbumId(albumId)
+    setSelectedTrackIds(new Set())
+  }
+
+  function handleCloseAlbumDetail() {
+    setDetailAlbumId(null)
+    setSelectedTrackIds(new Set())
+  }
+
+  function toggleTrack(trackId: string) {
+    setSelectedTrackIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(trackId)) next.delete(trackId)
+      else next.add(trackId)
+      return next
+    })
+  }
+
+  function toggleAllTracks() {
+    if (selectedTrackIds.size === detailTracks.length && detailTracks.length > 0) {
+      setSelectedTrackIds(new Set())
+    } else {
+      setSelectedTrackIds(new Set(detailTracks.map((t) => t.id)))
+    }
+  }
+
+  function handleDownloadSelected() {
+    if (!detailAlbumId) return
+    const selectedTracks = detailTracks.filter((t) => selectedTrackIds.has(t.id))
+    if (selectedTracks.length === 0) return
+
+    if (selectedTracks.length === detailTracks.length) {
+      // Full album — single job
+      downloadMutation.mutate({ albumId: detailAlbumId, quality }, {
+        onSuccess: (result) => {
+          useDownloadsStore.getState().enqueue({
+            backendJobId: result.jobId,
+            albumId: detailAlbumId,
+            albumTitle: detailAlbum?.title ?? 'Unknown Album',
+            artistName: detailAlbum?.artist.name ?? 'Unknown Artist',
+            totalTracks: result.estimatedTracks,
+            qualityOverride: quality,
+          })
+        },
+      })
+    } else {
+      // Individual tracks — one job per track
+      for (const track of selectedTracks) {
+        downloadMutation.mutate({ trackId: track.id, quality }, {
+          onSuccess: (result) => {
+            useDownloadsStore.getState().enqueue({
+              backendJobId: result.jobId,
+              albumId: detailAlbumId,
+              albumTitle: track.title,
+              artistName: track.artist.name,
+              totalTracks: 1,
+              qualityOverride: quality,
+            })
+          },
+        })
+      }
+    }
+
+    handleCloseAlbumDetail()
   }
 
   // ── Dashboard display states (wireframes §4–13) ─────────────────────────────
@@ -209,6 +289,149 @@ export default function DashboardClient() {
           />
         )}
       </section>
+
+      {/* ── Album detail modal ───────────────────────────────────────────── */}
+      <Modal
+        isOpen={detailAlbumId !== null}
+        onClose={handleCloseAlbumDetail}
+        title={detailAlbum?.title ?? 'Detalle del álbum'}
+        size="lg"
+      >
+        {/* Loading */}
+        {albumDetailQuery.isFetching && !detailAlbum && (
+          <div className="flex items-center justify-center py-12">
+            <p className="animate-pulse font-sans text-sm text-secondary">Cargando...</p>
+          </div>
+        )}
+
+        {/* Error */}
+        {albumDetailQuery.isError && !detailAlbum && (
+          <div className="flex items-center justify-center py-12">
+            <p className="font-sans text-sm text-semantic-error">
+              No se pudo cargar el álbum. Inténtalo de nuevo.
+            </p>
+          </div>
+        )}
+
+        {/* Content */}
+        {detailAlbum && (
+          <div className="flex flex-col gap-5">
+            {/* Album header */}
+            <div className="flex gap-4">
+              {detailAlbum.coverUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={detailAlbum.coverUrl}
+                  alt={`Portada de ${detailAlbum.title}`}
+                  width={96}
+                  height={96}
+                  className="h-24 w-24 flex-shrink-0 rounded-md object-cover"
+                />
+              )}
+              <div className="flex flex-col gap-1 justify-center">
+                <p className="font-sans text-sm font-medium text-primary">
+                  {detailAlbum.artist.name}
+                </p>
+                {detailAlbum.releaseDate && (
+                  <p className="font-sans text-xs text-secondary">
+                    {detailAlbum.releaseDate.slice(0, 4)}
+                  </p>
+                )}
+                <p className="font-sans text-xs text-secondary">
+                  {detailTracks.length} {detailTracks.length === 1 ? 'pista' : 'pistas'}
+                </p>
+              </div>
+            </div>
+
+            {/* Select all row */}
+            <div className="flex items-center justify-between border-b border-subtle pb-3">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={
+                    detailTracks.length > 0 &&
+                    selectedTrackIds.size === detailTracks.length
+                  }
+                  onChange={toggleAllTracks}
+                  className="h-4 w-4 accent-teal-500"
+                  aria-label="Seleccionar todas las pistas"
+                />
+                <span className="font-sans text-sm text-secondary">Seleccionar todas</span>
+              </label>
+              <span className="font-sans text-xs text-secondary">
+                {selectedTrackIds.size} de {detailTracks.length} seleccionadas
+              </span>
+            </div>
+
+            {/* Track list */}
+            <div
+              className="max-h-64 overflow-y-auto"
+              role="list"
+              aria-label="Lista de pistas"
+            >
+              {detailTracks.map((track) => (
+                <label
+                  key={track.id}
+                  role="listitem"
+                  className={cn(
+                    'flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5',
+                    'hover:bg-surface-console/50 transition-colors duration-75',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedTrackIds.has(track.id)}
+                    onChange={() => toggleTrack(track.id)}
+                    className="h-4 w-4 flex-shrink-0 accent-teal-500"
+                    aria-label={`Seleccionar pista: ${track.title}`}
+                  />
+                  <span className="w-6 flex-shrink-0 font-mono text-xs text-secondary">
+                    {String(track.trackNumber).padStart(2, '0')}
+                  </span>
+                  <span className="flex-1 truncate font-sans text-sm text-primary">
+                    {track.title}
+                  </span>
+                  <span className="flex-shrink-0 font-mono text-xs text-secondary">
+                    {formatSeconds(track.durationSeconds)}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {/* Footer actions */}
+            <div className="flex items-center justify-end gap-3 border-t border-subtle pt-4">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCloseAlbumDetail}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  handleDownload(detailAlbumId!)
+                  handleCloseAlbumDetail()
+                }}
+              >
+                Descargar álbum completo
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={selectedTrackIds.size === 0 || downloadMutation.isPending}
+                onClick={handleDownloadSelected}
+              >
+                Descargar seleccionadas ({selectedTrackIds.size})
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -56,9 +56,31 @@ test.describe('Dashboard search', () => {
     await expect(page.getByRole('heading', { name: 'No results found' })).toBeVisible()
   })
 
-  test('clicking an album triggers the open-detail handler', async ({ page }) => {
+  test('clicking an album opens the detail modal', async ({ page }) => {
     await page.route('**/api/search**', async (route) => {
       await route.fulfill({ json: buildSearchResponse() })
+    })
+
+    // Mock album detail endpoint
+    await page.route('**/api/albums/**', async (route) => {
+      await route.fulfill({
+        json: {
+          album: TOXICITY_ALBUM_DTO,
+          tracks: [
+            {
+              id: '1',
+              title: 'Prison Song',
+              track_number: 1,
+              duration: 210,
+              audio_quality: 'HIGH',
+              audio_modes: [],
+              isrc: 'USRC12345001',
+              artist: { id: '11069', name: 'System of a Down' },
+              album: { id: TOXICITY_ALBUM_DTO.id, title: TOXICITY_ALBUM_DTO.title },
+            },
+          ],
+        },
+      })
     })
 
     await page.goto('/dashboard')
@@ -73,16 +95,11 @@ test.describe('Dashboard search', () => {
     })
     await expect(albumCard).toBeVisible()
 
-    // AlbumDetailPanel is deferred to Phase 6C — clicking the artwork
-    // currently only logs the intent via console.info(). Until the detail
-    // view ships, this is the observable contract for "open album".
-    const openDetailLog = page.waitForEvent('console', (msg) =>
-      msg.text().includes('[Dashboard] Open album detail:')
-    )
-
     await albumCard.getByRole('button', { name: `Open details for ${TOXICITY_ALBUM_DTO.title}` }).click()
 
-    const msg = await openDetailLog
-    expect(msg.text()).toContain(TOXICITY_ALBUM_DTO.id)
+    // Modal should open — dialog role + album title in header
+    const modal = page.getByRole('dialog')
+    await expect(modal).toBeVisible()
+    await expect(modal.getByText(TOXICITY_ALBUM_DTO.title)).toBeVisible()
   })
 })
