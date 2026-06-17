@@ -6,7 +6,7 @@ import { cn } from '@/shared/lib/cn'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'icon-only'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'icon-only' | 'neon'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -59,6 +59,16 @@ const VARIANTS: Record<ButtonVariant, string> = {
     'focus-visible:shadow-glow-focus',
     'disabled:pointer-events-none disabled:opacity-[0.38]',
     'active:scale-[0.97]',
+  ].join(' '),
+
+  neon: [
+    'bg-teal-400/10 border-2 border-teal-400 text-teal-400',
+    'uppercase tracking-wider font-bold',
+    'hover:bg-teal-400/25 hover:shadow-glow-active',
+    'focus-visible:shadow-glow-focus',
+    'disabled:pointer-events-none disabled:opacity-[0.38]',
+    'active:scale-[0.97] active:translate-y-px',
+    'transition-all duration-200',
   ].join(' '),
 }
 
