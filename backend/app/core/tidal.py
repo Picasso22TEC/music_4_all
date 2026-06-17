@@ -61,6 +61,7 @@ def retry(max_retries=3, backoff_factor=1.5, cancel_event=None):
 
 class TidalDownloader:
     FFMPEG_BIN = Path("ffmpeg.exe")  # Se ajustará automáticamente en __init__
+    _temp_dir: Path | None
 
     def __init__(self, log_callback=print, session_data: dict | None = None):
         self.log = log_callback
@@ -83,6 +84,9 @@ class TidalDownloader:
 
     @property
     def download_folder(self) -> Path:
+        assert self._temp_dir is not None, (
+            "_setup_temp_dir must be called before accessing download_folder"
+        )
         return self._temp_dir
 
     # ---------- Detección automática de ffmpeg ----------
@@ -130,7 +134,9 @@ class TidalDownloader:
                 "token_type": self.session.token_type,
                 "access_token": self.session.access_token,
                 "refresh_token": self.session.refresh_token,
-                "expiry_time": self.session.expiry_time.isoformat(),
+                "expiry_time": self.session.expiry_time.isoformat()
+                if self.session.expiry_time
+                else "",
             }
         return None
 
@@ -157,10 +163,10 @@ class TidalDownloader:
             return None, None
         if "track/" in link:
             match = re.search(r"track/(\d+)", link)
-            return "track", int(match.group(1)) if match else None
+            return "track", match.group(1) if match else None
         elif "album/" in link:
             match = re.search(r"album/(\d+)", link)
-            return "album", int(match.group(1)) if match else None
+            return "album", match.group(1) if match else None
         elif "playlist/" in link:
             match = re.search(r"playlist/([0-9a-fA-F\-]+)", link)
             return "playlist", match.group(1) if match else None
@@ -252,7 +258,7 @@ class TidalDownloader:
     def _probe_quality_from_manifest(self, track_id: int) -> tuple[str, str]:
         try:
             self.session.audio_quality = Quality.hi_res_lossless
-            track = self.session.track(track_id)
+            track = self.session.track(track_id)  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int
             stream = track.get_stream()
 
             if stream.manifest_mime_type == "application/vnd.tidal.bts":
@@ -306,19 +312,21 @@ class TidalDownloader:
 
         try:
             if kind == "track":
-                track = self.session.track(item_id)
-                album = self.session.album(track.album.id)
+                track = self.session.track(item_id)  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int/str
+                if track.album is None:
+                    return {"error": "Track sin álbum asociado."}
+                album = self.session.album(track.album.id)  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int
                 cover_id = album.cover or ""
                 year = str(album.release_date.year) if album.release_date else "Unknown"
-                folder_name = self._sanitize_filename(
-                    f"{album.artist.name} - [{year}] {album.name}"
-                )
-                badge_title, badge_desc = self._probe_quality_from_manifest(item_id)
+                album_artist = album.artist.name if album.artist else "Unknown"
+                folder_name = self._sanitize_filename(f"{album_artist} - [{year}] {album.name}")
+                badge_title, badge_desc = self._probe_quality_from_manifest(int(item_id))
+                track_artist = track.artist.name if track.artist else "Unknown"
 
                 return {
                     "type": "track",
                     "title": track.name,
-                    "artist": track.artist.name,
+                    "artist": track_artist,
                     "album": album.name,
                     "thumb_url": f"https://resources.tidal.com/images/{cover_id.replace('-', '/')}/320x320.jpg"
                     if cover_id
@@ -336,19 +344,18 @@ class TidalDownloader:
                 }
 
             elif kind == "album":
-                album = self.session.album(item_id)
+                album = self.session.album(item_id)  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int/str
                 tracks = album.tracks()
                 cover_id = album.cover or ""
                 year = str(album.release_date.year) if album.release_date else "Unknown"
-                folder_name = self._sanitize_filename(
-                    f"{album.artist.name} - [{year}] {album.name}"
-                )
+                album_artist = album.artist.name if album.artist else "Unknown"
+                folder_name = self._sanitize_filename(f"{album_artist} - [{year}] {album.name}")
                 badge_title, badge_desc = self._probe_quality_from_manifest(tracks[0].id)
 
                 return {
                     "type": "album",
                     "title": album.name,
-                    "artist": album.artist.name,
+                    "artist": album_artist,
                     "thumb_url": f"https://resources.tidal.com/images/{cover_id.replace('-', '/')}/320x320.jpg"
                     if cover_id
                     else None,
@@ -413,9 +420,11 @@ class TidalDownloader:
                     "audio_format": "FLAC",
                 }
 
-        except tidalapi.exceptions.UserNotLoggedIn:
+            return {"error": f"Tipo no soportado: {kind}"}
+
+        except tidalapi.exceptions.AuthenticationError:
             return {"error": "Token expirado. Por favor, vuelve a iniciar sesión en Tidal."}
-        except tidalapi.exceptions.ItemNotFound:
+        except tidalapi.exceptions.ObjectNotFound:
             return {"error": "Elemento no encontrado (Quizás fue borrado o es privado)."}
         except requests.exceptions.ConnectionError:
             return {
@@ -600,8 +609,8 @@ class TidalDownloader:
         self,
         track_obj,
         folder_name: str = "",
-        progress_callback: Callable = None,
-        cancel_event: threading.Event = None,
+        progress_callback: Callable | None = None,
+        cancel_event: threading.Event | None = None,
     ):
         try:
             folder_path = (
@@ -666,7 +675,7 @@ class TidalDownloader:
             final_path = self._extract_flac_from_mp4(final_path)
 
             # Construir y aplicar metadatos
-            meta = build_metadata(
+            track_meta = build_metadata(
                 track=track_obj,
                 album=album,
                 synced_lyrics=synced,
@@ -685,10 +694,10 @@ class TidalDownloader:
             if s_bits > 16 or s_rate > 44100:
                 calidad_txt += " (Hi-Res)"
 
-            meta.comment = f"Tidal Rip | {calidad_txt}"
+            track_meta.comment = f"Tidal Rip | {calidad_txt}"
 
             try:
-                apply_flac_metadata(final_path, meta)
+                apply_flac_metadata(final_path, track_meta)
             except Exception as e:
                 self.log(f"⚠️ Error aplicando metadatos: {e}")
                 calidad_txt = "Tags Fallaron"

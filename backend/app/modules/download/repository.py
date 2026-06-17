@@ -9,21 +9,24 @@ class DownloadRepository:
             raise ValueError("URL de Tidal no reconocida")
 
         if kind == "track":
-            track = engine.session.track(item_id)
+            track = engine.session.track(item_id)  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int/str
             tracks = [track]
-            title = track.name
-            folder = engine._sanitize_filename(f"{track.artist.name} - {track.album.name}")
+            title = track.name or ""
+            artist_name = track.artist.name if track.artist else "Unknown"
+            album_name = track.album.name if track.album else "Unknown"
+            folder = engine._sanitize_filename(f"{artist_name} - {album_name}")
         elif kind == "album":
-            album = engine.session.album(item_id)
+            album = engine.session.album(item_id)  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int/str
             tracks = list(album.tracks())
             year = album.release_date.year if album.release_date else ""
-            title = album.name
-            folder = engine._sanitize_filename(f"{album.artist.name} - [{year}] {album.name}")
+            title = album.name or ""
+            artist_name = album.artist.name if album.artist else "Unknown"
+            folder = engine._sanitize_filename(f"{artist_name} - [{year}] {album.name or ''}")
         elif kind == "playlist":
             playlist = engine.session.playlist(item_id)
             tracks = list(playlist.tracks(limit=None))
-            title = playlist.name
-            folder = engine._sanitize_filename(f"Playlist - {playlist.name}")
+            title = playlist.name or ""
+            folder = engine._sanitize_filename(f"Playlist - {playlist.name or ''}")
         else:
             raise ValueError(f"Tipo no soportado: {kind}")
 

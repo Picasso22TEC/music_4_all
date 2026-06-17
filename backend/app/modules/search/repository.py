@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date
+from typing import Any
 
 import tidalapi
 
@@ -37,7 +39,7 @@ def _map_audio_quality(q: object) -> str:
     return "NORMAL"
 
 
-def _map_audio_modes(modes: object) -> list[str]:
+def _map_audio_modes(modes: Iterable[object] | None) -> list[str]:
     """Convierte audio modes de tidalapi al formato del spec."""
     if not modes:
         return []
@@ -139,7 +141,7 @@ def _playlist_to_out(playlist: object) -> PlaylistOut:
 class SearchV2Repository:
     def search(self, query: str, limit: int, engine: TidalDownloader) -> SearchResultsResponse:
         try:
-            raw = engine.session.search(
+            raw: Any = engine.session.search(  # tidalapi stubs type this as object; cast to Any for attribute access
                 query,
                 models=[tidalapi.Album, tidalapi.Track, tidalapi.Playlist],
                 limit=limit,
@@ -154,8 +156,11 @@ class SearchV2Repository:
                 ),
             )
 
-        def _list(key: str) -> list:
-            return raw.get(key, []) if isinstance(raw, dict) else list(getattr(raw, key, []) or [])
+        def _list(key: str) -> list[Any]:
+            if isinstance(raw, dict):
+                return list(raw.get(key, []))
+            items: Any = getattr(raw, key, None) or []
+            return list(items)
 
         album_items = [_album_to_out(a) for a in _list("albums")]
         track_items = [_track_to_out(t) for t in _list("tracks")]
@@ -188,10 +193,10 @@ class SearchV2Repository:
             raise ValueError(f"URL no reconocida: {url}")
 
         if kind == "album":
-            album = engine.session.album(int(item_id))
+            album = engine.session.album(int(item_id))  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int
             return ResolveUrlResponse(type="album", id=str(item_id), data=_album_to_out(album))
         elif kind == "track":
-            track = engine.session.track(int(item_id))
+            track = engine.session.track(int(item_id))  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int
             return ResolveUrlResponse(type="track", id=str(item_id), data=_track_to_out(track))
         elif kind == "playlist":
             playlist = engine.session.playlist(item_id)
@@ -202,7 +207,7 @@ class SearchV2Repository:
         raise ValueError(f"Tipo no soportado: {kind}")
 
     def get_album_detail(self, album_id: str, engine: TidalDownloader) -> AlbumDetailResponse:
-        album = engine.session.album(int(album_id))
+        album = engine.session.album(int(album_id))  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int
         tracks = list(album.tracks())
         album_out = _album_to_out(album)
         track_items = [_track_to_out(t, include_album=False) for t in tracks]

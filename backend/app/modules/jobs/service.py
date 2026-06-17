@@ -62,9 +62,9 @@ class JobService:
 
         # Estado inicial en Redis — usa "queued" como status del spec
         await rc.set_job_state(
-            app_state.redis,
+            app_state.redis,  # type: ignore[attr-defined]
             job_id,
-            {  # type: ignore[attr-defined]
+            {
                 "job_id": job_id,
                 "title": title,
                 "status": DownloadJobStatus.PENDING,  # para compatibilidad con worker
@@ -81,8 +81,8 @@ class JobService:
 
         # Encolar para el worker (formato compatible con worker actual)
         await rc.enqueue_job(
-            app_state.redis,
-            {  # type: ignore[attr-defined]
+            app_state.redis,  # type: ignore[attr-defined]
+            {
                 "job_id": job_id,
                 "url": url,
                 "title": title,

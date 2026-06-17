@@ -25,7 +25,7 @@ async def search(
     """Búsqueda tipada: devuelve álbumes, tracks y playlists en listas separadas."""
     try:
         return await _service.search(q, limit, engine)
-    except (tidal_exc.UserNotLoggedIn, AttributeError) as exc:
+    except (tidal_exc.AuthenticationError, AttributeError) as exc:
         raise ApiException(
             "SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False
         ) from exc
@@ -45,11 +45,11 @@ async def resolve_url(
         return await _service.resolve_url(url, engine)
     except ValueError as exc:
         raise ApiException("INVALID_URL", str(exc), 400, retriable=False) from exc
-    except tidal_exc.ItemNotFound as exc:
+    except tidal_exc.ObjectNotFound as exc:
         raise ApiException(
             "NOT_FOUND", "Recurso no encontrado en Tidal", 404, retriable=False
         ) from exc
-    except (tidal_exc.UserNotLoggedIn, AttributeError) as exc:
+    except (tidal_exc.AuthenticationError, AttributeError) as exc:
         raise ApiException(
             "SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False
         ) from exc
@@ -71,11 +71,11 @@ async def get_album_detail(
         )
     try:
         return await _service.get_album_detail(album_id, engine)
-    except tidal_exc.ItemNotFound as exc:
+    except tidal_exc.ObjectNotFound as exc:
         raise ApiException(
             "NOT_FOUND", f"Álbum {album_id} no encontrado en Tidal", 404, retriable=False
         ) from exc
-    except (tidal_exc.UserNotLoggedIn, AttributeError) as exc:
+    except (tidal_exc.AuthenticationError, AttributeError) as exc:
         raise ApiException(
             "SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False
         ) from exc

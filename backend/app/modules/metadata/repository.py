@@ -30,7 +30,7 @@ class MetadataRepository:
             results.append(
                 SearchResult(
                     id=str(album.id),
-                    title=album.name,
+                    title=album.name or "",
                     artist=getattr(artist, "name", "") if artist else "",
                     url=f"https://tidal.com/browse/album/{album.id}",
                     cover_url=_cover_url(getattr(album, "cover", None)),
@@ -42,12 +42,14 @@ class MetadataRepository:
         tracks = raw.get("tracks", []) if isinstance(raw, dict) else getattr(raw, "tracks", [])
         for track in tracks:
             artist = getattr(track, "artist", None)
-            album = getattr(track, "album", None)
-            cover = getattr(album, "cover", None) if album else None
+            track_album = getattr(
+                track, "album", None
+            )  # renamed to avoid shadowing loop var 'album'
+            cover = getattr(track_album, "cover", None) if track_album else None
             results.append(
                 SearchResult(
                     id=str(track.id),
-                    title=track.name,
+                    title=track.name or "",
                     artist=getattr(artist, "name", "") if artist else "",
                     url=f"https://tidal.com/browse/track/{track.id}",
                     cover_url=_cover_url(cover),
@@ -63,7 +65,7 @@ class MetadataRepository:
             results.append(
                 SearchResult(
                     id=str(playlist.id),
-                    title=playlist.name,
+                    title=playlist.name or "",
                     artist="Playlist",
                     url=f"https://tidal.com/browse/playlist/{playlist.id}",
                     cover_url=_cover_url(getattr(playlist, "picture", None)),

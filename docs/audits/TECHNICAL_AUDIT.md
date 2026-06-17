@@ -27,7 +27,7 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 | Tests backend | 138/141 pasan (97.9%) | `docs/roadmap.md` §2.3 |
 | Lint backend (`ruff check`) | ✅ 0 errores (resuelto TD-01) | `docs/roadmap.md` §2.1 |
 | Format backend (`ruff format --check`) | ✅ 0 errores (resuelto TD-01) | `.github/workflows/ci.yml` |
-| Type-check backend (`mypy`) | 49 errores en 11 archivos, **no en CI** | `docs/roadmap.md` §2.2 |
+| Type-check backend (`mypy`) | ✅ 0 errores en 69 archivos (resuelto TD-02) | `docs/roadmap.md` §2.2 |
 | Bandit (seguridad estática) | 0 hallazgos medium/high al ejecutar localmente; CI con `\|\| true` (no bloqueante) | Research SECURITY_AUDIT |
 | Tests frontend | [INEXISTENTE] — sin Jest/Vitest/RTL/Playwright | `docs/roadmap.md` §2.5 |
 | Lint/build frontend | `pnpm lint` + `pnpm build` bloqueantes en CI | `.github/workflows/ci.yml` |
@@ -61,11 +61,28 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 
 ## TD-02 — Errores de type-check (`mypy`) fuera de CI
 
-- **Descripción**: 49 errores de `mypy` en 11 archivos, sin job de `mypy` en CI, por lo que no bloquean merges. Ejemplos concretos documentados: `search/repository.py:187,190,199` (tipos `int` vs `str | None` en llamadas a `.album()`/`.track()` de tidalapi), `metadata/repository.py:33,45,64`, `download/repository.py:15,20,22,27` (acceso a atributos de `Artist | None`/`Album | None`), `search/router.py` y `jobs/router.py` (referencias a `UserNotLoggedIn`/`ItemNotFound` que no existen en el módulo de excepciones de `tidalapi` tal como se importa), `main.py:112` (handler de `RateLimitExceeded` con tipo incompatible).
-- **Evidencia**: `docs/roadmap.md` §2.2.
-- **Impacto técnico**: los errores relacionados con `tidalapi` (tipos opcionales, excepciones inexistentes) son los más relevantes — indican que el código podría fallar en tiempo de ejecución si `tidalapi` devuelve `None` donde el código asume un valor, o si se intenta capturar una excepción que no existe en el módulo importado (en ese caso, el `except` no captura nada y la excepción real se propaga sin manejo).
-- **Impacto de negocio**: riesgo de errores 500 no controlados en endpoints de búsqueda/descarga si Tidal devuelve datos inesperados (`None`).
-- **Recomendación**: (1) priorizar la revisión de los errores relacionados con excepciones de `tidalapi` (`search/router.py`, `jobs/router.py`) — son los de mayor riesgo de runtime; (2) añadir un job `mypy` en CI en modo "informativo" (no bloqueante) primero, luego bloqueante tras reducir el conteo; (3) resolver los 49 errores de forma incremental por módulo.
+- **Estado**: ✅ **Resuelto** (`mypy app --show-error-codes` reporta 0 errores en 69 archivos; 157 passed, 2 skipped en `pytest tests/ -q`).
+- **Descripción (original)**: 55 errores de `mypy` en 11 archivos (cifra revisada al ejecutar contra el estado actual del repositorio; el audit previo estimaba 49). Sin job de `mypy` en CI.
+- **Resumen de cambios aplicados por archivo**:
+  - **`core/security.py`** (2 errores): cuerpos vacíos con `pass` → `return False` / `return ""` (placeholders válidos).
+  - **`services/__init__.py`** (3 errores): re-exports de clases que no existen en los stubs legacy → eliminados; el módulo solo retiene el docstring.
+  - **`schemas/__init__.py`** (6 errores): ídem — re-exports eliminados.
+  - **`core/tidal.py`** (22 errores): múltiples fixes:
+    - `_temp_dir: Path | None` añadido como anotación de clase; `download_folder` usa `assert` para narrowing.
+    - `get_session_data`: `expiry_time.isoformat()` guardado contra `None`.
+    - `parse_link`: return type declarado como `tuple[str | None, str | None]`; cambiado `int(match.group(1))` → `match.group(1)` (str) para coincidir con stubs de tidalapi.
+    - `_probe_quality_from_manifest`: `# type: ignore[arg-type]` en llamada a `session.track(int)` (stubs declaran `str` pero tidalapi acepta int en runtime).
+    - `get_metadata`: añadido `return {"error": f"Tipo no soportado: {kind}"}` tras la cadena if/elif para eliminar missing-return; guardas de `None` para `track.album`, `album.artist`, `track.artist`.
+    - **Bug real corregido**: `tidalapi.exceptions.UserNotLoggedIn` y `tidalapi.exceptions.ItemNotFound` **no existen** — reemplazados por `AuthenticationError` y `ObjectNotFound` (los except anteriores no capturaban nada, dejando que las excepciones reales se propagaran sin manejo).
+    - `download_single_track`: parámetros `progress_callback: Callable | None = None` y `cancel_event: threading.Event | None = None`.
+    - Renombrado `meta` (variable `FLAC`) → `track_meta` para eliminar conflicto de tipos con el `meta = FLAC(...)` previo en el mismo scope.
+  - **`modules/search/repository.py`** (5 errores): `_map_audio_modes` tipado como `Iterable[object] | None`; `raw` anotado como `Any` para acceso a atributos del resultado de `session.search()`; `# type: ignore[arg-type]` en llamadas a `session.album(int)` y `session.track(int)`.
+  - **`modules/metadata/repository.py`** (3 errores): `album.name or ""` y `playlist.name or ""` para `str | None`; renombrado `album` → `track_album` en bucle de tracks para evitar shadowing de la variable del bucle de álbumes.
+  - **`modules/download/repository.py`** (5 errores): guardas `artist.name if artist else "Unknown"` y `album.name if album else "Unknown"`; `title = X.name or ""`; `# type: ignore[arg-type]` en llamadas a `session.track/album`.
+  - **`modules/jobs/service.py`** (2 errores): `# type: ignore[attr-defined]` movido a la línea de `app_state.redis` (estaba en la línea del dict, no suprimía el error real).
+  - **`modules/search/router.py`** (5 errores) + **`modules/jobs/router.py`** (2 errores): **bug real corregido** — `tidal_exc.UserNotLoggedIn` → `tidal_exc.AuthenticationError`; `tidal_exc.ItemNotFound` → `tidal_exc.ObjectNotFound`.
+  - **`main.py`** (1 error): `# type: ignore[arg-type]` en `add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)` — slowapi handler compatible en runtime con la firma de Starlette pero no con sus stubs.
+- **Bug crítico descubierto durante el fix**: `tidalapi.exceptions` no expone `UserNotLoggedIn` ni `ItemNotFound`. Los nombres correctos son `AuthenticationError` y `ObjectNotFound`. Todos los bloques `except` que usaban las names incorrectas no capturaban nada; las excepciones reales de autenticación y recurso-no-encontrado se propagaban sin manejo como `Exception` genérica.
 - **Esfuerzo estimado**: M (los errores de excepciones de tidalapi: S; el resto: 2-3 días repartidos).
 - **Prioridad**: P1 (para los errores de excepciones de tidalapi), P2 (para el resto).
 - **Severidad**: **Medium**.
@@ -229,7 +246,7 @@ Ningún hallazgo de este documento es **Critical** desde la perspectiva de "el s
 | TD-03 | CI no bloquea ante fallos reales de pytest (`\|\| echo`) | High | Confirmado |
 | TD-05 | Sin testing frontend — regresiones solo detectables manualmente | High | Confirmado |
 | TD-10 | Navegación promete `/library`, `/settings`, `/downloads` inexistentes/vacíos | High | Confirmado |
-| TD-02 | 49 errores mypy, algunos sobre manejo de excepciones de tidalapi inexistentes | Medium | Confirmado |
+| TD-02 | ~~49 errores mypy, excepciones de tidalapi inexistentes~~ | ~~Medium~~ | ✅ **Resuelto** |
 | TD-04 | Bandit no bloqueante (`\|\| true`) | Medium | Confirmado |
 | TD-11 | `AlbumDetailPanel` no conectado | Medium | Confirmado |
 | TD-12 | `PlayerBar` decorativo, sin reproducción real | Medium | Confirmado (nuevo) |
