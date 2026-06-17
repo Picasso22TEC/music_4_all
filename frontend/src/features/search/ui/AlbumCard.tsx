@@ -1,7 +1,9 @@
 'use client'
 
 import Image from 'next/image'
+import { motion } from 'framer-motion'
 
+import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { cn } from '@/shared/lib/cn'
 import type { Album, AudioQuality } from '@/entities'
 import { Badge } from '@/shared/ui/Badge'
@@ -39,69 +41,87 @@ export interface AlbumCardProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
- * Album card v2 — consumes Album entity (NOT SearchResult legacy).
+ * VinylCard (Fase 4) — consumes Album entity (NOT SearchResult legacy).
  *
- * Artwork button → onOpen (opens AlbumDetailPanel)
+ * Disc button → onOpen (opens AlbumDetailPanel)
  * Download button → onDownload
  *
  * Accessibility: article + labelled buttons, no div-click anti-patterns.
  */
 export function AlbumCard({ album, onOpen, onDownload }: AlbumCardProps) {
   const badge = resolveQualityBadge(album)
+  const reducedMotion = useReducedMotion()
 
   return (
     <article
       aria-label={`${album.title} by ${album.artist.name}, ${album.releaseYear}`}
-      className={cn(
-        'group flex flex-col overflow-hidden',
-        'bg-surface-console border rounded-md',
-        'transition-shadow duration-150 ease-out hover:shadow-md',
-      )}
+      className="group flex flex-col items-center gap-3"
     >
-      {/* ── Artwork — opens album detail (click target) ────────────── */}
-      <button
-        type="button"
-        onClick={() => onOpen?.(album.id)}
-        disabled={!onOpen}
-        aria-label={`Open details for ${album.title}`}
-        className={cn(
-          'relative block aspect-square w-full overflow-hidden bg-surface-studio',
-          'focus-visible:outline-none focus-visible:shadow-glow-focus',
-          onOpen ? 'cursor-pointer' : 'cursor-default',
-        )}
-      >
-        {album.coverUrl ? (
-          <Image
-            src={album.coverUrl}
-            alt={`Album cover for ${album.title} by ${album.artist.name}`}
-            fill
-            sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-            className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-          />
-        ) : (
-          <span
-            className="flex h-full w-full items-center justify-center text-4xl text-disabled"
-            aria-hidden="true"
-          >
-            ♪
-          </span>
-        )}
+      {/* ── Vinyl disc — opens album detail (click target) ─────────────── */}
+      <div className="relative w-full">
+        <motion.button
+          type="button"
+          onClick={() => onOpen?.(album.id)}
+          disabled={!onOpen}
+          aria-label={`Open details for ${album.title}`}
+          whileHover={reducedMotion ? undefined : { scale: 1.05, rotate: -3 }}
+          whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className={cn(
+            'relative block aspect-square w-full overflow-hidden rounded-full',
+            'border border-surface-rack bg-surface-void',
+            'shadow-none transition-shadow duration-300 group-hover:shadow-glow-active',
+            'focus-visible:outline-none focus-visible:shadow-glow-focus',
+            onOpen ? 'cursor-pointer' : 'cursor-default',
+          )}
+        >
+          {/* Surcos concéntricos — anillos sutiles del vinilo */}
+          <span aria-hidden="true" className="absolute inset-[5%] rounded-full border border-surface-rack/30" />
+          <span aria-hidden="true" className="absolute inset-[9%] rounded-full border border-surface-rack/20" />
+          <span aria-hidden="true" className="absolute inset-[13%] rounded-full border border-surface-rack/10" />
 
-        {/* Quality badge — bottom-left overlay */}
-        <div className="absolute bottom-2 left-2 z-raised">
+          {/* Portada — círculo centrado, ~70% del diámetro del disco */}
+          <span className="absolute inset-[15%] overflow-hidden rounded-full bg-surface-studio">
+            {album.coverUrl ? (
+              <Image
+                src={album.coverUrl}
+                alt={`Album cover for ${album.title} by ${album.artist.name}`}
+                fill
+                sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+              />
+            ) : (
+              <span
+                className="flex h-full w-full items-center justify-center text-4xl text-disabled"
+                aria-hidden="true"
+              >
+                ♪
+              </span>
+            )}
+          </span>
+
+          {/* Agujero central del vinilo */}
+          <span
+            aria-hidden="true"
+            className="absolute left-1/2 top-1/2 z-raised h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-surface-rack bg-surface-void"
+          />
+        </motion.button>
+
+        {/* Quality badge — sello sobre el vinilo, fuera de la máscara circular */}
+        <div className="pointer-events-none absolute bottom-[6%] left-[6%] z-raised -rotate-[10deg]">
           <Badge variant={badge.variant}>{badge.label}</Badge>
         </div>
-      </button>
+      </div>
 
       {/* ── Info + Download ─────────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col gap-0.5 p-3">
+      <div className="flex w-full flex-1 flex-col items-center gap-0.5 text-center">
         {/* Title */}
-        <h3 className="truncate font-sans text-sm font-semibold text-primary">
+        <h3 className="w-full truncate font-sans text-sm font-semibold text-primary">
           {album.title}
         </h3>
 
         {/* Artist */}
-        <p className="truncate font-sans text-xs text-secondary">
+        <p className="w-full truncate font-sans text-xs text-secondary">
           {album.artist.name}
         </p>
 
@@ -114,13 +134,13 @@ export function AlbumCard({ album, onOpen, onDownload }: AlbumCardProps) {
         {onDownload && (
           <Button
             type="button"
-            variant="secondary"
+            variant="neon"
             size="sm"
             onClick={() => onDownload(album.id)}
             aria-label={`Download ${album.title} by ${album.artist.name}`}
             className="mt-2 w-full"
           >
-            ↓ Download
+            DESCARGAR
           </Button>
         )}
       </div>
