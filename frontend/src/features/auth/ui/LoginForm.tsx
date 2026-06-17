@@ -8,6 +8,7 @@ import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 import { NeonParticles } from '@/shared/ui/NeonParticles'
+import { NeonTitle } from '@/shared/ui/NeonTitle'
 
 // Intra-feature imports — avoid barrel to prevent circular dependency
 import { useAuthStore } from '@/features/auth/model/auth.store'
@@ -127,13 +128,13 @@ export function LoginForm() {
         {deviceAuth ? 'Waiting for Tidal authorization' : ''}
       </div>
 
-      {/* ── Brand — replaces NeonTitle with Design System tokens ──────────── */}
+      {/* ── Brand — neon sign letrero (Fase 5) ─────────────────────────────── */}
       <div className="mb-8 text-center" aria-hidden="true">
         <div className="mb-2 flex items-center justify-center gap-2">
           <span className="text-teal-500 text-xs">■</span>
-          <span className="font-mono text-2xl font-bold tracking-widest text-teal-500">
+          <NeonTitle color="purple" className="text-2xl font-bold tracking-widest">
             MUSIC 4 ALL
-          </span>
+          </NeonTitle>
         </div>
         <p className="font-mono text-xs tracking-widest text-secondary">
           ∴ Lossless Audio Downloader ∴

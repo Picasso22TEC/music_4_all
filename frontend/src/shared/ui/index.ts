@@ -17,3 +17,6 @@ export * from './QualitySelector'
 
 // ── Phase 2 (visual transformation) — decorative background ───────────────────
 export * from './NeonParticles'
+
+// ── Phase 5 (visual transformation) — neon sign letrero ───────────────────────
+export * from './NeonTitle'
