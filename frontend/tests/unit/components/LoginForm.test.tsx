@@ -158,7 +158,11 @@ describe('LoginForm', () => {
         screen.getByRole('button', { name: /connect with tidal via device authorization/i })
       )
 
-      expect(screen.getByText(mockDeviceAuth.userCode)).toBeVisible()
+      // userCode is rendered digit-by-digit by RetroDisplay — queried via its
+      // accessible name (role="img" + aria-label), not by exact text content.
+      expect(
+        screen.getByRole('img', { name: new RegExp(mockDeviceAuth.userCode) })
+      ).toBeVisible()
       expect(
         screen.getByRole('link', { name: /open tidal authorization page in a new tab/i })
       ).toHaveAttribute('href', mockDeviceAuth.verificationUriComplete)
@@ -188,7 +192,9 @@ describe('LoginForm', () => {
 
     it('shows the verification URL and user code', () => {
       render(<LoginForm />)
-      expect(screen.getByText(mockDeviceAuth.userCode)).toBeVisible()
+      expect(
+        screen.getByRole('img', { name: new RegExp(mockDeviceAuth.userCode) })
+      ).toBeVisible()
       expect(screen.getByText(mockDeviceAuth.verificationUriComplete)).toBeVisible()
     })
 

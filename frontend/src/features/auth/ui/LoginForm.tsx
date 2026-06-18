@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
 
+import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { cn } from '@/shared/lib/cn'
-import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 import { NeonParticles } from '@/shared/ui/NeonParticles'
 import { NeonTitle } from '@/shared/ui/NeonTitle'
+import { RetroDisplay } from '@/shared/ui/RetroDisplay'
 
 // Intra-feature imports — avoid barrel to prevent circular dependency
 import { useAuthStore } from '@/features/auth/model/auth.store'
@@ -36,6 +38,7 @@ import {
  */
 export function LoginForm() {
   const router = useRouter()
+  const reducedMotion = useReducedMotion()
 
   // v2 auth store — status and deviceAuth (camelCase)
   const status      = useAuthStore((s) => s.status)
@@ -174,39 +177,52 @@ export function LoginForm() {
               Open this URL in your browser and authorize the app:
             </p>
 
-            {/* verificationUriComplete — camelCase v2 */}
-            <a
-              href={deviceAuth.verificationUriComplete}
-              target="_blank"
-              rel="noreferrer noopener"
+            {/* verificationUriComplete — "ticket de compra" wrapper (Fase 6) */}
+            <motion.div
+              initial={reducedMotion ? false : { y: 20, opacity: 0 }}
+              animate={reducedMotion ? false : { y: 0, opacity: 1 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
               className={cn(
-                'block break-all font-mono text-xs text-teal-500 underline',
-                'hover:text-teal-400 transition-colors duration-100',
-                'focus-visible:outline-none focus-visible:shadow-glow-focus rounded-sm',
+                'mx-auto flex max-w-xs items-start gap-2 rounded-sm p-3',
+                'border-2 border-dashed border-amber-900/30 bg-amber-50/10',
               )}
-              aria-label="Open Tidal authorization page in a new tab"
             >
-              {deviceAuth.verificationUriComplete}
-            </a>
+              <span aria-hidden="true" className="text-base leading-none">🎫</span>
+              <a
+                href={deviceAuth.verificationUriComplete}
+                target="_blank"
+                rel="noreferrer noopener"
+                className={cn(
+                  'block break-all font-mono text-xs text-teal-500 underline',
+                  'hover:text-teal-400 transition-colors duration-100',
+                  'focus-visible:outline-none focus-visible:shadow-glow-focus rounded-sm',
+                )}
+                aria-label="Open Tidal authorization page in a new tab"
+              >
+                {deviceAuth.verificationUriComplete}
+              </a>
+            </motion.div>
 
-            {/* userCode — camelCase v2 */}
+            {/* userCode — display retro estilo Nixie/VCR (Fase 6) */}
             <div className="flex items-center justify-center gap-3">
               <span className="font-sans text-xs text-secondary">Your code:</span>
-              <Badge
-                variant="format"
-                title={`Authorization code: ${deviceAuth.userCode}`}
-              >
-                {deviceAuth.userCode}
-              </Badge>
+              <RetroDisplay value={deviceAuth.userCode} size="lg" />
             </div>
 
-            {/* Polling indicator */}
+            {/* Polling indicator — spinner sutil con Tailwind animate-spin */}
             {pollingQuery.isFetching && (
               <p
-                className="animate-pulse font-sans text-sm text-secondary"
+                className="flex items-center justify-center gap-2 font-sans text-sm text-secondary"
                 aria-live="polite"
               >
-                ◌ Waiting for authorization…
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'inline-block h-3 w-3 rounded-full border-2 border-secondary/30 border-t-teal-400',
+                    !reducedMotion && 'animate-spin',
+                  )}
+                />
+                Waiting for authorization…
               </p>
             )}
 

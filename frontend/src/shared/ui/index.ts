@@ -20,3 +20,6 @@ export * from './NeonParticles'
 
 // ── Phase 5 (visual transformation) — neon sign letrero ───────────────────────
 export * from './NeonTitle'
+
+// ── Phase 6 (visual transformation) — retro OAuth code display ────────────────
+export * from './RetroDisplay'
