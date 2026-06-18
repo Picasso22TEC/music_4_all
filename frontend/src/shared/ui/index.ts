@@ -23,3 +23,6 @@ export * from './NeonTitle'
 
 // ── Phase 6 (visual transformation) — retro OAuth code display ────────────────
 export * from './RetroDisplay'
+
+// ── Phase 7 (visual transformation) — page transitions ─────────────────────────
+export * from './PageTransition'

@@ -115,7 +115,13 @@ export function LoginForm() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <main
+    // Fade-out before the cross-layout redirect to /dashboard (Fase 7, Parte 3).
+    // Driven directly by `status` (auth.store) — router.replace() below keeps
+    // firing exactly as before, so navigation is never delayed; the opacity
+    // transition just races the route swap instead of gating it.
+    <motion.main
+      animate={{ opacity: status === 'authenticated' ? 0 : 1 }}
+      transition={{ duration: reducedMotion ? 0 : 0.2, ease: 'easeOut' }}
       className="relative flex min-h-screen flex-col items-center justify-center bg-surface-void p-4"
     >
       {/* Decorative background — purely visual, behind all content (Fase 2) */}
@@ -258,6 +264,6 @@ export function LoginForm() {
           </div>
         )}
       </Card>
-    </main>
+    </motion.main>
   )
 }

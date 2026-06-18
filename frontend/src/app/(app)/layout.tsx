@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 
 import { SessionRecoveryModal } from '@/features/auth'
-import { NeonParticles } from '@/shared/ui/NeonParticles'
 import { AppHeader } from '@/widgets/app-header'
 import { DownloadPanel } from '@/widgets/download-panel'
 import { PlayerBar } from '@/widgets/player-bar'
 import { Sidebar } from '@/widgets/sidebar'
+
+import { AnimatedMain } from './AnimatedMain'
 
 /**
  * Authenticated application shell (wireframes §2 — Shell v2).
@@ -53,19 +54,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {/* Sticky header */}
         <AppHeader />
 
-        {/* Scrollable page content */}
+        {/* Scrollable page content — client boundary, owns page transitions (Fase 7) */}
         {/*  pb-20 = 80px = h-player, clears the fixed PlayerBar */}
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="flex-1 overflow-y-auto pb-20 focus-visible:outline-none"
-        >
-          {/* Decorative background — purely visual, isolated from downloads.store/auth.store */}
-          <div className="relative min-h-full">
-            <NeonParticles variant="default" density="low" />
-            {children}
-          </div>
-        </main>
+        <AnimatedMain>{children}</AnimatedMain>
       </div>
 
       {/* ── Session Recovery Modal — auth error recovery (G-recovery) ─── */}
