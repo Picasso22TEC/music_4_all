@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 
@@ -68,11 +68,16 @@ export function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname()
   const reducedMotion = useReducedMotion()
 
-  // Nuevo set de chispas por cada ruta — vacío si se prefiere menos movimiento.
-  const sparks = useMemo(
-    () => (reducedMotion ? [] : buildSparks(pathname)),
-    [pathname, reducedMotion]
-  )
+  // buildSparks() usa Math.random(), que daría valores distintos en SSR vs cliente
+  // y rompería la hidratación. Por eso se difiere a un useEffect post-montaje: el
+  // primer render (SSR + pasada de hidratación) no pinta chispas — ambos quedan en
+  // el mismo estado inicial vacío. Tras montar (y en cada cambio de ruta) se sortea
+  // un set nuevo solo en el cliente.
+  const [sparks, setSparks] = useState<Spark[]>([])
+
+  useEffect(() => {
+    setSparks(reducedMotion ? [] : buildSparks(pathname))
+  }, [pathname, reducedMotion])
 
   return (
     <AnimatePresence mode="wait">

@@ -24,6 +24,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Music 4 All',
   description: 'Descargador de música lossless desde Tidal',
+  // No enviar Referer en peticiones de imágenes: CloudFront (CDN de Tidal)
+  // devuelve 403 cuando recibe Referer: http://localhost:3000/
+  referrer: 'no-referrer',
 }
 
 // ── Root Layout ───────────────────────────────────────────────────────────────

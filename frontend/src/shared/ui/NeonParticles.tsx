@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
@@ -66,7 +66,7 @@ const REDUCED_MOTION_DUST_COUNT = 3
 
 // ─── Seeded RNG (mulberry32) ──────────────────────────────────────────────────
 // Garantiza que el layout de partículas quede fijo durante el ciclo de vida del
-// componente (se sortea una sola vez por montaje vía useMemo, no en cada render).
+// componente (se sortea una sola vez por montaje en el useEffect, no en cada render).
 
 function mulberry32(seed: number) {
   let a = seed
@@ -155,6 +155,11 @@ function VinylDisc({ size, holeSize }: { size: number; holeSize: number }) {
 // Fondo decorativo puramente visual (Fase 2 — sistema de partículas). Auto-
 // contenido: no se suscribe a ningún store/query, por lo que permanece estable
 // cuando cambia downloads.store/auth.store en el árbol que lo envuelve.
+//
+// El sorteo de posiciones usa Math.random() y por tanto solo puede ejecutarse
+// en el cliente: se difiere a un useEffect post-montaje. El primer render (SSR
+// y la pasada de hidratación del cliente) no pinta partículas — ambos quedan
+// en el mismo contenedor vacío, evitando el mismatch de hidratación.
 
 function NeonParticlesComponent({
   density = 'medium',
@@ -162,22 +167,32 @@ function NeonParticlesComponent({
 }: NeonParticlesProps) {
   const reducedMotion = useReducedMotion()
 
-  // Seed aleatorio fijo por montaje — no se vuelve a sortear en re-renders.
-  const seed = useMemo(() => Math.floor(Math.random() * 2 ** 31), [])
+  // Seed aleatorio fijo por montaje — sorteado una sola vez en el cliente,
+  // reutilizado si density/variant/reducedMotion cambian en re-renders.
+  const seedRef = useRef<number | null>(null)
 
-  const { dust, vinyls } = useMemo(() => {
-    const rand = mulberry32(seed)
+  const [{ dust, vinyls }, setParticles] = useState<{
+    dust: DustParticle[]
+    vinyls: VinylParticle[]
+  }>({ dust: [], vinyls: [] })
+
+  useEffect(() => {
+    if (seedRef.current === null) {
+      seedRef.current = Math.floor(Math.random() * 2 ** 31)
+    }
+    const rand = mulberry32(seedRef.current)
 
     if (reducedMotion) {
-      return { dust: generateDust(rand, REDUCED_MOTION_DUST_COUNT, variant), vinyls: [] }
+      setParticles({ dust: generateDust(rand, REDUCED_MOTION_DUST_COUNT, variant), vinyls: [] })
+      return
     }
 
     const { dust: dustCount, vinyl: vinylCount } = DENSITY_COUNTS[density]
-    return {
+    setParticles({
       dust: generateDust(rand, dustCount, variant),
       vinyls: generateVinyls(rand, vinylCount),
-    }
-  }, [seed, density, variant, reducedMotion])
+    })
+  }, [density, variant, reducedMotion])
 
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">

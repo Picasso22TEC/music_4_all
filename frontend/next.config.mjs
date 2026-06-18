@@ -4,26 +4,19 @@ const nextConfig = {
     const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:8000'
     return [
       {
-        // Strip /api prefix — frontend llama /api/auth/status → backend recibe /auth/status
         source: '/api/:path*',
         destination: `${backendUrl}/:path*`,
       },
-      {
-        source: '/ws/:path*',
-        destination: `${backendUrl}/ws/:path*`,
-      },
+      // NOTA: no se define rewrite para /ws/:path*. El dev-server de Next.js 14.2
+      // crashea al hacer proxy del upgrade WebSocket hacia una URL absoluta. En
+      // desarrollo el cliente conecta directo al backend vía NEXT_PUBLIC_WS_URL
+      // (ver shared/config/ws.config.ts); en producción nginx proxea /ws/ al backend.
     ]
   },
   images: {
-    // Bypass server-side image proxy — the Next.js container can't reach
-    // resources.tidal.com from inside Docker; browsers can reach it directly.
     unoptimized: true,
   },
   webpack: (config) => {
-    // Without this, Playwright writing screenshots/traces into
-    // test-results/ (or HTML reports into playwright-report/) during an
-    // E2E run is picked up by the dev-mode file watcher, which triggers a
-    // Fast Refresh full reload and resets in-progress page state mid-test.
     config.watchOptions = {
       ...config.watchOptions,
       ignored: [

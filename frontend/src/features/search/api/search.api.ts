@@ -12,7 +12,8 @@ function mapPlaylist(dto: Record<string, unknown>): Playlist {
     numberOfTracks: Number(dto.number_of_tracks ?? 0),
     creator: { id: '', name: '' } satisfies Artist,
     coverUrl: cover
-      ? `https://resources.tidal.com/images/${cover.replace(/-/g, '/')}/${480}x${480}.jpg`
+      ? // 640: tamaño válido del CDN de Tidal (480 devuelve 403). Ver mappers.ts.
+        `https://resources.tidal.com/images/${cover.replace(/-/g, '/')}/${640}x${640}.jpg`
       : null,
   }
 }
