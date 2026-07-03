@@ -24,7 +24,7 @@ El proyecto sigue un **Plan Maestro de migración por fases** hacia una arquitec
 1. **No romper el backend funcional existente.** El núcleo de descarga (Tidal → archivo → historial) es estable; cualquier cambio debe preservar ese flujo.
 2. **Migrar por fases, manteniendo compatibilidad.** El backend mantiene routers **legacy** (`/auth`, `/download`, `/history`, `/ws/progress/{job_id}`) junto a routers **v2** (`/session/*`, `/search/*`, `/downloads`, `/ws/downloads`). No eliminar el legacy sin confirmación explícita — sigue en uso.
 3. **Frontend: respetar Feature-Sliced Design (FSD).** Dirección de dependencias estricta: `app/ → widgets/ → features/ → entities/ → shared/`. Cada `features/*` expone su API vía `index.ts`.
-4. **No usar código legacy del frontend pre-FSD**: `src/store/useAppStore.ts`, `src/components/`, `src/hooks/`, `src/lib/` (raíz) y las carpetas vacías `src/app/dashboard|history|login` son código muerto — no importar desde ahí ni extenderlo.
+4. **Frontend ya migrado a FSD (sin restos pre-FSD).** El código legacy pre-FSD ya fue eliminado: **no** recrear `src/store/`, `src/components/`, `src/hooks/`, `src/lib/` en la raíz de `src/`, ni carpetas de ruta sin agrupar. Las utilidades compartidas viven en `src/shared/` (`api`, `config`, `hooks`, `lib`, `types`, `ui`); los stores Zustand en `src/features/*/model/*.store.ts`; las rutas bajo `src/app/(app)/` y `src/app/(auth)/`.
 5. **Seguridad desde el diseño**: secretos solo en variables de entorno (nunca hardcodeados), tokens OAuth en Redis con TTL, CORS estricto (no `allow_origins=["*"]` en producción), validar/sanitizar toda URL entrante (ver `_ensure_https` en `session/service.py`).
 6. **Calidad de código obligatoria antes de mergear**: `ruff check` + `ruff format --check` (backend), `next lint` + `pnpm build` (frontend). Ver `docs/development.md` para comandos exactos y el estado actual de deuda técnica en `docs/roadmap.md`.
 7. **No tocar `_old/`** — es la versión previa monolítica, mantenida solo como referencia.
@@ -57,7 +57,9 @@ Detalle completo, diagramas y endpoints: **`docs/architecture.md`**.
 # Backend (desde backend/)
 uv sync                                    # instalar dependencias
 uv run uvicorn app.main:app --reload       # levantar API (http://localhost:8000)
-uv run pytest -q                           # tests
+uv run pytest -q                           # todos los tests
+uv run pytest tests/test_ws_downloads.py -v  # un archivo
+uv run pytest -k "nombre" -v               # tests que coincidan con la expresión
 uv run ruff check .                        # lint
 uv run ruff format --check .               # formato
 
@@ -66,10 +68,14 @@ pnpm install
 pnpm dev                                   # http://localhost:3000
 pnpm lint
 pnpm build                                 # type-check + compilación
+pnpm test                                  # unit tests (Vitest)
+pnpm test:e2e                              # end-to-end (Playwright)
 
 # Entorno completo
 docker compose up --build
 ```
+
+> **Dev local sin Docker:** el backend usa **SQLite** por defecto (`database_url = "sqlite+aiosqlite:///./dev.db"` en `app/config.py`); PostgreSQL solo se activa al pasar `DATABASE_URL` (Docker Compose lo hace). **Redis/Valkey sí es requerido siempre** (sesión OAuth, cola de jobs, Pub/Sub de progreso).
 
 Detalle de cada comando, migraciones Alembic y convenciones: **`docs/development.md`**.
 
