@@ -46,11 +46,9 @@ export function SessionRecoveryContent({
       {phase === 'checking' && (
         <div className="flex flex-col items-center gap-3 py-2 text-center">
           <span
-            className="font-mono text-3xl text-teal-500 animate-pulse"
             aria-hidden="true"
-          >
-            ◌
-          </span>
+            className="inline-block h-6 w-6 rounded-full border-2 border-secondary/30 border-t-teal-400 animate-spin"
+          />
           <p
             id="session-recovery-description"
             className="font-sans text-sm text-primary"
@@ -67,11 +65,9 @@ export function SessionRecoveryContent({
       {phase === 'expired' && (
         <div className="flex flex-col items-center gap-3 py-2 text-center">
           <span
-            className="font-mono text-3xl text-semantic-error"
             aria-hidden="true"
-          >
-            ✗
-          </span>
+            className="inline-block h-3 w-3 rounded-full bg-semantic-error"
+          />
           <p
             id="session-recovery-description"
             className="font-sans text-sm font-semibold text-primary"
@@ -88,11 +84,9 @@ export function SessionRecoveryContent({
       {phase === 'device_auth' && (
         <div className="flex flex-col items-center gap-3 py-2 text-center">
           <span
-            className="font-mono text-3xl text-teal-500 animate-pulse"
             aria-hidden="true"
-          >
-            ◌
-          </span>
+            className="inline-block h-6 w-6 rounded-full border-2 border-secondary/30 border-t-teal-400 animate-spin"
+          />
           <p
             id="session-recovery-description"
             className="font-sans text-sm text-primary"
@@ -150,8 +144,12 @@ export function SessionRecoveryContent({
           )}
 
           {/* Polling indicator */}
-          <p className="font-sans text-xs text-secondary text-center animate-pulse">
-            ◌ Waiting for authorization…
+          <p className="flex items-center justify-center gap-2 font-sans text-xs text-secondary">
+            <span
+              aria-hidden="true"
+              className="inline-block h-3 w-3 rounded-full border-2 border-secondary/30 border-t-teal-400 animate-spin"
+            />
+            Waiting for authorization…
           </p>
         </div>
       )}
@@ -160,11 +158,9 @@ export function SessionRecoveryContent({
       {phase === 'success' && (
         <div className="flex flex-col items-center gap-3 py-2 text-center">
           <span
-            className="font-mono text-3xl text-semantic-success"
             aria-hidden="true"
-          >
-            ✓
-          </span>
+            className="inline-block h-3 w-3 rounded-full bg-semantic-success"
+          />
           <p
             id="session-recovery-description"
             className="font-sans text-sm font-semibold text-primary"
@@ -197,11 +193,9 @@ export function SessionRecoveryContent({
       {phase === 'error' && (
         <div className="flex flex-col items-center gap-3 py-2 text-center">
           <span
-            className="font-mono text-3xl text-semantic-error"
             aria-hidden="true"
-          >
-            ✗
-          </span>
+            className="inline-block h-3 w-3 rounded-full bg-semantic-error"
+          />
           <p
             id="session-recovery-description"
             role="alert"

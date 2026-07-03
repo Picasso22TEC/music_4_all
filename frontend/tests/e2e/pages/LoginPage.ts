@@ -34,7 +34,7 @@ export class LoginPage {
     // Scoped to <main> to avoid matching Next.js's own
     // role="alert" route announcer (#__next-route-announcer__).
     this.errorAlert = page.getByRole('main').getByRole('alert')
-    this.pollingIndicator = page.getByText('◌ Waiting for authorization…')
+    this.pollingIndicator = page.getByText('Waiting for authorization…')
   }
 
   async goto(): Promise<void> {

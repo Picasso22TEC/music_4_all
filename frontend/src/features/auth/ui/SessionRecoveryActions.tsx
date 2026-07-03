@@ -93,7 +93,7 @@ export function SessionRecoveryActions({
             className="w-full"
             aria-label="Open TIDAL authorization page in a new browser tab"
           >
-            ↗ Open TIDAL Login
+            Open TIDAL Login
           </Button>
           <Button
             type="button"
@@ -129,7 +129,7 @@ export function SessionRecoveryActions({
               className="w-full"
               aria-label="Retry the failed download"
             >
-              ↻ Retry Download
+              Retry Download
             </Button>
           )}
           <Button

@@ -7,9 +7,9 @@
  *   GET  /session/device-auth/{deviceCode}  (NOT /auth/status)
  *
  * Legacy imports eliminated:
- *   ✗ store/useAppStore    → features/auth/model/auth.store (v2)
- *   ✗ components/NeonTitle → inline DS tokens in LoginForm
- *   ✗ lib/api              → features/auth/api/auth.api (v2)
+ *   - store/useAppStore    -> features/auth/model/auth.store (v2)
+ *   - components/NeonTitle -> features/auth/ui/LoginForm (neon sign)
+ *   - lib/api              -> features/auth/api/auth.api (v2)
  */
 import { LoginForm } from '@/features/auth'
 
