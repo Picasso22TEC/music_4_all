@@ -24,7 +24,7 @@ async def get_session_status(
 ):
     """Estado completo de la sesión Tidal: status, usuario y expiración."""
     try:
-        return await _service.get_status(engine)
+        return await _service.get_status(engine, getattr(request.app.state, "redis", None))
     except Exception as exc:
         raise ApiException("SERVER_ERROR", str(exc), 500, retriable=True) from exc
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 import uuid
 from datetime import UTC, datetime
 
@@ -71,12 +72,22 @@ def _expires_at_from_session(session: object) -> str | None:
 
 
 class SessionService:
-    async def get_status(self, engine: TidalDownloader) -> SessionStatusResponse:
+    async def get_status(self, engine: TidalDownloader, redis=None) -> SessionStatusResponse:
+        # check_auth() puede refrescar el access_token in-place. Capturamos el token
+        # antes/después para detectar el refresh y re-persistir la sesión en Redis
+        # (si no, el token nuevo vive solo en memoria y se pierde al reiniciar).
+        token_before = getattr(engine.session, "access_token", None)
         is_auth = await asyncio.to_thread(engine.check_auth)
         if not is_auth:
             return SessionStatusResponse(status="expired", user=None, expires_at=None)
 
         session = engine.session
+        token_after = getattr(session, "access_token", None)
+        if redis is not None and token_after and token_after != token_before:
+            session_data = await asyncio.to_thread(engine.get_session_data)
+            if session_data:
+                await rc.save_session(redis, session_data)
+
         expires_at = await asyncio.to_thread(_expires_at_from_session, session)
         user = await asyncio.to_thread(_user_out_from_session, session)
 
@@ -112,6 +123,9 @@ class SessionService:
         app_state.pending_oauth_v2[device_code] = {  # type: ignore[attr-defined]
             "session": session,
             "future": future,
+            # Instante (monotónico) tras el cual el flujo se considera abandonado.
+            # Permite podar entradas huérfanas y evitar una fuga en memoria.
+            "expires_at": time.monotonic() + expires_in,
         }
 
         # Mantener compatibilidad con endpoint legacy /auth/device
@@ -133,8 +147,14 @@ class SessionService:
         app_state: object,
     ) -> DeviceAuthPollResponse:
         pending_v2: dict = getattr(app_state, "pending_oauth_v2", {})
-        entry = pending_v2.get(device_code)
 
+        # Poda defensiva de flujos abandonados/expirados (el usuario nunca autoriza
+        # ni cancela). Sin esto, las entradas se acumularían indefinidamente.
+        now = time.monotonic()
+        for stale in [c for c, e in pending_v2.items() if 0 < e.get("expires_at", 0) < now]:
+            pending_v2.pop(stale, None)
+
+        entry = pending_v2.get(device_code)
         if entry is None:
             return DeviceAuthPollResponse(status="expired")
 
