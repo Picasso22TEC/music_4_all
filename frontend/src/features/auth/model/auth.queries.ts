@@ -44,14 +44,14 @@ export function useDeviceAuthPollingQuery(
     gcTime: 0,
     retry: false,
     refetchInterval: (query) => {
-      const data = query.state.data
-      if (
-        data?.status === 'authorized' ||
-        data?.status === 'expired' ||
-        data?.status === 'denied'
-      ) {
-        return false
-      }
+      // Stop on any error — the backend returns HTTP 400 (DEVICE_AUTH_EXPIRED)
+      // for expired/denied, which surfaces as query error, NOT as data. Per
+      // TanStack Query semantics, a failed refetch keeps the last successful
+      // `data` (the prior 'pending') and refetchInterval keeps firing unless it
+      // returns false — so this guard is what actually halts polling on 400.
+      if (query.state.status === 'error') return false
+      // Terminal success: authorization completed.
+      if (query.state.data?.status === 'authorized') return false
       return intervalMs  // respects backend-provided interval
     },
     refetchIntervalInBackground: false,
