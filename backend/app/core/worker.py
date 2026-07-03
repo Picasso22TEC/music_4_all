@@ -82,6 +82,7 @@ async def _process_job(
     job_id = job["job_id"]
     url = job["url"]
     title = job.get("title", "")
+    job_quality = job.get("quality", "MASTER")
     log = job_logger(__name__, job_id)
 
     # Register control before any download begins so HTTP handlers can signal us.
@@ -183,6 +184,7 @@ async def _process_job(
                 folder,
                 make_cb(i, track_name, done),
                 ctrl.cancel_event,
+                job_quality,
             )
             # download_single_track returns (False, "Cancelado") when cancel_event fires.
             if ctrl.cancel_event.is_set():

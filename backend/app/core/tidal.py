@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import uuid
 import zipfile
 from collections.abc import Callable
 from datetime import datetime
@@ -18,10 +19,12 @@ from pathlib import Path
 import requests
 import tidalapi
 from mutagen.flac import FLAC
+from mutagen.mp4 import MP4
 from tidalapi.media import Quality
 from tidalapi.session import Session
 
-from app.core.metadata import apply_flac_metadata, build_metadata
+from app.core.metadata import apply_flac_metadata, apply_m4a_metadata, build_metadata
+from app.core.quality import extension_for, is_lossless, resolve_quality
 
 
 # ----------------- Decorador de reintentos -----------------
@@ -67,6 +70,11 @@ class TidalDownloader:
         self.log = log_callback
         self.quality = Quality.hi_res_lossless
         self.session = self._load_session(session_data)
+        # Guards the (set session.audio_quality → get_stream) critical section.
+        # The engine/session is a shared singleton used by concurrent worker
+        # downloads (max_concurrent_downloads) and API requests, so mutating
+        # session.audio_quality is not thread-safe without this lock.
+        self._stream_lock = threading.Lock()
         self._temp_dir = None
         self._setup_temp_dir()
         self._auto_detect_ffmpeg()
@@ -257,9 +265,11 @@ class TidalDownloader:
 
     def _probe_quality_from_manifest(self, track_id: int) -> tuple[str, str]:
         try:
-            self.session.audio_quality = Quality.hi_res_lossless
             track = self.session.track(track_id)  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int
-            stream = track.get_stream()
+            # Critical section: quality + get_stream must be atomic on the shared session.
+            with self._stream_lock:
+                self.session.audio_quality = Quality.hi_res_lossless
+                stream = track.get_stream()
 
             if stream.manifest_mime_type == "application/vnd.tidal.bts":
                 decoded = base64.b64decode(stream.manifest).decode("utf-8")
@@ -452,10 +462,15 @@ class TidalDownloader:
 
     # ---------- Obtener stream (solo FLAC normal) ----------
     @retry(max_retries=2)
-    def _get_stream_url_and_type(self, track_obj):
+    def _get_stream_url_and_type(self, track_obj, quality: str = "MASTER"):
         try:
-            self.session.audio_quality = self.quality
-            stream = track_obj.get_stream()
+            # Critical section: set the requested quality on the shared session and
+            # fetch the stream atomically (see self._stream_lock in __init__). The
+            # heavy byte download happens later in _download_raw_audio, outside the
+            # lock, so concurrent downloads still parallelize the transfer.
+            with self._stream_lock:
+                self.session.audio_quality = resolve_quality(quality)
+                stream = track_obj.get_stream()
         except Exception as e:
             return None, None, f"Error obteniendo stream: {str(e)}"
 
@@ -499,6 +514,10 @@ class TidalDownloader:
                     init_req = requests.get(url_init, timeout=15)
                     init_req.raise_for_status()
                     f_out.write(init_req.content)
+                    # NOTA: el manifiesto DASH no expone el número total de segmentos,
+                    # así que se descargan hasta encontrar un 404/segmento vacío. El tope
+                    # de 300 es una salvaguarda (≈ pistas muy largas) y el progreso usa
+                    # una estimación (seg/50) al no conocerse el total real por adelantado.
                     seg = 1
                     while seg < 300:
                         if cancel_event and cancel_event.is_set():
@@ -603,14 +622,41 @@ class TidalDownloader:
             self.log(f"⚠️ Falló extracción FLAC: {e}")
             return source_path
 
+    # ---------- Info de audio ----------
+    def _read_audio_info(self, path: Path) -> tuple[int, int] | None:
+        """Devuelve (sample_rate, bits_per_sample) de un FLAC o M4A.
+
+        None si el archivo no es audio legible por mutagen.
+        """
+        try:
+            info = FLAC(str(path)).info
+            return info.sample_rate, info.bits_per_sample
+        except Exception:
+            pass
+        try:
+            info = MP4(str(path)).info
+            bits = int(getattr(info, "bits_per_sample", 0) or 16)
+            return info.sample_rate, bits
+        except Exception:
+            return None
+
+    def _aac_quality_label(self, path: Path) -> str:
+        """Etiqueta legible del bitrate para archivos AAC/M4A (tier NORMAL)."""
+        try:
+            kbps = round(MP4(str(path)).info.bitrate / 1000)
+            return f"AAC {kbps}kbps"
+        except Exception:
+            return "AAC"
+
     # ---------- Tags ----------
-    # ---------- Descarga de un track (solo FLAC) ----------
+    # ---------- Descarga de un track (FLAC lossless o M4A/AAC según calidad) ----------
     def download_single_track(
         self,
         track_obj,
         folder_name: str = "",
         progress_callback: Callable | None = None,
         cancel_event: threading.Event | None = None,
+        quality: str = "MASTER",
     ):
         try:
             folder_path = (
@@ -621,23 +667,17 @@ class TidalDownloader:
             safe_name = self._sanitize_filename(track_obj.name)
             safe_track_num = track_obj.track_num if track_obj.track_num else 1
 
-            final_path = folder_path / f"{safe_track_num:02d}. {safe_name}.flac"
+            # Formato destino según la calidad: FLAC (lossless) o M4A/AAC (NORMAL).
+            lossless = is_lossless(quality)
+            final_path = folder_path / f"{safe_track_num:02d}. {safe_name}{extension_for(quality)}"
 
             # Verificar si ya existe
             if final_path.exists():
-                try:
-                    meta = FLAC(str(final_path))
+                info = self._read_audio_info(final_path)
+                if info is not None:
                     if progress_callback:
                         progress_callback(1.0)
-                    return (
-                        True,
-                        str(final_path),
-                        "EXISTE",
-                        meta.info.sample_rate,
-                        meta.info.bits_per_sample,
-                    )
-                except Exception:
-                    pass
+                    return (True, str(final_path), "EXISTE", info[0], info[1])
 
             # Obtener álbum y portada
             album = self.session.album(track_obj.album.id)
@@ -649,30 +689,34 @@ class TidalDownloader:
                 track_obj.artist.name, track_obj.name, cancel_event=cancel_event
             )
 
-            # Stream URL
-            url_init, url_media, method = self._get_stream_url_and_type(track_obj)
+            # Stream URL (calidad seleccionada)
+            url_init, url_media, method = self._get_stream_url_and_type(track_obj, quality)
             if url_init is None and url_media is None:
                 return False, f"Stream Error: {method}", "", 0, 0
 
-            # Descarga raw
-            temp_raw = folder_path / f"temp_{track_obj.id}.flac"
+            # Descarga raw — nombre único (uuid) para evitar colisiones entre jobs
+            # concurrentes que descarguen el mismo track_id.
+            temp_raw = (
+                folder_path / f"temp_{track_obj.id}_{uuid.uuid4().hex[:8]}{extension_for(quality)}"
+            )
             ok, err = self._download_raw_audio(
                 url_init, url_media, method, temp_raw, progress_callback, cancel_event
             )
             if not ok:
-                if temp_raw.exists():
-                    temp_raw.unlink()
+                temp_raw.unlink(missing_ok=True)
                 return False, err, "", 0, 0
 
-            # Mover/convertir a FLAC si es necesario
-            ok, err = self._finalize_raw_to_flac(temp_raw, final_path)
-            if not ok:
-                if temp_raw.exists():
-                    temp_raw.unlink()
-                return False, err, "", 0, 0
-
-            # Extraer FLAC de contenedor MP4 si procede
-            final_path = self._extract_flac_from_mp4(final_path)
+            # Finalizar según formato
+            if lossless:
+                # Mover/convertir a FLAC si es necesario, y extraer de contenedor MP4.
+                ok, err = self._finalize_raw_to_flac(temp_raw, final_path)
+                if not ok:
+                    temp_raw.unlink(missing_ok=True)
+                    return False, err, "", 0, 0
+                final_path = self._extract_flac_from_mp4(final_path)
+            else:
+                # Lossy (AAC/M4A): mover el raw tal cual, sin transcodificar a FLAC.
+                temp_raw.replace(final_path)
 
             # Construir y aplicar metadatos
             track_meta = build_metadata(
@@ -683,21 +727,23 @@ class TidalDownloader:
                 cover_path=cover_path,
             )
 
-            try:
-                audio = FLAC(str(final_path))
-                s_rate = audio.info.sample_rate
-                s_bits = audio.info.bits_per_sample
-            except Exception:
-                s_rate, s_bits = 44100, 16
+            info = self._read_audio_info(final_path)
+            s_rate, s_bits = info if info is not None else (44100, 16)
 
-            calidad_txt = f"{s_rate / 1000:g}kHz / {s_bits}bit"
-            if s_bits > 16 or s_rate > 44100:
-                calidad_txt += " (Hi-Res)"
+            if lossless:
+                calidad_txt = f"{s_rate / 1000:g}kHz / {s_bits}bit"
+                if s_bits > 16 or s_rate > 44100:
+                    calidad_txt += " (Hi-Res)"
+            else:
+                calidad_txt = self._aac_quality_label(final_path)
 
             track_meta.comment = f"Tidal Rip | {calidad_txt}"
 
             try:
-                apply_flac_metadata(final_path, track_meta)
+                if lossless:
+                    apply_flac_metadata(final_path, track_meta)
+                else:
+                    apply_m4a_metadata(final_path, track_meta)
             except Exception as e:
                 self.log(f"⚠️ Error aplicando metadatos: {e}")
                 calidad_txt = "Tags Fallaron"
@@ -714,12 +760,12 @@ class TidalDownloader:
     # ---------- ZIP ----------
     def pack_folder_to_zip(self, folder_path: str | Path) -> io.BytesIO | None:
         folder = Path(folder_path)
-        flac_files = sorted(folder.glob("*.flac"))
-        if not flac_files:
+        audio_files = sorted([*folder.glob("*.flac"), *folder.glob("*.m4a")])
+        if not audio_files:
             return None
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as zf:
-            for f in flac_files:
+            for f in audio_files:
                 zf.write(f, arcname=f.name)
         buffer.seek(0)
         return buffer
@@ -728,8 +774,9 @@ class TidalDownloader:
     def cleanup_folder(self, folder_absolute: str | Path):
         folder_path = Path(folder_absolute)
         if folder_path.exists():
-            for f in folder_path.glob("temp_*.flac"):
-                f.unlink(missing_ok=True)
+            for pattern in ("temp_*.flac", "temp_*.m4a"):
+                for f in folder_path.glob(pattern):
+                    f.unlink(missing_ok=True)
 
     def cleanup_on_cancel(self, folder_absolute: str | Path):
         self.cleanup_folder(folder_absolute)

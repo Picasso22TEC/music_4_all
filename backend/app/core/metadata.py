@@ -1,5 +1,5 @@
 """
-Metadatos avanzados para FLAC.
+Metadatos avanzados para FLAC y M4A/AAC.
 """
 
 import logging
@@ -9,6 +9,7 @@ from pathlib import Path
 
 from mutagen.flac import FLAC as MutagenFLAC
 from mutagen.flac import Picture
+from mutagen.mp4 import MP4, MP4Cover
 
 log = logging.getLogger(__name__)
 
@@ -127,5 +128,61 @@ def apply_flac_metadata(file_path: Path, metadata: TrackMetadata) -> None:
             audio.add_picture(picture)
         except Exception as e:
             log.warning(f"No se pudo añadir portada: {e}")
+
+    audio.save()
+
+
+def apply_m4a_metadata(file_path: Path, metadata: TrackMetadata) -> None:
+    """Escribe metadatos en un M4A/AAC existente (mutagen.mp4), sin recodificar.
+
+    Contraparte de :func:`apply_flac_metadata` para el tier lossy (NORMAL/AAC).
+    Reutiliza el mismo :class:`TrackMetadata` que produce ``build_metadata`` y solo
+    cambia el *writer* (átomos iTunes en lugar de comentarios Vorbis).
+    """
+    audio = MP4(str(file_path))
+    audio.delete()
+
+    # Átomos iTunes: '\xa9' es el prefijo © de los atoms de texto estándar.
+    audio["\xa9nam"] = [metadata.title]
+    if metadata.artists:
+        audio["\xa9ART"] = metadata.artists
+    if metadata.album_artist:
+        audio["aART"] = [metadata.album_artist]
+    if metadata.album_title:
+        audio["\xa9alb"] = [metadata.album_title]
+
+    try:
+        track_no = int(metadata.track_number)
+    except (TypeError, ValueError):
+        track_no = 1
+    audio["trkn"] = [(track_no, 0)]
+
+    try:
+        disc_no = int(metadata.disc_number)
+    except (TypeError, ValueError):
+        disc_no = 1
+    audio["disk"] = [(disc_no, 0)]
+
+    if metadata.copyright:
+        audio["cprt"] = [metadata.copyright]
+    if metadata.date:
+        audio["\xa9day"] = [metadata.date]
+    if metadata.isrc:
+        audio["----:com.apple.iTunes:ISRC"] = [metadata.isrc.encode("utf-8")]
+    if metadata.bpm:
+        try:
+            audio["tmpo"] = [int(float(metadata.bpm))]
+        except (TypeError, ValueError):
+            pass
+    if metadata.lyrics:
+        audio["\xa9lyr"] = [metadata.lyrics]
+    if metadata.comment:
+        audio["\xa9cmt"] = [metadata.comment]
+
+    if metadata.cover_data:
+        try:
+            audio["covr"] = [MP4Cover(metadata.cover_data, imageformat=MP4Cover.FORMAT_JPEG)]
+        except Exception as e:
+            log.warning(f"No se pudo añadir portada M4A: {e}")
 
     audio.save()
