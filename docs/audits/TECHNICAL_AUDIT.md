@@ -1,5 +1,7 @@
 # Technical Audit — Music 4 All
 
+> 🕒 **Estado de vigencia — revisado 2026-07-02.** Este documento **ya está actualizado**: refleja 13/14 hallazgos resueltos (queda **TD-05**, testing frontend, parcial). Confirmado contra el código al 2026-07-02: backend `ruff`/`mypy`/`pytest` y frontend `lint`/`build`/`vitest` (**87 tests**) en verde. Nota adicional: `frontend/src/app/middleware.ts` (scaffold no-op duplicado, no ejecutado por Next.js) fue **eliminado el 2026-07-02**; el middleware activo es `frontend/src/middleware.ts`.
+
 > Auditoría de deuda técnica del estado **real** del repositorio en la fecha de este documento. Basada en lectura directa de código, ejecución de `ruff`/`bandit`, resultados de `pytest` documentados en [`docs/roadmap.md`](../roadmap.md) y hallazgos de los audits hermanos: [`ARCHITECTURE_AUDIT.md`](ARCHITECTURE_AUDIT.md), [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md), [`PERFORMANCE_AUDIT.md`](PERFORMANCE_AUDIT.md), [`UX_AUDIT.md`](UX_AUDIT.md).
 >
 > **Diferenciación de hallazgos**: cada item se marca como **Confirmado** (verificado leyendo código/ejecutando herramientas), **Suposición** (inferencia razonable sin verificación directa) o **Riesgo potencial** (no se materializó pero podría hacerlo).

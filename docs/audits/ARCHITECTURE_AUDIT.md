@@ -1,5 +1,9 @@
 # Architecture Audit — Music 4 All
 
+> 🕒 **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026). Los hallazgos de deuda ya cerrados en `TECHNICAL_AUDIT.md` deben leerse como resueltos.
+> - ✅ **Ya resuelto:** **AR-05/TD-14** — OAuth device-auth consolidado en `backend/app/core/oauth_helper.py`; **AR-06/TD-08+TD-09** — código huérfano frontend y backend eliminado (el texto de AR-06 aún dice "pendiente validación": ya no lo está).
+> - ⚠️ **Sin verificar en esta revisión (presumiblemente vigentes):** AR-01 (violaciones FSD `shared/ → entities/`), AR-02 (estado en memoria / instancia única), AR-03 (`core/tidal.py` god-dependency), AR-04/07/08 (informativos). No hubo refactor arquitectónico desde la redacción — los commits recientes fueron deuda técnica + rediseño visual.
+
 > Auditoría de arquitectura backend/frontend: dependencias entre módulos, acoplamiento/cohesión, cumplimiento de Feature-Sliced Design (FSD), código huérfano, duplicación y riesgos de escalabilidad/crecimiento. Complementa [`docs/architecture.md`](../architecture.md) (descriptivo) con un enfoque de **auditoría** (qué se desvía del diseño objetivo y por qué importa). Ver también [`TECHNICAL_AUDIT.md`](TECHNICAL_AUDIT.md) para deuda técnica general y [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) para implicaciones de seguridad del estado en memoria.
 
 ---

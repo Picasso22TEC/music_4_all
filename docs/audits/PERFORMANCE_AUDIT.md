@@ -1,5 +1,7 @@
 # Performance Audit — Music 4 All
 
+> 🕒 **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026). Sus hallazgos son de backend/infra (OTel síncrono, Redis Pub/Sub por WS, sin límites Docker, sin caché, load testing incompleto) que **no se modificaron** desde la redacción; se consideran **vigentes**. Nota: **PERF-06** cita `AudioWaves` como componente futuro — aún **no existe** en el código. Verificar contra el código actual antes de accionar.
+
 > Auditoría de rendimiento de backend (FastAPI/asyncio, PostgreSQL, Redis/Valkey, WebSockets, descargas/ffmpeg) y frontend (Next.js). Basada en lectura directa de código y configuración. **No existen datos de carga real** (sin métricas de producción, sin resultados documentados de `locustfile.py`) — todas las cifras de capacidad se marcan explícitamente como `[Estimación]` o `[NO VERIFICABLE]`. Complementa [`docs/operations/MONITORING.md`](../operations/MONITORING.md) (qué se mide hoy) y [`TECHNICAL_AUDIT.md`](TECHNICAL_AUDIT.md).
 
 ---

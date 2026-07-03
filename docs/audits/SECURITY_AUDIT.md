@@ -1,5 +1,10 @@
 # Security Audit — Music 4 All
 
+> 🕒 **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026).
+> - ✅ **Ya resuelto:** **SEC-07/TD-07** — `SECRET_KEY` eliminado de `.env.example`; **SEC-09/TD-04** — Bandit ahora bloqueante en CI.
+> - 🔄 **Actualización de matiz — SEC-06:** `frontend/src/middleware.ts` ya **no** es un scaffold sin activar; hoy hace redirección de rutas con la cookie **no-httpOnly** `music4all_session` (RM-03 con cookie httpOnly sigue pendiente). El CSRF sigue sin aplicar hoy (la cookie no se usa como credencial server-side).
+> - ⚠️ **Sin verificar en esta revisión (presumiblemente vigentes):** SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-08 (configuración de infra/Nginx/compose, no modificada).
+
 > Auditoría de seguridad del backend (FastAPI), frontend (Next.js), infraestructura (Docker Compose, Nginx) y CI/CD. Basada en lectura directa de código/configuración y ejecución local de Bandit. Complementa [`TECHNICAL_AUDIT.md`](TECHNICAL_AUDIT.md) (TD-04, TD-07) y [`ARCHITECTURE_AUDIT.md`](ARCHITECTURE_AUDIT.md) (AR-02, estado en memoria).
 >
 > **Contexto de despliegue asumido**: Music 4 All es una herramienta **autohospedada, de un solo usuario** (no un servicio multi-tenant expuesto públicamente). Varios hallazgos que serían Critical en un SaaS multi-tenant se clasifican como Medium en este contexto, pero se marca explícitamente la condición bajo la cual escalarían a Critical (p. ej., exposición a una red no confiable).
