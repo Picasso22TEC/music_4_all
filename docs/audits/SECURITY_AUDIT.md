@@ -1,5 +1,7 @@
 # Security Audit — Music 4 All
 
+> **AVISO — Auditoría histórica.** Es una foto de un estado anterior del repo; varios hallazgos pueden estar ya resueltos (otros de seguridad pueden seguir vigentes). Verificar cada uno contra el estado actual antes de accionar. Estado vigente en `docs/roadmap.md`.
+
 > **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026).
 > - **Ya resuelto:** **SEC-07/TD-07** — `SECRET_KEY` eliminado de `.env.example`; **SEC-09/TD-04** — Bandit ahora bloqueante en CI.
 > - **Actualización de matiz — SEC-06:** `frontend/src/middleware.ts` ya **no** es un scaffold sin activar; hoy hace redirección de rutas con la cookie **no-httpOnly** `music4all_session` (RM-03 con cookie httpOnly sigue pendiente). El CSRF sigue sin aplicar hoy (la cookie no se usa como credencial server-side).

@@ -1,5 +1,7 @@
 # Architecture Audit — Music 4 All
 
+> **AVISO — Auditoría histórica.** Es una foto de un estado anterior del repo. Varios hallazgos **ya están resueltos** (p. ej. no existen los dirs backend huérfanos `api/v1/`/`services/`/`schemas/`, la suite de tests está en verde, `ruff` limpio, el frontend tiene tests). Verificar cada hallazgo contra el estado actual antes de accionar. Estado vigente en `docs/roadmap.md`.
+
 > **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026). Los hallazgos de deuda ya cerrados en `TECHNICAL_AUDIT.md` deben leerse como resueltos.
 > - **Ya resuelto:** **AR-05/TD-14** — OAuth device-auth consolidado en `backend/app/core/oauth_helper.py`; **AR-06/TD-08+TD-09** — código huérfano frontend y backend eliminado (el texto de AR-06 aún dice "pendiente validación": ya no lo está).
 > - **Sin verificar en esta revisión (presumiblemente vigentes):** AR-01 (violaciones FSD `shared/ → entities/`), AR-02 (estado en memoria / instancia única), AR-03 (`core/tidal.py` god-dependency), AR-04/07/08 (informativos). No hubo refactor arquitectónico desde la redacción — los commits recientes fueron deuda técnica + rediseño visual.
