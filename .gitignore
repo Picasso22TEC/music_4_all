@@ -72,3 +72,6 @@ music/
 frontend/playwright-report/
 frontend/test-results/
 frontend/blob-report/
+
+# Binario pesado de la version monolitica previa (solo referencia local)
+/_old/ffmpeg.exe
