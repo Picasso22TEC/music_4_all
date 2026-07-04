@@ -8,8 +8,7 @@ import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { cn } from '@/shared/lib/cn'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
-import { NeonParticles } from '@/shared/ui/NeonParticles'
-import { NeonSparks } from '@/shared/ui/NeonSparks'
+import { NeonArcs } from '@/shared/ui/NeonArcs'
 import { NeonTitle } from '@/shared/ui/NeonTitle'
 import { RetroDisplay } from '@/shared/ui/RetroDisplay'
 
@@ -22,10 +21,10 @@ import {
 import { ExpiryCountdown } from '@/features/auth/ui/ExpiryCountdown'
 
 /**
- * Envuelve un control (botón/enlace) y emite chispas amarillas mientras está
- * en hover o foco. La capa de chispas es decorativa (pointer-events-none) y
- * bajo prefers-reduced-motion no renderiza nada. onFocus/onBlur — además de
- * hover — para no depender solo del puntero (accesibilidad).
+ * Envuelve un control (botón/enlace) y emite arcos eléctricos blancos/violeta
+ * mientras está en hover o foco. La capa de arcos es decorativa
+ * (pointer-events-none) y bajo prefers-reduced-motion no renderiza nada.
+ * onFocus/onBlur — además de hover — para no depender solo del puntero (a11y).
  */
 function SparkHover({ children, className }: { children: ReactNode; className?: string }) {
   const [active, setActive] = useState(false)
@@ -38,7 +37,7 @@ function SparkHover({ children, className }: { children: ReactNode; className?: 
       onBlur={() => setActive(false)}
     >
       {children}
-      <NeonSparks active={active} density="low" />
+      <NeonArcs active={active} density="low" />
     </span>
   )
 }
@@ -154,21 +153,25 @@ export function LoginForm() {
     <motion.main
       animate={{ opacity: status === 'authenticated' ? 0 : 1 }}
       transition={{ duration: reducedMotion ? 0 : 0.2, ease: 'easeOut' }}
-      className="relative flex min-h-screen flex-col items-center justify-center bg-surface-void p-4"
+      className="relative flex min-h-screen flex-col items-center justify-center bg-black p-4"
     >
-      {/* Decorative background — purely visual, behind all content */}
-      <NeonParticles variant="login" density="medium" />
+      {/* Fondo negro absoluto — sin partículas: solo el letrero encendido y sus
+          chispas amarillas destacan sobre el negro. */}
 
       {/* Live region for screen reader announcements */}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {deviceAuth ? 'Waiting for Tidal authorization' : ''}
       </div>
 
-      {/* ── Brand — neon sign letrero that ignites, with yellow sparks ─────── */}
-      <div className="relative mb-10 text-center">
-        <NeonSparks density="medium" />
-        <NeonTitle className="text-4xl tracking-tight sm:text-5xl">MUSIC 4 ALL</NeonTitle>
-        <p className="mt-3 font-retro text-lg tracking-[0.3em] text-secondary">
+      {/* ── Brand — neon sign: framed purple/pink tube, chaotic per-letter
+          flicker, and white electric arcs bursting from the tube ends ──────── */}
+      <div className="mb-12 flex flex-col items-center text-center">
+        <div className="relative inline-block rounded-[1.5rem] border-2 border-synthwave-magenta px-4 py-4 shadow-neon-frame sm:px-10 sm:py-7">
+          <NeonTitle className="text-[clamp(1.4rem,6vw,5rem)]">MUSIC 4 ALL</NeonTitle>
+          {/* Arcos eléctricos saltando desde los bornes del letrero */}
+          <NeonArcs density="high" />
+        </div>
+        <p className="mt-6 font-retro text-lg tracking-[0.3em] text-secondary">
           LOSSLESS AUDIO DOWNLOADER
         </p>
       </div>

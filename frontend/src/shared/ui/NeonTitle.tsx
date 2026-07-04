@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect } from 'react'
+import { motion, useAnimationControls } from 'framer-motion'
 
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { cn } from '@/shared/lib/cn'
@@ -11,150 +11,165 @@ import { cn } from '@/shared/lib/cn'
 export interface NeonTitleProps {
   children: React.ReactNode
   className?: string
-  /** Se dispara una vez cuando termina la secuencia de encendido (letrero fijo). */
-  onIgnited?: () => void
 }
 
-interface NeonLetter {
-  char: string
-  key: string
-  color: string
-  igniteDelay: number
-  flickerDuration: number
-  flickerDelay: number
-}
+// ─── Paleta (FRONTEND_VISION.md §1.2-A) — neón morado/rosa "moribundo" ───────
+// Tubos hueco (color transparente + -webkit-text-stroke); el glow del text-shadow
+// hace las veces de luz del tubo. Cada letra toma un color de la rampa por índice
+// (determinista → sin mismatch de hidratación).
 
-// ─── Config (FRONTEND_VISION.md §1.2-A — letrero "MUSIC 4 ALL") ──────────────
-// Rampa cian→magenta con tokens del design system (globals.css). Cada letra
-// tiene color sólido de un token, de modo que su opacity puede animarse de
-// forma independiente (parpadeo/encendido por letra) y el text-shadow del glow
-// se pinta correctamente — un bg-clip-text continuo dejaría las letras como
-// "huecos" que no pueden parpadear individualmente.
-
-const RAMP = [
-  'var(--color-teal-300)', // cian
-  'var(--color-synthwave-blue)', // azul eléctrico
+const TUBE_COLORS = [
   'var(--color-synthwave-magenta)', // magenta
+  'var(--color-synthwave-pink)', // rosa
+  'var(--color-queue)', // morado
 ] as const
 
-// Encendido: las letras se prenden en orden salteado dentro de esta ventana.
-// Se mantiene corto y el parpadeo es por letra (nunca el bloque entero a la
-// vez) para respetar WCAG 2.3.1 (<= 3 destellos/seg, área/contraste acotados).
-const IGNITE_START_DELAY = 0.5 // las chispas se ven antes de que encienda
-const IGNITE_WINDOW = 1.8 // reparto de encendidos por letra
-const IGNITE_BUZZ = 0.7 // duración del "zumbido" de encendido por letra
-
-function buildGlow(colorVar: string): string {
-  return `0 0 6px ${colorVar}, 0 0 16px ${colorVar}`
+function colorFor(index: number): string {
+  return TUBE_COLORS[index % TUBE_COLORS.length]
 }
 
-function colorFor(index: number, total: number): string {
-  if (total <= 1) return RAMP[0]
-  const t = index / (total - 1) // 0..1 a lo ancho de la palabra
-  const band = Math.min(RAMP.length - 1, Math.floor(t * RAMP.length))
-  return RAMP[band]
+function glowFor(color: string): string {
+  // Glow neón multicapa; también aporta la "luz del tubo".
+  return `0 0 4px ${color}, 0 0 10px ${color}, 0 0 22px ${color}`
 }
 
-function buildLetters(text: string): NeonLetter[] {
-  const total = text.length
-  return text.split('').map((char, index) => ({
-    // Espacios se conservan tal cual — el contenedor usa whitespace-pre para
-    // que no colapsen (y el texto accesible sigue siendo "MUSIC 4 ALL").
-    char,
-    key: `${index}-${char}`,
-    color: colorFor(index, total),
-    igniteDelay: IGNITE_START_DELAY + Math.random() * IGNITE_WINDOW,
-    flickerDuration: 1.5 + Math.random() * 1.5,
-    flickerDelay: Math.random() * 2,
-  }))
+// Luz base tenue y temblorosa — "la corriente no llega bien".
+const BASE_DIM = 0.42
+const BASE_BRIGHT = 0.8
+
+const rand = (min: number, max: number): number => min + Math.random() * (max - min)
+const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+// ─── Letra individual — máquina de estados caótica e independiente ────────────
+//
+// Cada letra vive su propio ciclo desincronizado:
+//   encendido con "falso contacto" (2 intentos débiles, al 3.º queda fija)
+//   → base tenue temblorosa (hold aleatorio)
+//   → "tic nervioso" (parpadeo rápido, dudando)
+//   → apagón seco (aleatorio 1–5s)
+//   → vuelta a encender con falso contacto…
+// Puramente decorativa (aria-hidden). El destello es por letra (área pequeña,
+// nunca el bloque completo) para respetar WCAG 2.3.1.
+
+function NeonLetter({ char, color, index }: { char: string; color: string; index: number }) {
+  const controls = useAnimationControls()
+  const reducedMotion = useReducedMotion()
+  const isSpace = char === ' '
+
+  useEffect(() => {
+    // Espacios: no tienen tubo ni ciclo de vida.
+    if (isSpace) return
+
+    // Reduced-motion: encendido fijo y estable, sin secuencia ni parpadeo.
+    if (reducedMotion) {
+      controls.set({ opacity: BASE_BRIGHT })
+      return
+    }
+
+    let cancelled = false
+
+    // Encendido por "falso contacto": intenta prender débil, se apaga, reintenta,
+    // y al tercer intento se queda fija.
+    async function falseContactIgnite(startFrom: number) {
+      await controls.start({
+        opacity: [startFrom, 0.35, 0],
+        transition: { duration: 0.2, ease: 'linear' },
+      })
+      if (cancelled) return
+      await wait(rand(90, 260))
+      if (cancelled) return
+      await controls.start({
+        opacity: [0, 0.55, 0.08],
+        transition: { duration: 0.2, ease: 'linear' },
+      })
+      if (cancelled) return
+      await wait(rand(90, 300))
+      if (cancelled) return
+      await controls.start({
+        opacity: [0.08, 1, BASE_BRIGHT],
+        transition: { duration: 0.22, ease: 'easeOut' },
+      })
+    }
+
+    async function life() {
+      // Entrada escalonada (orden salteado por el índice + jitter) — el letrero
+      // "forcejea" para encender.
+      await wait(rand(80, 700) + index * 55)
+      if (cancelled) return
+      await falseContactIgnite(0)
+
+      while (!cancelled) {
+        // Base tenue temblorosa durante un hold aleatorio (corto → muere seguido).
+        await controls.start({
+          opacity: [BASE_BRIGHT, BASE_DIM, BASE_BRIGHT, BASE_DIM + 0.16, BASE_BRIGHT],
+          transition: { duration: rand(1.1, 2.1), repeat: Math.round(rand(0, 2)), ease: 'easeInOut' },
+        })
+        if (cancelled) return
+
+        // "Tic nervioso" — parpadeo rápido, como dudando, antes de morir.
+        await controls.start({
+          opacity: [BASE_BRIGHT, 0, 0.9, 0, 0.8, 0],
+          transition: { duration: 0.3, ease: 'linear' },
+        })
+        if (cancelled) return
+
+        // Apagón seco durante un tiempo aleatorio (~1–4.5s).
+        await controls.start({ opacity: 0, transition: { duration: 0.03 } })
+        await wait(rand(900, 4500))
+        if (cancelled) return
+
+        // Vuelve a la vida con falso contacto.
+        await falseContactIgnite(0)
+      }
+    }
+
+    void life()
+
+    return () => {
+      cancelled = true
+      controls.stop()
+    }
+    // controls es estable; sólo re-arrancar si cambia reducedMotion/isSpace.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reducedMotion, isSpace])
+
+  // Espacios: sin tubo ni glow, pero se conserva el carácter (whitespace-pre)
+  // para que el texto accesible del letrero siga siendo "MUSIC 4 ALL".
+  if (isSpace) {
+    return (
+      <span aria-hidden="true" className="inline-block whitespace-pre">
+        {char}
+      </span>
+    )
+  }
+
+  return (
+    <motion.span
+      aria-hidden="true"
+      className="inline-block"
+      initial={{ opacity: reducedMotion ? BASE_BRIGHT : 0 }}
+      animate={controls}
+      style={{
+        color: 'transparent',
+        WebkitTextStroke: `1px ${color}`,
+        textShadow: glowFor(color),
+      }}
+    >
+      {char}
+    </motion.span>
+  )
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-//
-// Letrero de neón que se enciende letra por letra (salteado), con "zumbido" de
-// arranque tipo tubo real, y luego queda en parpadeo orgánico. Puramente
-// decorativo (aria-hidden). Bajo prefers-reduced-motion se muestra encendido
-// fijo, sin secuencia ni parpadeo.
 
-export function NeonTitle({ children, className, onIgnited }: NeonTitleProps) {
-  const reducedMotion = useReducedMotion()
+export function NeonTitle({ children, className }: NeonTitleProps) {
   const text = typeof children === 'string' ? children : String(children)
 
-  const letters = useMemo(() => buildLetters(text), [text])
-
-  // Fase de encendido → régimen. Con reduced-motion arranca ya "encendido".
-  const [lit, setLit] = useState(false)
-
-  useEffect(() => {
-    if (reducedMotion) {
-      setLit(true)
-      onIgnited?.()
-      return
-    }
-    const totalMs = (IGNITE_START_DELAY + IGNITE_WINDOW + IGNITE_BUZZ) * 1000
-    const timer = window.setTimeout(() => {
-      setLit(true)
-      onIgnited?.()
-    }, totalMs)
-    return () => window.clearTimeout(timer)
-    // onIgnited se asume estable; no re-arrancar la secuencia si cambia la ref.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reducedMotion])
-
   return (
-    <span
-      aria-hidden="true"
-      className={cn('inline-block whitespace-pre font-pixel', className)}
-    >
-      {letters.map((letter) => {
-        const style = { color: letter.color, textShadow: buildGlow(letter.color) }
-
-        if (reducedMotion) {
-          return (
-            <span key={letter.key} style={style}>
-              {letter.char}
-            </span>
-          )
-        }
-
-        if (!lit) {
-          // Encendido: parte apagada, zumba hasta prender en su igniteDelay.
-          return (
-            <motion.span
-              key={letter.key}
-              className="inline-block"
-              style={style}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 1, 0.3, 1, 0.6, 1] }}
-              transition={{
-                duration: IGNITE_BUZZ,
-                delay: letter.igniteDelay,
-                ease: 'easeInOut',
-              }}
-            >
-              {letter.char}
-            </motion.span>
-          )
-        }
-
-        // Régimen: parpadeo orgánico e independiente por letra.
-        return (
-          <motion.span
-            key={letter.key}
-            className="inline-block"
-            style={style}
-            animate={{ opacity: [1, 0.4, 1] }}
-            transition={{
-              duration: letter.flickerDuration,
-              delay: letter.flickerDelay,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          >
-            {letter.char}
-          </motion.span>
-        )
-      })}
+    <span aria-hidden="true" className={cn('inline-block font-neon leading-none', className)}>
+      {text.split('').map((char, index) => (
+        <NeonLetter key={`${index}-${char}`} char={char} color={colorFor(index)} index={index} />
+      ))}
     </span>
   )
 }

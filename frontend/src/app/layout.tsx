@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { GeistMono } from 'geist/font/mono'
-import { Inter, Press_Start_2P, VT323 } from 'next/font/google'
+import { Inter, Monoton, VT323 } from 'next/font/google'
 
 import './globals.css'
 import { Providers } from '@/providers/Providers'
@@ -19,12 +19,13 @@ const inter = Inter({
 // globals.css mapea: --font-display: var(--font-geist-mono)
 // GeistMono.variable es '--font-geist-mono' (fijo por el paquete geist)
 
-// Press Start 2P — Letrero neon "MUSIC 4 ALL" (uso restringido, design-system §3.2)
-// Fuente no variable: requiere weight explícito. CSS var: --font-pixel
-const pressStart2P = Press_Start_2P({
+// Monoton — Letrero neon "MUSIC 4 ALL" (display de doble trazo tipo tubo de neon
+// hueco; ilumina en los bordes, no en el centro). CSS var: --font-neon
+// Fuente no variable: requiere weight explicito.
+const monoton = Monoton({
   subsets: ['latin'],
   weight: '400',
-  variable: '--font-pixel',
+  variable: '--font-neon',
   display: 'swap',
 })
 
@@ -55,9 +56,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       // Aplica las variables CSS de las fuentes al elemento raíz
       // inter.variable      → --font-sans
       // GeistMono.variable  → --font-geist-mono (mapeado a --font-display en globals.css)
-      // pressStart2P.variable → --font-pixel (letrero neon)
+      // monoton.variable    → --font-neon (letrero neon)
       // vt323.variable      → --font-retro (displays retro)
-      className={`${inter.variable} ${GeistMono.variable} ${pressStart2P.variable} ${vt323.variable}`}
+      className={`${inter.variable} ${GeistMono.variable} ${monoton.variable} ${vt323.variable}`}
     >
       <body className="min-h-screen bg-surface-void font-sans text-primary antialiased">
         <Providers>{children}</Providers>

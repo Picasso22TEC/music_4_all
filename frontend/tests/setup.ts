@@ -61,6 +61,14 @@ vi.mock('framer-motion', () => ({
     },
   }),
   AnimatePresence: ({ children }: { children?: React.ReactNode }) => children,
+  // useAnimationControls — imperative controls used by NeonTitle's per-letter
+  // flicker. jsdom has no animation loop, so return no-op controls whose start()
+  // resolves immediately (the component's async loop just no-ops through).
+  useAnimationControls: () => ({
+    start: vi.fn(() => Promise.resolve()),
+    stop: vi.fn(),
+    set: vi.fn(),
+  }),
 }))
 
 // ── window.matchMedia — not implemented in jsdom; required by useReducedMotion ──

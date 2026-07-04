@@ -107,8 +107,8 @@ const config: Config = {
           'var(--font-geist-mono)',
           'monospace',
         ],
-        // Pixel / Letrero neon — Press Start 2P (uso restringido, design-system §3.2)
-        pixel: ['var(--font-pixel)', 'monospace'],
+        // Letrero neon — Monoton (display de doble trazo, tipo tubo de neon)
+        neon: ['var(--font-neon)', 'cursive'],
         // Retro / Displays — VT323 (código OAuth, contador de expiración)
         retro: ['var(--font-retro)', 'monospace'],
       },
@@ -142,6 +142,8 @@ const config: Config = {
         'glow-active':   '0 0 8px 0 rgba(0,201,167,0.40), 0 0 24px 0 rgba(0,201,167,0.15)',
         // Glow magenta para la variante neón morada (synthwave-magenta #E040FB)
         'glow-magenta':  '0 0 8px 0 rgba(224,64,251,0.45), 0 0 24px 0 rgba(224,64,251,0.20)',
+        // Marco del letrero neón (tubo perimetral morado/rosa: glow externo + interno)
+        'neon-frame':    '0 0 6px 0 rgba(224,64,251,0.80), 0 0 20px 0 rgba(224,64,251,0.45), inset 0 0 14px 0 rgba(224,64,251,0.30)',
         'glow-focus':    '0 0 0 2px rgba(0,201,167,0.50)',
         'glow-error':    '0 0 8px 0 rgba(232,64,64,0.35)',
         'glow-success':  '0 0 8px 0 rgba(57,211,83,0.30)',
