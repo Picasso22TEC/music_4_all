@@ -54,19 +54,19 @@ El frontend tenía **0% de cobertura automatizada**. Actualmente cuenta con **87
 
 | Feature/Slice | Tipo de prueba | Herramienta actual | Herramienta recomendada | Cobertura actual | Cobertura deseada | Criticidad |
 |---|---|---|---|---|---|---|
-| `features/auth` (`LoginForm`) | Unit (component) | Vitest + RTL ✅ | Vitest + RTL | **Alta** (`LoginForm.test.tsx`: 11 tests — connect/init mutation, step 2 código+URL, error de init, polling/auto-redirect a `/dashboard`, error de código expirado, cancelar, ya-autenticado) | Mantener; añadir test de `auth.queries` (mutations/queries puras, sin componente) | **Crítica** |
+| `features/auth` (`LoginForm`) | Unit (component) | Vitest + RTL | Vitest + RTL | **Alta** (`LoginForm.test.tsx`: 11 tests — connect/init mutation, step 2 código+URL, error de init, polling/auto-redirect a `/dashboard`, error de código expirado, cancelar, ya-autenticado) | Mantener; añadir test de `auth.queries` (mutations/queries puras, sin componente) | **Crítica** |
 | `features/search` (`AlbumCard`, `SearchResults`, `EmptyState`) | — | [INEXISTENTE] | Vitest + RTL | 0% | Media-Alta — `resolveQualityBadge()`, estados vacío/error/carga | **Alta** |
 | `features/history` | — | [INEXISTENTE] | Vitest + RTL | 0% | Media | **Media** |
 | `features/album-detail` | — | [INEXISTENTE] | Vitest + RTL | 0% | Baja hoy (no conectado, ver `UX_AUDIT.md`/TD-11) | **Baja** (hasta que se conecte) |
 | `features/player` | — | [INEXISTENTE] | Vitest + RTL | 0% | Baja hoy (`PlayerBar` decorativo, ver TD-12) | **Baja** (hasta decisión de producto) |
-| `features/downloads` (`useDownloadSocket`) | Unit (hook, fake `WebSocket`) | Vitest ✅ | Vitest | **Alta** (`useDownloadSocket.test.ts`: 10 tests — `job_started`/`progress`/`job_completed`/`job_error` (+ `pendingAuthRecovery` en 401/403), reconexión automática tras cierre inesperado, deja de reconectar tras unmount) | Documentado: la implementación actual reconecta también ante un cierre limpio (código 1000) — no hay rama por `event.code`; ver test que fija ese comportamiento. Evaluar si se quiere distinguir cierre limpio vs. inesperado | **Crítica** |
+| `features/downloads` (`useDownloadSocket`) | Unit (hook, fake `WebSocket`) | Vitest | Vitest | **Alta** (`useDownloadSocket.test.ts`: 10 tests — `job_started`/`progress`/`job_completed`/`job_error` (+ `pendingAuthRecovery` en 401/403), reconexión automática tras cierre inesperado, deja de reconectar tras unmount) | Documentado: la implementación actual reconecta también ante un cierre limpio (código 1000) — no hay rama por `event.code`; ver test que fija ese comportamiento. Evaluar si se quiere distinguir cierre limpio vs. inesperado | **Crítica** |
 | `widgets/download-panel` (`DownloadPanel`) | — | [INEXISTENTE] | Vitest + RTL | 0% | Alta — overlay que monta `useDownloadSocket` como singleton; el parsing WS ya está cubierto vía `features/downloads`, falta el render/interacción del widget (pause/resume/cancel/clear) | **Alta** |
 | `widgets/player-bar` | — | [INEXISTENTE] | Vitest + RTL | 0% | Baja | **Baja** |
 | `shared/ui/ProgressBar`, `Button`, `Toast`, `QualitySelector` | — | [INEXISTENTE] | Vitest + RTL (snapshot/props) | 0% | Media — contrato de props usado por 3+ consumidores (ver `DESIGN_SYSTEM_VISION.md`) | **Media** |
 | `entities/album`, `entities/track`, `entities/download-job`, `entities/session` | — | [INEXISTENTE] | Vitest (unit de mappers, una vez movidos desde `shared/` per `ARCHITECTURE_AUDIT.md` AR-01) | 0% | Alta — lógica de mapeo API→dominio | **Alta** |
-| Stores Zustand (`auth.store`, `downloads.store`, `player.store`, `settings.store`) | Unit | Vitest ✅ | Vitest | **Alta** (`auth.store`: 14 tests, `downloads.store`: 17 tests — TD-08 parcialmente resuelto) | Añadir `player.store`, `settings.store`; tests de `onRehydrateStorage` con localStorage pre-poblado | **Crítica** |
-| Hooks (`useDebounce`, `useUrlDetection`, `useDownloadSocket`) | Unit | Vitest ✅ | Vitest | **Alta** (9 + 14 + 10 tests) | Mantener | **Alta** |
-| `middleware.ts` | — | Vitest (cuando RM-03 se implemente) | Vitest | ✅ Activado (cookie `music4all_session`) | Tests de middleware: redirige sin cookie → `/login`; con cookie en `/login` → `/dashboard` | **Media** |
+| Stores Zustand (`auth.store`, `downloads.store`, `player.store`, `settings.store`) | Unit | Vitest | Vitest | **Alta** (`auth.store`: 14 tests, `downloads.store`: 17 tests — TD-08 parcialmente resuelto) | Añadir `player.store`, `settings.store`; tests de `onRehydrateStorage` con localStorage pre-poblado | **Crítica** |
+| Hooks (`useDebounce`, `useUrlDetection`, `useDownloadSocket`) | Unit | Vitest | Vitest | **Alta** (9 + 14 + 10 tests) | Mantener | **Alta** |
+| `middleware.ts` | — | Vitest (cuando RM-03 se implemente) | Vitest | Activado (cookie `music4all_session`) | Tests de middleware: redirige sin cookie → `/login`; con cookie en `/login` → `/dashboard` | **Media** |
 
 ---
 
@@ -120,13 +120,13 @@ El backend ya está razonablemente alineado con esta pirámide. El frontend est�
 
 | Job actual (`ci.yml`) | Qué ejecuta | Gate real | Cambio propuesto |
 |---|---|---|---|
-| `lint-backend` | `ruff check .`, `ruff format --check .` | ✅ Sí | — |
-| `build-frontend` | `pnpm install`, `pnpm lint`, `pnpm build` | ✅ Sí | — |
-| `test-backend` | `pytest tests/ -v --tb=short \|\| echo ...` | ❌ No (TD-03 — fix de tests ya aplicado, cambio de CI pendiente) | Cambiar a gate real: los 157 tests (3 antes fallando) ahora pasan |
-| `security-backend` | `bandit -r app/ -ll -f json -o ... \|\| true` | ❌ No (TD-04) | Bloquear en severidad High |
-| `docker-build` | Build de imágenes backend/frontend | ✅ Sí (si prerequisitos pasan) | — |
+| `lint-backend` | `ruff check .`, `ruff format --check .` | Sí | — |
+| `build-frontend` | `pnpm install`, `pnpm lint`, `pnpm build` | Sí | — |
+| `test-backend` | `pytest tests/ -v --tb=short \|\| echo ...` | No (TD-03 — fix de tests ya aplicado, cambio de CI pendiente) | Cambiar a gate real: los 157 tests (3 antes fallando) ahora pasan |
+| `security-backend` | `bandit -r app/ -ll -f json -o ... \|\| true` | No (TD-04) | Bloquear en severidad High |
+| `docker-build` | Build de imágenes backend/frontend | Sí (si prerequisitos pasan) | — |
 | `deploy` | [STUB/INACTIVO] | N/A | Fuera de alcance de este plan |
-| `test-frontend` ✅ | Vitest (unit) — 87 tests: `auth.store`, `downloads.store`, `useDebounce`, `useUrlDetection`, `LoginForm`, `useDownloadSocket` | ✅ Sí | Ampliar a `DownloadPanel`, `ProgressBar`, mappers `entities/*` (Fase 3) |
+| `test-frontend` | Vitest (unit) — 87 tests: `auth.store`, `downloads.store`, `useDebounce`, `useUrlDetection`, `LoginForm`, `useDownloadSocket` | Sí | Ampliar a `DownloadPanel`, `ProgressBar`, mappers `entities/*` (Fase 3) |
 | **Nuevo: `e2e`** | Playwright contra `docker compose up` | A definir | Crear cuando se adopte Playwright (Fase 4 de adopción) |
 
 ---
@@ -170,7 +170,7 @@ El backend ya está razonablemente alineado con esta pirámide. El frontend est�
 | TP-01 | Sin `pytest-cov` configurado — cobertura backend real desconocida | Medium | Añadir `pytest-cov` + reporte informativo en CI | S | P2 |
 | TP-02 | Cobertura de `auth`/`search`/`metadata`/`history` como módulos aislados [REQUIERE VALIDACIÓN] | Medium | Revisar `tests/integration/test_api_endpoints.py` y confirmar qué cubre por módulo; añadir tests unitarios donde falten | M | P2 |
 | TP-03 | `core/tidal.py` sin tests de contrato dedicados (48 dependientes) | Medium | Tests de contrato para `TidalDownloader.check_auth`, `download_single_track`, métodos de búsqueda | M | P2 |
-| TP-04 | ⚠️ Frontend cobertura parcial — stores, hooks y `LoginForm` cubiertos (87 tests), `DownloadPanel`/`ProgressBar`/mappers pendientes (incl. AR-01 de `ARCHITECTURE_AUDIT.md`) | Medium | Continuar plan Vitest Fase 3: `DownloadPanel`, `ProgressBar`, mappers `entities/*`; luego Playwright (Fase 4) | M | P1 |
+| TP-04 | Frontend cobertura parcial — stores, hooks y `LoginForm` cubiertos (87 tests), `DownloadPanel`/`ProgressBar`/mappers pendientes (incl. AR-01 de `ARCHITECTURE_AUDIT.md`) | Medium | Continuar plan Vitest Fase 3: `DownloadPanel`, `ProgressBar`, mappers `entities/*`; luego Playwright (Fase 4) | M | P1 |
 | TP-05 | Sin Contract Testing de mensajes WS | Medium | Esquema compartido + fixtures (ver propuesta arriba) | M | P2 |
 | TP-06 | E2E OAuth bloqueado por interacción humana real | Medium | Definir estrategia de mock de `tidalapi`/`app.state.engine` para CI | M | P2 |
 | TP-07 | Datos de prueba para `test_flac_validation.py` sin origen documentado | Low | Documentar en `TEST_PLAN.md`/README de tests cómo se generan/obtienen los archivos de muestra | XS | P3 |
@@ -203,8 +203,8 @@ El backend ya está razonablemente alineado con esta pirámide. El frontend est�
 | Fase | Alcance | Hallazgos | Esfuerzo |
 |---|---|---|---|
 | **Fase 1** | `pytest-cov` informativo; auditar cobertura real de `auth`/`search`/`metadata`/`history`/`tidal.py` | TP-01, TP-02, TP-03 | S |
-| **Fase 2** ✅ | Vitest + RTL configurado; 66 tests unitarios: `auth.store`, `downloads.store`, `useDebounce`, `useUrlDetection`; job `test-frontend` en CI | TP-04 (parte 1) — **COMPLETADO** | M |
-| **Fase 3a** ✅ | `LoginForm` (11 tests, máquina de estados OAuth completa) y `useDownloadSocket` (10 tests, parsing WS + reconexión vía fake `WebSocket`) — 87 tests totales; cleanup de RTL (`afterEach(cleanup)`) añadido a `tests/setup.ts` | TP-04 (parte 2a) — **COMPLETADO** | M |
+| **Fase 2** | Vitest + RTL configurado; 66 tests unitarios: `auth.store`, `downloads.store`, `useDebounce`, `useUrlDetection`; job `test-frontend` en CI | TP-04 (parte 1) — **COMPLETADO** | M |
+| **Fase 3a** | `LoginForm` (11 tests, máquina de estados OAuth completa) y `useDownloadSocket` (10 tests, parsing WS + reconexión vía fake `WebSocket`) — 87 tests totales; cleanup de RTL (`afterEach(cleanup)`) añadido a `tests/setup.ts` | TP-04 (parte 2a) — **COMPLETADO** | M |
 | **Fase 3b** | `DownloadPanel` (render + pause/resume/cancel/clear), `ProgressBar` (variantes), mappers `entities/*` (coordinado con AR-01) | TP-04 (parte 2b) | M |
 | **Fase 4** | Decidir estrategia de mock Tidal; configurar Playwright; 3-5 escenarios E2E | TP-06, TP-04 (parte 3) | L |
 | **Fase 5** | Contract testing WS | TP-05 | M |

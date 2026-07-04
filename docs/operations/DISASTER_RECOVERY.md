@@ -20,7 +20,7 @@
 | Dashboards/datasources de Grafana | Volumen `grafana_data` + provisioning (en git) | Provisioning re-creable desde git; estado adicional (usuarios, cambios manuales) en `grafana_data` | `[INEXISTENTE]` para `grafana_data`; provisioning **sí** está en git |
 | Logs históricos | Volumen `loki_data` | Volumen Docker, sin retención (`retention_period: 0s`) | `[INEXISTENTE]` (y de bajo valor — son logs, no datos de negocio) |
 | Métricas históricas | Volumen `prometheus_data` | Volumen Docker | `[INEXISTENTE]` (de bajo valor — recreable observando desde cero) |
-| Código de aplicación, configuración, migraciones | Git (`main` + ramas) | Repositorio remoto (asumido GitHub, dado `gh`/CI) | ✅ Sí — git es el backup |
+| Código de aplicación, configuración, migraciones | Git (`main` + ramas) | Repositorio remoto (asumido GitHub, dado `gh`/CI) | Sí — git es el backup |
 | Imágenes Docker construidas | Local (build cache) o registro `[NO VERIFICABLE]` | `[NO VERIFICABLE]` si se publican a un registro | `[NO VERIFICABLE]` |
 
 ---

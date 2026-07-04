@@ -1,6 +1,6 @@
 # Technical Audit — Music 4 All
 
-> 🕒 **Estado de vigencia — revisado 2026-07-02.** Este documento **ya está actualizado**: refleja 13/14 hallazgos resueltos (queda **TD-05**, testing frontend, parcial). Confirmado contra el código al 2026-07-02: backend `ruff`/`mypy`/`pytest` y frontend `lint`/`build`/`vitest` (**87 tests**) en verde. Nota adicional: `frontend/src/app/middleware.ts` (scaffold no-op duplicado, no ejecutado por Next.js) fue **eliminado el 2026-07-02**; el middleware activo es `frontend/src/middleware.ts`.
+> **Estado de vigencia — revisado 2026-07-02.** Este documento **ya está actualizado**: refleja 13/14 hallazgos resueltos (queda **TD-05**, testing frontend, parcial). Confirmado contra el código al 2026-07-02: backend `ruff`/`mypy`/`pytest` y frontend `lint`/`build`/`vitest` (**87 tests**) en verde. Nota adicional: `frontend/src/app/middleware.ts` (scaffold no-op duplicado, no ejecutado por Next.js) fue **eliminado el 2026-07-02**; el middleware activo es `frontend/src/middleware.ts`.
 
 > Auditoría de deuda técnica del estado **real** del repositorio en la fecha de este documento. Basada en lectura directa de código, ejecución de `ruff`/`bandit`, resultados de `pytest` documentados en [`docs/roadmap.md`](../roadmap.md) y hallazgos de los audits hermanos: [`ARCHITECTURE_AUDIT.md`](ARCHITECTURE_AUDIT.md), [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md), [`PERFORMANCE_AUDIT.md`](PERFORMANCE_AUDIT.md), [`UX_AUDIT.md`](UX_AUDIT.md).
 >
@@ -14,10 +14,10 @@ El núcleo funcional de Music 4 All (descarga Tidal → archivo → historial, O
 
 Histórico (estado al momento de redactar el resumen original, antes de las rondas de resolución):
 
-1. **Calidad de código backend**: 104 errores de `ruff` (87 auto-corregibles) y 49 errores de `mypy` no bloqueaban CI — ✅ resuelto (TD-01, TD-02).
-2. **Cobertura de pruebas desigual**: backend con suite madura pero 3 tests fallando sin bloquear el pipeline; CI con `bandit`/`pytest` no bloqueantes — ✅ resuelto (TD-03, TD-04).
-3. **Código muerto significativo**: en frontend (`src/store/useAppStore.ts`, `src/components/`, `src/hooks/`, `src/lib/`, rutas vacías) y en backend (`app/api/v1/`, `app/services/`, `app/schemas/`) — ✅ resuelto (TD-08, TD-09).
-4. **Funcionalidad incompleta expuesta en UI**: `/library`, `/settings`, `/downloads` placeholders (✅ TD-10), `AlbumDetailPanel` no conectado (✅ TD-11), `PlayerBar` decorativo sin `<audio>` (✅ TD-12, etiquetado "Próximamente").
+1. **Calidad de código backend**: 104 errores de `ruff` (87 auto-corregibles) y 49 errores de `mypy` no bloqueaban CI — resuelto (TD-01, TD-02).
+2. **Cobertura de pruebas desigual**: backend con suite madura pero 3 tests fallando sin bloquear el pipeline; CI con `bandit`/`pytest` no bloqueantes — resuelto (TD-03, TD-04).
+3. **Código muerto significativo**: en frontend (`src/store/useAppStore.ts`, `src/components/`, `src/hooks/`, `src/lib/`, rutas vacías) y en backend (`app/api/v1/`, `app/services/`, `app/schemas/`) — resuelto (TD-08, TD-09).
+4. **Funcionalidad incompleta expuesta en UI**: `/library`, `/settings`, `/downloads` placeholders (TD-10), `AlbumDetailPanel` no conectado (TD-11), `PlayerBar` decorativo sin `<audio>` (TD-12, etiquetado "Próximamente").
 
 Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el sistema no funciona" — el flujo principal siempre funcionó. Las brechas de mayor severidad (**High**) que enmascaraban regresiones (CI no bloqueante ante fallos de tests/bandit) y el código muerto que confundía a nuevos colaboradores (rutas duplicadas legacy/v2, módulos backend huérfanos) ya están cerrados.
 
@@ -27,21 +27,21 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 | Área | Estado | Fuente |
 |---|---|---|
-| Backend core (descarga, OAuth, búsqueda, historial, jobs) | ✅ Estable, en uso | `docs/architecture.md`, `docs/roadmap.md` |
+| Backend core (descarga, OAuth, búsqueda, historial, jobs) | Estable, en uso | `docs/architecture.md`, `docs/roadmap.md` |
 | Tests backend | 138/141 pasan (97.9%) | `docs/roadmap.md` §2.3 |
-| Lint backend (`ruff check`) | ✅ 0 errores (resuelto TD-01) | `docs/roadmap.md` §2.1 |
-| Format backend (`ruff format --check`) | ✅ 0 errores (resuelto TD-01) | `.github/workflows/ci.yml` |
-| Type-check backend (`mypy`) | ✅ 0 errores en 69 archivos (resuelto TD-02) | `docs/roadmap.md` §2.2 |
-| Bandit (seguridad estática) | ✅ 0 hallazgos medium/high; CI bloqueante (resuelto TD-04) | `.github/workflows/ci.yml` |
-| Tests frontend | ⚠️ Vitest + RTL — 87 tests (stores, hooks, `LoginForm`, `useDownloadSocket`); falta `DownloadPanel`/`ProgressBar`/mappers y Playwright (TD-05) | `docs/qa/TEST_PLAN.md` |
+| Lint backend (`ruff check`) | 0 errores (resuelto TD-01) | `docs/roadmap.md` §2.1 |
+| Format backend (`ruff format --check`) | 0 errores (resuelto TD-01) | `.github/workflows/ci.yml` |
+| Type-check backend (`mypy`) | 0 errores en 69 archivos (resuelto TD-02) | `docs/roadmap.md` §2.2 |
+| Bandit (seguridad estática) | 0 hallazgos medium/high; CI bloqueante (resuelto TD-04) | `.github/workflows/ci.yml` |
+| Tests frontend | Vitest + RTL — 87 tests (stores, hooks, `LoginForm`, `useDownloadSocket`); falta `DownloadPanel`/`ProgressBar`/mappers y Playwright (TD-05) | `docs/qa/TEST_PLAN.md` |
 | Lint/build frontend | `pnpm lint` + `pnpm build` bloqueantes en CI | `.github/workflows/ci.yml` |
-| Páginas frontend `/library`, `/settings`, `/downloads` | ✅ Implementadas (resuelto TD-10) | `docs/roadmap.md` §1, research UX |
-| `AlbumDetailPanel` | ✅ Conectado con modal, tracklist y descarga selectiva (resuelto TD-11) | `docs/roadmap.md` §1 |
-| Middleware de rutas | ✅ Activado en `src/middleware.ts` con cookie `music4all_session` | Hallazgo nuevo |
-| `PlayerBar` | ✅ Decorativo pero etiquetado "Próximamente" (resuelto TD-12) | `frontend/src/widgets/player-bar/ui/PlayerBar.tsx` |
-| Código muerto frontend | ✅ Eliminado (resuelto TD-08) | `docs/roadmap.md` §1, research Architecture |
-| Código muerto backend (`app/api/v1/`, `app/services/`, `app/schemas/`) | ✅ Eliminado, incluido `scripts/test_download.py` huérfano (resuelto TD-09) | `backend/app/` |
-| `prefers-reduced-motion` | ✅ Hook `useReducedMotion` + regla CSS global (resuelto TD-13) | `frontend/src/shared/hooks/useReducedMotion.ts`, `frontend/src/app/globals.css` |
+| Páginas frontend `/library`, `/settings`, `/downloads` | Implementadas (resuelto TD-10) | `docs/roadmap.md` §1, research UX |
+| `AlbumDetailPanel` | Conectado con modal, tracklist y descarga selectiva (resuelto TD-11) | `docs/roadmap.md` §1 |
+| Middleware de rutas | Activado en `src/middleware.ts` con cookie `music4all_session` | Hallazgo nuevo |
+| `PlayerBar` | Decorativo pero etiquetado "Próximamente" (resuelto TD-12) | `frontend/src/widgets/player-bar/ui/PlayerBar.tsx` |
+| Código muerto frontend | Eliminado (resuelto TD-08) | `docs/roadmap.md` §1, research Architecture |
+| Código muerto backend (`app/api/v1/`, `app/services/`, `app/schemas/`) | Eliminado, incluido `scripts/test_download.py` huérfano (resuelto TD-09) | `backend/app/` |
+| `prefers-reduced-motion` | Hook `useReducedMotion` + regla CSS global (resuelto TD-13) | `frontend/src/shared/hooks/useReducedMotion.ts`, `frontend/src/app/globals.css` |
 
 ---
 
@@ -49,7 +49,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-01 — Errores de lint (`ruff check`) no resueltos
 
-- **Estado**: ✅ **Resuelto** (`ruff check` y `ruff format --check` pasan con 0 errores; 157 passed, 2 skipped en `pytest tests/ -q`).
+- **Estado**: **Resuelto** (`ruff check` y `ruff format --check` pasan con 0 errores; 157 passed, 2 skipped en `pytest tests/ -q`).
 - **Descripción (original)**: 104 errores detectados por `ruff check .` en el backend, de los cuales 87 eran auto-corregibles con `ruff check . --fix`. La mayoría eran `F401` (imports sin usar), concentrados en archivos de tests.
 - **Resumen de cambios aplicados**:
   - `ruff check . --fix`: 99 errores corregidos automáticamente (imports desordenados, `Union[X, None]` → `X | None`, `collections.abc`, `F401` en test helpers y archivos `api/v1/`).
@@ -65,7 +65,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-02 — Errores de type-check (`mypy`) fuera de CI
 
-- **Estado**: ✅ **Resuelto** (`mypy app --show-error-codes` reporta 0 errores en 69 archivos; 157 passed, 2 skipped en `pytest tests/ -q`).
+- **Estado**: **Resuelto** (`mypy app --show-error-codes` reporta 0 errores en 69 archivos; 157 passed, 2 skipped en `pytest tests/ -q`).
 - **Descripción (original)**: 55 errores de `mypy` en 11 archivos (cifra revisada al ejecutar contra el estado actual del repositorio; el audit previo estimaba 49). Sin job de `mypy` en CI.
 - **Resumen de cambios aplicados por archivo**:
   - **`core/security.py`** (2 errores): cuerpos vacíos con `pass` → `return False` / `return ""` (placeholders válidos).
@@ -93,7 +93,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-03 — Tests backend fallando sin bloquear CI
 
-- **Estado**: ✅ **Resuelto** (los 3 tests previamente fallidos ahora pasan; 157 passed, 2 skipped en `uv run pytest tests/ -q`).
+- **Estado**: **Resuelto** (los 3 tests previamente fallidos ahora pasan; 157 passed, 2 skipped en `uv run pytest tests/ -q`).
 - **Descripción (original)**: 3 de 141 tests fallaban: `TestDownloadError::test_invalid_track_id` y `TestDownloadError::test_invalid_job_id` (ambos `AttributeError: 'State' object has no attribute 'engine'` — `app.state.engine`/`app.state.redis` no inicializados, ya que el fixture `api_client` crea `TestClient(app)` sin `with`, por lo que el `lifespan` nunca corre) en `tests/integration/test_download_flow.py`; `TestCleanup::test_pubsub_unsubscribed_on_disconnect` en `tests/test_ws_downloads.py` (race condition confirmada, ver `docs/troubleshooting.md` #4.1). El job `test-backend` usa `pytest tests/ -v --tb=short || echo "No tests found — skipping"`, por lo que **estas 3 fallas no rompían el pipeline**.
 - **Causa raíz y fix aplicado**:
   1. `test_invalid_track_id` / `test_invalid_job_id`: fixture incompleto (causa raíz simple, no bug de producción). Se añadió el fixture `api_client_with_state` en `tests/conftest.py`, que inicializa `app.state.engine` (mock con `check_auth() -> True`) y `app.state.redis` (mock con `get` async que devuelve `None`) antes de crear el `TestClient`, y restaura el estado previo de `app.state` al finalizar. Los dos tests ahora usan `api_client_with_state` en lugar de `api_client`.
@@ -108,7 +108,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-04 — `security-backend` (Bandit) no bloqueante en CI
 
-- **Estado**: ✅ **Resuelto** (el job ahora falla si Bandit reporta cualquier hallazgo `-ll` medium/high; YAML validado).
+- **Estado**: **Resuelto** (el job ahora falla si Bandit reporta cualquier hallazgo `-ll` medium/high; YAML validado).
 - **Descripción (original)**: `uv run bandit -r app/ -ll -f json -o bandit-report.json || true` — el `|| true` garantiza que el job nunca falle, independientemente de los hallazgos. Actualmente Bandit reporta 0 hallazgos medium/high (verificado en esta auditoría), pero el job no protegía contra introducir nuevos hallazgos en el futuro.
 - **Resumen del cambio aplicado**: `.github/workflows/ci.yml` — `|| true` → `|| [ $? -eq 0 ]` (el `[ $? -eq 0 ]` solo es verdadero si Bandit ya salió con código 0; al estar dentro de la rama `||`, Bandit habrá fallado, por lo que la condición es siempre falsa y el step propaga el fallo real de Bandit en vez de enmascararlo).
 - **Evidencia**: `.github/workflows/ci.yml` línea ~219.
@@ -119,7 +119,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-05 — Ausencia total de testing frontend
 
-- **Estado**: ⚠️ **Ampliado, no resuelto del todo** (Vitest + RTL configurado desde hace varias rondas; cobertura pasó de 66 a 87 tests con la incorporación de `LoginForm` y `useDownloadSocket`; `DownloadPanel`, `ProgressBar`, mappers `entities/*` y Playwright E2E siguen pendientes).
+- **Estado**: **Ampliado, no resuelto del todo** (Vitest + RTL configurado desde hace varias rondas; cobertura pasó de 66 a 87 tests con la incorporación de `LoginForm` y `useDownloadSocket`; `DownloadPanel`, `ProgressBar`, mappers `entities/*` y Playwright E2E siguen pendientes).
 - **Descripción (original)**: no existía configuración de Jest, Vitest, React Testing Library ni Playwright. La validación del frontend dependía exclusivamente de `pnpm lint` + `pnpm build` (type-check) + pruebas manuales en navegador.
 - **Resumen de cambios aplicados (esta ronda)**:
   - `frontend/tests/unit/components/LoginForm.test.tsx` (11 tests) — cubre la máquina de estados OAuth real del componente (`src/features/auth/ui/LoginForm.tsx`): botón inicial "Connect with Tidal", inicio de `useInitDeviceAuthMutation`, transición a paso 2 (código + URL de verificación) cuando `auth.store` recibe `deviceAuth`, mensaje de error si la mutación falla, indicador de polling, cancelar y volver al paso 1, auto-redirección a `/dashboard` cuando `useDeviceAuthPollingQuery` reporta `status: 'authorized'`, error cuando el código expira, y redirección inmediata si ya hay sesión autenticada. Mockea `useInitDeviceAuthMutation`/`useDeviceAuthPollingQuery` (no axios directamente — el componente no llama a `/api/v1/auth/*`, usa `/session/device-auth` vía TanStack Query) y usa el `useAuthStore` real (igual patrón que `auth.store.test.ts`).
@@ -135,7 +135,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-06 — Inconsistencia de imagen Redis/Valkey entre CI y entorno real
 
-- **Estado**: ✅ **Resuelto** (`test-backend` ahora usa la misma imagen que `docker-compose.yml`).
+- **Estado**: **Resuelto** (`test-backend` ahora usa la misma imagen que `docker-compose.yml`).
 - **Descripción (original)**: `docker-compose.yml` usa `valkey/valkey:8-alpine`; `.github/workflows/ci.yml` (`test-backend`) usa `redis:7-alpine`. Compatibles vía protocolo RESP, pero son imágenes distintas en CI vs. desarrollo/producción.
 - **Resumen del cambio aplicado**: `.github/workflows/ci.yml`, servicio `redis` del job `test-backend` — imagen `redis:7-alpine` → `valkey/valkey:8-alpine`; healthcheck `redis-cli ping` → `valkey-cli ping`. El nombre del servicio (`redis:`) y la variable `REDIS_URL` se mantienen sin cambios (no afectan el comportamiento, solo son etiquetas).
 - **Evidencia**: `.github/workflows/ci.yml` línea ~150.
@@ -145,7 +145,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-07 — `SECRET_KEY` declarado pero sin uso (configuración muerta)
 
-- **Estado**: ✅ **Resuelto** (línea eliminada de `.env.example`; confirmado sin referencias en `backend/app/`).
+- **Estado**: **Resuelto** (línea eliminada de `.env.example`; confirmado sin referencias en `backend/app/`).
 - **Descripción (original)**: `.env.example` define `SECRET_KEY=change-me-in-production`, pero **no existe** en `Settings` (`backend/app/config.py`) ni se referencia en ningún módulo de `backend/app/`.
 - **Resumen del cambio aplicado**: eliminada la línea `SECRET_KEY=change-me-in-production` (y su comentario `# Security`) de `.env.example`. `grep -ri "SECRET_KEY" backend/` confirmó 0 referencias en código antes de eliminar.
 - **Evidencia**: `.env.example`.
@@ -155,7 +155,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-08 — Código muerto frontend confirmado
 
-- **Estado**: ✅ **Resuelto** (todos los archivos eliminados; `pnpm build` pasa sin errores).
+- **Estado**: **Resuelto** (todos los archivos eliminados; `pnpm build` pasa sin errores).
 - **Descripción (original)**: `frontend/src/store/useAppStore.ts`, `frontend/src/components/` (`DownloadButton.tsx`, `NeonTitle.tsx`, `ProgressBar.tsx`, `VinylCard.tsx`), `frontend/src/hooks/useWebSocket.ts`, `frontend/src/lib/` (`api.ts`, `theme.ts`), y los directorios vacíos `frontend/src/app/dashboard/`, `frontend/src/app/history/`, `frontend/src/app/login/` — todos confirmados **sin ninguna referencia real** (solo aparecen en comentarios que explícitamente los marcan como prohibidos).
 - **Archivos eliminados**:
   - `frontend/src/components/DownloadButton.tsx`
@@ -180,7 +180,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-09 — Código muerto backend (`app/api/v1/`, `app/services/`, `app/schemas/`) — HALLAZGO NUEVO
 
-- **Estado**: ✅ **Resuelto** (los tres directorios eliminados; `ruff check`, `mypy app` y `pytest tests/` siguen en verde: 157 passed, 2 skipped).
+- **Estado**: **Resuelto** (los tres directorios eliminados; `ruff check`, `mypy app` y `pytest tests/` siguen en verde: 157 passed, 2 skipped).
 - **Descripción (original)**: durante esta auditoría se identificaron tres directorios en `backend/app/` (`api/v1/`, `services/`, `schemas/`) que **no son importados desde ningún módulo activo** (`grep` de `from app.api.v1`, `from app.services`, `from app.schemas` no devuelve resultados fuera de sí mismos). No estaban documentados previamente en `docs/roadmap.md`.
 - **Validación previa a la eliminación**: `grep -rn` de `app\.api\.v1`, `app\.services`, `app\.schemas` contra `backend/app/` y `backend/tests/` no devolvió ninguna referencia externa a los tres paquetes; `backend/app/main.py` no los registra como routers. `app/api/` quedó vacío tras eliminar `api/v1/` (solo contenía `__init__.py`) y se eliminó también.
 - **Hallazgo adicional durante la validación**: `backend/scripts/test_download.py` (script manual de debug, no referenciado desde CI, `pyproject.toml` ni ningún doc) importaba `app.services.download_manager` y `app.core.tidal.TidalDownloader` para una prueba manual con `session.json` local. Al no estar registrado en ningún flujo activo (ni tests, ni CI, ni documentación), se trató como código muerto incidental ligado a la misma limpieza y se eliminó junto con `app/services/` en vez de dejar el paquete completo solo por este script huérfano.
@@ -192,7 +192,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-10 — Funcionalidad incompleta expuesta en la navegación (`/library`, `/settings`, `/downloads`)
 
-- **Estado**: ✅ **Resuelto** (`/library`, `/settings` y `/downloads` implementadas; `pnpm lint` y `pnpm build` en verde, 66/66 tests frontend pasan).
+- **Estado**: **Resuelto** (`/library`, `/settings` y `/downloads` implementadas; `pnpm lint` y `pnpm build` en verde, 66/66 tests frontend pasan).
 - **Descripción (original)**: `(app)/library/page.tsx` y `(app)/settings/page.tsx` eran `return null` (placeholders "Phase 3+"). Adicionalmente, **no existía ninguna página `/downloads`** bajo `frontend/src/app/(app)/` — solo existía el widget `DownloadPanel` (overlay). Tanto `Sidebar` (`NAV_ITEMS`) como `AppHeader` (`PAGE_TITLES`) ya referenciaban las tres rutas.
 - **Resumen de cambios aplicados**:
   - `(app)/library/page.tsx`: implementada con Card de estado vacío y estilo consistente al Dashboard (icon musical, mensaje orientativo).
@@ -211,7 +211,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-11 — `AlbumDetailPanel` no conectado
 
-- **Estado**: ✅ **Resuelto** (`pnpm lint` + `pnpm build` pasan con 0 errores; modal visible en `/dashboard`).
+- **Estado**: **Resuelto** (`pnpm lint` + `pnpm build` pasan con 0 errores; modal visible en `/dashboard`).
 - **Descripción (original)**: `handleOpenAlbum` en `DashboardClient.tsx` solo ejecutaba `console.info` — el panel de detalle de álbum (Phase 6C) no estaba implementado.
 - **Resumen de cambios aplicados** (en `DashboardClient.tsx`):
   - Estado: `detailAlbumId: string | null` y `selectedTrackIds: Set<string>`.
@@ -226,7 +226,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-12 — `PlayerBar` decorativo sin reproducción real — HALLAZGO NUEVO
 
-- **Estado**: ✅ **Resuelto** (decisión de producto: Opción A — etiquetar como "Próximamente" sin ocultar el componente).
+- **Estado**: **Resuelto** (decisión de producto: Opción A — etiquetar como "Próximamente" sin ocultar el componente).
 - **Descripción (original)**: `frontend/src/widgets/player-bar/ui/PlayerBar.tsx` no contiene ningún elemento `<audio>` ni controles de reproducción funcionales. Muestra `currentTrack`, `isPlaying`, `progressSeconds`, `volume` desde `usePlayerStore` como **display puro** (carátula, título, barra de progreso, indicador de volumen), pero no hay forma de iniciar/pausar/buscar reproducción desde la UI.
 - **Decisión de producto**: no se oculta el `PlayerBar` (la reproducción in-app sigue siendo un objetivo futuro del roadmap, no se descarta), pero se etiqueta explícitamente como no funcional para evitar expectativas no cumplidas.
 - **Resumen del cambio aplicado** (`PlayerBar.tsx`): (1) `aria-label` del contenedor raíz (`role="region"`) cambiado de `"Music player"` a `"Reproductor de audio — próximamente"`; (2) añadido un badge sutil `aria-hidden="true"` con el texto "Próximamente" (visible desde `sm:`, mismo patrón de breakpoints que el resto de la barra) sin alterar la altura fija de 80px (`h-player`) ni el layout existente.
@@ -237,7 +237,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-13 — `prefers-reduced-motion` ausente pese a estar asumido en documentación de diseño
 
-- **Estado**: ✅ **Resuelto** (hook + CSS global implementados; `pnpm lint` y `pnpm build` en verde; Fase 0 de `IMPLEMENTATION_PLAN.md` desbloqueada).
+- **Estado**: **Resuelto** (hook + CSS global implementados; `pnpm lint` y `pnpm build` en verde; Fase 0 de `IMPLEMENTATION_PLAN.md` desbloqueada).
 - **Descripción (original)**: `FRONTEND_VISION.md` §10 asume `prefers-reduced-motion` como salvaguarda "ya implementada" para justificar animaciones decorativas (parpadeos neón, escaneo láser). Una búsqueda exhaustiva (`grep -i "prefers-reduced-motion"`) en `frontend/` devuelve **cero coincidencias**.
 - **Resumen del cambio aplicado**:
   - `frontend/src/shared/hooks/useReducedMotion.ts` (nuevo): hook que lee `window.matchMedia('(prefers-reduced-motion: reduce)')`, expone un `boolean` y se suscribe a cambios con `addEventListener('change')`. Exportado desde `frontend/src/shared/hooks/index.ts`.
@@ -250,7 +250,7 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 ## TD-14 — Duplicación de estado OAuth legacy/v2 en memoria
 
-- **Estado**: ✅ **Resuelto** (lógica común extraída a un helper compartido; `app.state.pending_oauth` se mantiene porque sigue en uso activo por el endpoint legacy `/auth/*`; tests y type-checking en verde).
+- **Estado**: **Resuelto** (lógica común extraída a un helper compartido; `app.state.pending_oauth` se mantiene porque sigue en uso activo por el endpoint legacy `/auth/*`; tests y type-checking en verde).
 - **Descripción (original)**: `app.state.pending_oauth` (legacy, `auth/service.py`) y `app.state.pending_oauth_v2` (v2, `session/service.py`) son dos estructuras de estado en memoria, paralelas, que implementan flujos de device-auth casi idénticos sin abstracción compartida.
 - **Resumen del cambio aplicado**:
   - Nuevo `backend/app/core/oauth_helper.py` con tres funciones compartidas, ninguna depende de `app.state`:
@@ -274,28 +274,28 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 |---|---|---|---|
 | TD-03 | CI no bloquea ante fallos reales de pytest (`\|\| echo`) | High | Confirmado |
 | TD-05 | Testing frontend parcial — `DownloadPanel`/`ProgressBar`/mappers y Playwright E2E aún sin cobertura | Medium | Confirmado |
-| TD-02 | ~~49 errores mypy, excepciones de tidalapi inexistentes~~ | ~~Medium~~ | ✅ **Resuelto** |
-| TD-04 | ~~Bandit no bloqueante (`\|\| true`)~~ | ~~Medium~~ | ✅ **Resuelto** |
-| TD-10 | ~~Navegación: `/downloads` sin página~~ | ~~Medium~~ | ✅ **Resuelto** |
-| TD-11 | ~~`AlbumDetailPanel` no conectado~~ | ~~Medium~~ | ✅ **Resuelto** |
-| TD-12 | ~~`PlayerBar` decorativo, sin reproducción real~~ | ~~Medium~~ | ✅ **Resuelto** |
-| TD-13 | ~~`prefers-reduced-motion` ausente, asumido por docs de diseño~~ | ~~Medium~~ | ✅ **Resuelto** |
-| TD-14 | ~~Duplicación OAuth legacy/v2 en memoria~~ | ~~Medium~~ | ✅ **Resuelto** |
-| TD-01 | ~~104 errores ruff (87 auto-fix)~~ | ~~Low~~ | ✅ **Resuelto** |
-| TD-06 | ~~Inconsistencia Redis/Valkey CI vs compose~~ | ~~Low~~ | ✅ **Resuelto** |
-| TD-07 | ~~`SECRET_KEY` declarado sin uso~~ | ~~Low~~ | ✅ **Resuelto** |
-| TD-08 | ~~Código muerto frontend~~ | ~~Low~~ | ✅ **Resuelto** |
-| TD-09 | ~~Código muerto backend (`api/v1`, `services`, `schemas`)~~ | ~~Low~~ | ✅ **Resuelto** |
+| TD-02 | ~~49 errores mypy, excepciones de tidalapi inexistentes~~ | ~~Medium~~ | **Resuelto** |
+| TD-04 | ~~Bandit no bloqueante (`\|\| true`)~~ | ~~Medium~~ | **Resuelto** |
+| TD-10 | ~~Navegación: `/downloads` sin página~~ | ~~Medium~~ | **Resuelto** |
+| TD-11 | ~~`AlbumDetailPanel` no conectado~~ | ~~Medium~~ | **Resuelto** |
+| TD-12 | ~~`PlayerBar` decorativo, sin reproducción real~~ | ~~Medium~~ | **Resuelto** |
+| TD-13 | ~~`prefers-reduced-motion` ausente, asumido por docs de diseño~~ | ~~Medium~~ | **Resuelto** |
+| TD-14 | ~~Duplicación OAuth legacy/v2 en memoria~~ | ~~Medium~~ | **Resuelto** |
+| TD-01 | ~~104 errores ruff (87 auto-fix)~~ | ~~Low~~ | **Resuelto** |
+| TD-06 | ~~Inconsistencia Redis/Valkey CI vs compose~~ | ~~Low~~ | **Resuelto** |
+| TD-07 | ~~`SECRET_KEY` declarado sin uso~~ | ~~Low~~ | **Resuelto** |
+| TD-08 | ~~Código muerto frontend~~ | ~~Low~~ | **Resuelto** |
+| TD-09 | ~~Código muerto backend (`api/v1`, `services`, `schemas`)~~ | ~~Low~~ | **Resuelto** |
 
 ---
 
 # Recomendaciones
 
-1. ~~**Cerrar el gap de CI no bloqueante primero (TD-03, TD-04)**~~ — ✅ resuelto.
-2. ~~**Resolver la navegación rota (TD-10)**~~ — ✅ resuelto: `/downloads` implementada como página completa, reutilizando el store y la lógica del `DownloadPanel` vía `useDownloadQueue`/`useDownloadActions`.
+1. ~~**Cerrar el gap de CI no bloqueante primero (TD-03, TD-04)**~~ — resuelto.
+2. ~~**Resolver la navegación rota (TD-10)**~~ — resuelto: `/downloads` implementada como página completa, reutilizando el store y la lógica del `DownloadPanel` vía `useDownloadQueue`/`useDownloadActions`.
 3. **Ampliar testing frontend (TD-05)** — 87 tests pasando (Vitest + RTL), incluyendo `LoginForm` y `useDownloadSocket`; pendiente `DownloadPanel`, `ProgressBar`, mappers `entities/*` (ver `docs/qa/TEST_PLAN.md` Fase 3b) y Playwright E2E.
-4. ~~**Limpieza de código muerto (TD-08, TD-09)**~~ — ✅ resuelto.
-5. **Errores mypy relacionados con `tidalapi` (subset de TD-02)** — ✅ resuelto.
+4. ~~**Limpieza de código muerto (TD-08, TD-09)**~~ — resuelto.
+5. **Errores mypy relacionados con `tidalapi` (subset de TD-02)** — resuelto.
 
 ---
 
@@ -303,14 +303,14 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 | Fase | Alcance | Hallazgos cubiertos | Esfuerzo | Estado |
 |---|---|---|---|---|
-| **Fase 1 — Higiene de CI** | Corregir fixture de `test_download_flow.py`, investigar race condition WS, ajustar `|| echo`/`|| true` a umbrales reales | TD-03, TD-04 | S–M | ✅ Completada |
-| **Fase 2 — Limpieza de código muerto** | Eliminar dead code frontend (TD-08) y validar/eliminar backend (TD-09) | TD-08, TD-09 | S | ✅ Completada |
-| **Fase 3 — Navegación y placeholders** | Decisión sobre `/library`, `/settings`, `/downloads`, `PlayerBar` (ocultar vs. implementar mínimo) | TD-10, TD-12 | S–M | ✅ Completada |
-| **Fase 4 — Calidad de tipos** | Resolver errores mypy de `tidalapi` (excepciones/opcionales), luego el resto; introducir `mypy` informativo en CI | TD-02 | M | ✅ Completada |
-| **Fase 5 — Testing frontend** | Configurar Vitest + RTL, primeros tests de stores y `LoginForm`/`DownloadPanel`; Playwright para E2E OAuth/descarga | TD-05 | L | ⚠️ Vitest configurado (87 tests: stores, hooks, `LoginForm`, `useDownloadSocket`); `DownloadPanel`/`ProgressBar`/mappers y Playwright E2E pendientes |
-| **Fase 6 — Consolidación OAuth** | Unificar lógica de device-auth legacy/v2 | TD-14 | M | ✅ Completada |
-| **Fase 7 — Accesibilidad de animaciones** | Implementar `prefers-reduced-motion` global (prerrequisito del rediseño visual, ver `IMPLEMENTATION_PLAN.md` Fase 0) | TD-13 | S | ✅ Completada |
-| **Fase 8 — Lint final** | Resolver remanente de `ruff` (TD-01), unificar Redis/Valkey en CI (TD-06), limpiar `SECRET_KEY` (TD-07) | TD-01, TD-06, TD-07 | S | ✅ Completada |
+| **Fase 1 — Higiene de CI** | Corregir fixture de `test_download_flow.py`, investigar race condition WS, ajustar `|| echo`/`|| true` a umbrales reales | TD-03, TD-04 | S–M | Completada |
+| **Fase 2 — Limpieza de código muerto** | Eliminar dead code frontend (TD-08) y validar/eliminar backend (TD-09) | TD-08, TD-09 | S | Completada |
+| **Fase 3 — Navegación y placeholders** | Decisión sobre `/library`, `/settings`, `/downloads`, `PlayerBar` (ocultar vs. implementar mínimo) | TD-10, TD-12 | S–M | Completada |
+| **Fase 4 — Calidad de tipos** | Resolver errores mypy de `tidalapi` (excepciones/opcionales), luego el resto; introducir `mypy` informativo en CI | TD-02 | M | Completada |
+| **Fase 5 — Testing frontend** | Configurar Vitest + RTL, primeros tests de stores y `LoginForm`/`DownloadPanel`; Playwright para E2E OAuth/descarga | TD-05 | L | Vitest configurado (87 tests: stores, hooks, `LoginForm`, `useDownloadSocket`); `DownloadPanel`/`ProgressBar`/mappers y Playwright E2E pendientes |
+| **Fase 6 — Consolidación OAuth** | Unificar lógica de device-auth legacy/v2 | TD-14 | M | Completada |
+| **Fase 7 — Accesibilidad de animaciones** | Implementar `prefers-reduced-motion` global (prerrequisito del rediseño visual, ver `IMPLEMENTATION_PLAN.md` Fase 0) | TD-13 | S | Completada |
+| **Fase 8 — Lint final** | Resolver remanente de `ruff` (TD-01), unificar Redis/Valkey en CI (TD-06), limpiar `SECRET_KEY` (TD-07) | TD-01, TD-06, TD-07 | S | Completada |
 
 ---
 
@@ -318,17 +318,17 @@ Ningún hallazgo de este documento fue **Critical** desde la perspectiva de "el 
 
 | Prioridad | Hallazgos |
 |---|---|
-| **P0** | ~~TD-03~~ ✅ |
-| **P1** | ~~TD-02 (subset tidalapi)~~ ✅, ~~TD-04~~ ✅, TD-05 (parcial), ~~TD-13~~ ✅ |
-| **P2** | ~~TD-01~~ ✅, ~~TD-08~~ ✅, ~~TD-09~~ ✅, ~~TD-10~~ ✅, ~~TD-11~~ ✅, ~~TD-12~~ ✅, ~~TD-14~~ ✅ |
-| **P3** | ~~TD-06~~ ✅, ~~TD-07~~ ✅ |
+| **P0** | ~~TD-03~~ |
+| **P1** | ~~TD-02 (subset tidalapi)~~, ~~TD-04~~, TD-05 (parcial), ~~TD-13~~ |
+| **P2** | ~~TD-01~~, ~~TD-08~~, ~~TD-09~~, ~~TD-10~~, ~~TD-11~~, ~~TD-12~~, ~~TD-14~~ |
+| **P3** | ~~TD-06~~, ~~TD-07~~ |
 
 ---
 
 # Próximos Pasos
 
-1. ~~Validar el estado actual de `ruff check .` en CI (TD-01)~~ — ✅ hecho.
-2. ~~Corregir el fixture de `tests/integration/test_download_flow.py`~~ — ✅ hecho (TD-03).
-3. ~~Confirmar el alcance funcional completo de `/downloads` como página (TD-10)~~ — ✅ hecho: implementada como vista completa de la cola, comparte store/lógica con `DownloadPanel` vía `useDownloadQueue`/`useDownloadActions`.
-4. ~~Ejecutar `grep -r` exhaustivo de validación para TD-09~~ — ✅ hecho (incluyó hallazgo adicional: `scripts/test_download.py` huérfano, eliminado en la misma limpieza).
-5. ~~Ampliar cobertura de Vitest (TD-05) a `LoginForm`~~ — ✅ hecho (11 tests) junto con `useDownloadSocket` (10 tests). Pendiente: `DownloadPanel`, `ProgressBar`, mappers `entities/*`, y evaluar Playwright para E2E del flujo OAuth + descarga.
+1. ~~Validar el estado actual de `ruff check .` en CI (TD-01)~~ — hecho.
+2. ~~Corregir el fixture de `tests/integration/test_download_flow.py`~~ — hecho (TD-03).
+3. ~~Confirmar el alcance funcional completo de `/downloads` como página (TD-10)~~ — hecho: implementada como vista completa de la cola, comparte store/lógica con `DownloadPanel` vía `useDownloadQueue`/`useDownloadActions`.
+4. ~~Ejecutar `grep -r` exhaustivo de validación para TD-09~~ — hecho (incluyó hallazgo adicional: `scripts/test_download.py` huérfano, eliminado en la misma limpieza).
+5. ~~Ampliar cobertura de Vitest (TD-05) a `LoginForm`~~ — hecho (11 tests) junto con `useDownloadSocket` (10 tests). Pendiente: `DownloadPanel`, `ProgressBar`, mappers `entities/*`, y evaluar Playwright para E2E del flujo OAuth + descarga.

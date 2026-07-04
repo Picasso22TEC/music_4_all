@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { Pause, Play, X } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { formatDuration, formatSpeed } from '@/shared/lib/format'
@@ -118,7 +119,7 @@ export function DownloadJobItem({
               onClick={() => onPause(job.backendJobId)}
               aria-label={`Pause download: ${job.albumTitle}`}
             >
-              <span aria-hidden="true">⏸</span>
+              <Pause aria-hidden="true" className="h-4 w-4" />
             </Button>
           )}
           {isPaused && (
@@ -129,7 +130,7 @@ export function DownloadJobItem({
               onClick={() => onResume(job.backendJobId)}
               aria-label={`Resume download: ${job.albumTitle}`}
             >
-              <span aria-hidden="true">▶</span>
+              <Play aria-hidden="true" className="h-4 w-4" />
             </Button>
           )}
           {!isCompleted && (
@@ -140,7 +141,7 @@ export function DownloadJobItem({
               onClick={() => onCancel(job.backendJobId)}
               aria-label={`Cancel download: ${job.albumTitle}`}
             >
-              <span aria-hidden="true">✕</span>
+              <X aria-hidden="true" className="h-4 w-4" />
             </Button>
           )}
         </div>

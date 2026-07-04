@@ -20,21 +20,21 @@ def analyze_flac_detailed(file_path: Path):
         audio = FLAC(str(file_path))
         info = audio.info
         
-        print("📊 INFORMACIÓN BÁSICA:")
+        print("INFORMACIÓN BÁSICA:")
         print(f"  Sample Rate: {info.sample_rate} Hz")
         print(f"  Channels: {info.channels}")
         print(f"  Bit Depth: {info.bits_per_sample} bits")
         print(f"  Duration: {info.length:.2f} segundos ({info.length/60:.2f} min)")
         print(f"  Total Samples: {info.total_samples}")
         
-        print(f"\n🔧 CONFIGURACIÓN FLAC:")
+        print(f"\nCONFIGURACIÓN FLAC:")
         print(f"  Compression Level: {info.compression}")
         print(f"  Blocksize Min: {info.min_blocksize}")
         print(f"  Blocksize Max: {info.max_blocksize}")
         print(f"  Framesize Min: {info.min_framesize}")
         print(f"  Framesize Max: {info.max_framesize}")
         
-        print(f"\n📈 BITRATE CALCULADO:")
+        print(f"\nBITRATE CALCULADO:")
         file_size = file_path.stat().st_size
         duration_seconds = info.length
         if duration_seconds > 0:
@@ -47,13 +47,13 @@ def analyze_flac_detailed(file_path: Path):
             print(f"  Bitrate teórico (sin compresión): {theoretical_bitrate:.2f} Mbps")
             
             if bitrate_mbps > theoretical_bitrate * 0.95:
-                print(f"  ⚠️  ADVERTENCIA: Bitrate muy alto comparado a teórico")
+                print(f"   ADVERTENCIA: Bitrate muy alto comparado a teórico")
                 print(f"      Puede indicar baja compresión o mala calidad de source")
             else:
                 compression_ratio = (1 - bitrate_mbps / theoretical_bitrate) * 100
-                print(f"  ✅ Compresión: {compression_ratio:.1f}%")
+                print(f"  Compresión: {compression_ratio:.1f}%")
         
-        print(f"\n🏷️ METADATOS:")
+        print(f"\nMETADATOS:")
         if audio.get('TITLE'):
             print(f"  Título: {audio.get('TITLE')[0]}")
         if audio.get('ARTIST'):
@@ -64,30 +64,30 @@ def analyze_flac_detailed(file_path: Path):
             print(f"  Comentario: {audio.get('COMMENT')[0]}")
         
         # Análisis de bytes de inicio para detectar compresión
-        print(f"\n🔍 ANÁLISIS DE ESTRUCTURA:")
+        print(f"\nANÁLISIS DE ESTRUCTURA:")
         with open(file_path, 'rb') as f:
             f.seek(4)  # Saltar "fLaC"
             # Leer primer frame header
             frame_header = f.read(2)
             if frame_header[:1] == b'\xff':
-                print(f"  ✅ Primer frame válido (0xFF sync)")
+                print(f"  Primer frame válido (0xFF sync)")
             else:
-                print(f"  ❌ Primer frame inválido")
+                print(f"  Primer frame inválido")
         
         # Verificar si hay multiple streams (indicaría problemas)
         file_size = file_path.stat().st_size
-        print(f"\n💾 ANÁLISIS DE ARCHIVO:")
+        print(f"\nANÁLISIS DE ARCHIVO:")
         print(f"  Tamaño total: {file_size:,} bytes")
         print(f"  Bytes por segundo: {file_size / duration_seconds:,.0f}")
         
         # Si es demasiado pequeño o demasiado grande, hay problema
         if file_size < 100_000:  # Menos de 100KB
-            print(f"  ⚠️  ADVERTENCIA: Archivo muy pequeño (posible descarga incompleta)")
+            print(f"   ADVERTENCIA: Archivo muy pequeño (posible descarga incompleta)")
         
         return True
         
     except Exception as e:
-        print(f"❌ Error analizando archivo: {e}")
+        print(f"Error analizando archivo: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -99,10 +99,10 @@ def main():
     flac_files = list(download_dir.rglob("*.flac"))
     
     if not flac_files:
-        print("❌ No hay archivos FLAC")
+        print("No hay archivos FLAC")
         return
     
-    print(f"\n🔎 Encontrados {len(flac_files)} archivo(s) FLAC\n")
+    print(f"\nEncontrados {len(flac_files)} archivo(s) FLAC\n")
     
     for flac_file in sorted(flac_files):
         analyze_flac_detailed(flac_file)

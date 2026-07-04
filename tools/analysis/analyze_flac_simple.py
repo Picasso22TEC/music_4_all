@@ -90,7 +90,7 @@ def main():
     flac_files = list((base_dir / "downloads").rglob("*.flac"))
     
     if not flac_files:
-        print(f"❌ No hay archivos FLAC en: {base_dir / 'downloads'}")
+        print(f"No hay archivos FLAC en: {base_dir / 'downloads'}")
         return
     
     for file_path in flac_files:
@@ -99,7 +99,7 @@ def main():
         info = read_flac_info(file_path)
         
         if "error" in info:
-            print(f"❌ Error: {info['error']}")
+            print(f"Error: {info['error']}")
             if "exception" in info:
                 print(f"   Exception: {info['exception']}")
             continue
@@ -108,34 +108,34 @@ def main():
         print("ANÁLISIS DE ARCHIVO FLAC")
         print("=" * 70)
         
-        print(f"\n📊 PROPIEDADES DE AUDIO:")
+        print(f"\nPROPIEDADES DE AUDIO:")
         print(f"  Sample Rate: {info['sample_rate']} Hz")
         print(f"  Canales: {info['channels']}")
         print(f"  Bit Depth: {info['bits_per_sample']} bits")
         print(f"  Duración: {info['duration_readable']} ({info['duration_seconds']:.2f}s)")
         
-        print(f"\n💾 TAMAÑO Y COMPRESIÓN:")
+        print(f"\nTAMAÑO Y COMPRESIÓN:")
         print(f"  Tamaño archivo: {info['file_size_mb']:.2f} MB ({info['file_size_bytes']:,} bytes)")
         print(f"  Bitrate actual: {info['bitrate_actual_mbps']:.3f} Mbps ({info['bitrate_actual_kbps']:.1f} kbps)")
         print(f"  Bitrate teórico: {info['bitrate_theoretical_mbps']:.2f} Mbps (sin compresión)")
         print(f"  Compresión: {info['compression_percent']:.1f}%")
         
-        print(f"\n🔍 ANÁLISIS DE CALIDAD:")
+        print(f"\nANÁLISIS DE CALIDAD:")
         if info['compression_percent'] >= 80:
-            print(f"  ⚠️ ⚠️  COMPRESIÓN EXTREMA ({info['compression_percent']:.1f}%)")
+            print(f"   COMPRESIÓN EXTREMA ({info['compression_percent']:.1f}%)")
             print(f"      POSIBLE FUENTE LOSSY (AAC/OGG/MP3) convertida a FLAC")
             print(f"      Revisa el manifiesto del stream para confirmar codec real")
         elif info['compression_percent'] >= 55:
-            print(f"  ✅ Compresión alta pero plausible ({info['compression_percent']:.1f}%)")
+            print(f"  Compresión alta pero plausible ({info['compression_percent']:.1f}%)")
             print(f"     Puede ser audio lossless con contenido sencillo/silencioso")
         elif info['compression_percent'] >= 25:
-            print(f"  ✅ Compresión normal ({info['compression_percent']:.1f}%)")
+            print(f"  Compresión normal ({info['compression_percent']:.1f}%)")
             print(f"     Rango típico de FLAC para la mayoría de música")
         else:
-            print(f"  ℹ️  Compresión baja ({info['compression_percent']:.1f}%)")
+            print(f"  ℹ  Compresión baja ({info['compression_percent']:.1f}%)")
             print(f"     Puede indicar material muy ruidoso o poca compresibilidad")
         
-        print(f"\n⚙️ INFORMACIÓN TÉCNICA:")
+        print(f"\n⚙ INFORMACIÓN TÉCNICA:")
         print(f"  Total Samples: {info['total_samples']:,}")
         print(f"  Min Blocksize: {info['min_block_size']}")
         print(f"  Max Blocksize: {info['max_block_size']}")

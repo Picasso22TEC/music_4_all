@@ -26,13 +26,13 @@ Music 4 All es, según `SECURITY_AUDIT.md`, una **herramienta autohospedada de u
 
 | SLI | Definición | Fuente de datos | Disponible hoy |
 |---|---|---|---|
-| **Disponibilidad API** | % de scrapes de `/health` (o `up{job="music4all-backend"}`) exitosos en una ventana de tiempo | Prometheus `up{job="music4all-backend"}` | ✅ Sí (con el scraping cada 10s ya configurado) |
-| **Latencia API (p50/p95)** | Distribución de `http_request_duration_seconds` | `http_request_duration_seconds_bucket` (instrumentator) | ✅ Sí — ya en el dashboard `music4all.json` (panel 5) |
-| **Latencia WebSocket (conexión)** | Tiempo desde `CONNECT` hasta primer mensaje (`job_started`/`progress`) | `[INEXISTENTE]` — no instrumentado | ❌ No (ver `MONITORING.md` MON-06) |
-| **Tiempo de descarga** | Distribución de `music4all_download_duration_seconds` | `music4all_download_duration_seconds` | ✅ Sí — ya en el dashboard (panel 6), buckets [15,30,60,120,300,600,1800,inf] |
-| **Tasa de éxito de descargas** | `downloads_total{status="completed"} / (completed + failed)` | `music4all_downloads_total{status}` | ✅ Sí |
-| **Tasa de éxito de login OAuth** | `auth_logins_total{status="success"} / (success + failure)` | `music4all_auth_logins_total{status}` | ✅ Sí |
-| **Profundidad de cola** | `music4all_queue_depth` en un momento dado | `music4all_queue_depth` | ✅ Sí |
+| **Disponibilidad API** | % de scrapes de `/health` (o `up{job="music4all-backend"}`) exitosos en una ventana de tiempo | Prometheus `up{job="music4all-backend"}` | Sí (con el scraping cada 10s ya configurado) |
+| **Latencia API (p50/p95)** | Distribución de `http_request_duration_seconds` | `http_request_duration_seconds_bucket` (instrumentator) | Sí — ya en el dashboard `music4all.json` (panel 5) |
+| **Latencia WebSocket (conexión)** | Tiempo desde `CONNECT` hasta primer mensaje (`job_started`/`progress`) | `[INEXISTENTE]` — no instrumentado | No (ver `MONITORING.md` MON-06) |
+| **Tiempo de descarga** | Distribución de `music4all_download_duration_seconds` | `music4all_download_duration_seconds` | Sí — ya en el dashboard (panel 6), buckets [15,30,60,120,300,600,1800,inf] |
+| **Tasa de éxito de descargas** | `downloads_total{status="completed"} / (completed + failed)` | `music4all_downloads_total{status}` | Sí |
+| **Tasa de éxito de login OAuth** | `auth_logins_total{status="success"} / (success + failure)` | `music4all_auth_logins_total{status}` | Sí |
+| **Profundidad de cola** | `music4all_queue_depth` en un momento dado | `music4all_queue_depth` | Sí |
 
 ---
 

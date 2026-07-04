@@ -1,3 +1,5 @@
+import { ListMusic } from 'lucide-react'
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
@@ -10,12 +12,7 @@ export function HistoryEmptyState() {
       aria-live="polite"
       className="flex flex-col items-center justify-center py-16 text-center"
     >
-      <span
-        className="mb-4 select-none font-mono text-5xl text-disabled"
-        aria-hidden="true"
-      >
-        ⊘
-      </span>
+      <ListMusic aria-hidden="true" className="mb-4 h-12 w-12 text-disabled" />
       <h2 className="mb-2 font-mono text-heading font-semibold text-primary">
         No downloads yet
       </h2>

@@ -1,6 +1,6 @@
-# 📋 Sprints - Music 4 All
+# Sprints - Music 4 All
 
-## Sprint 0 – Setup ✅ 
+## Sprint 0 – Setup 
 **Estado**: Completado  
 **Objetivo**: Crear el repo y la estructura de carpetas
 

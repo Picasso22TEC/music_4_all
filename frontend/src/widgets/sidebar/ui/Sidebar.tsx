@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
+  Disc3,
   Download,
   History,
   LayoutDashboard,
@@ -63,7 +64,7 @@ export function Sidebar() {
     >
       {/* ── Brand ─────────────────────────────────────────────────────── */}
       <div className="flex shrink-0 items-center gap-2 border-b border-subtle px-4 h-header">
-        <span className="text-teal-500 text-xs" aria-hidden="true">■</span>
+        <Disc3 aria-hidden="true" className="h-4 w-4 text-teal-500" />
         <span className="select-none font-mono text-sm font-bold tracking-widest text-teal-500">
           MUSIC 4 ALL
         </span>

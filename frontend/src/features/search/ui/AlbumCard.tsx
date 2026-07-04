@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import { Music } from 'lucide-react'
 
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { cn } from '@/shared/lib/cn'
@@ -92,10 +93,10 @@ export function AlbumCard({ album, onOpen, onDownload }: AlbumCardProps) {
               />
             ) : (
               <span
-                className="flex h-full w-full items-center justify-center text-4xl text-disabled"
+                className="flex h-full w-full items-center justify-center text-disabled"
                 aria-hidden="true"
               >
-                ♪
+                <Music className="h-10 w-10" />
               </span>
             )}
           </span>

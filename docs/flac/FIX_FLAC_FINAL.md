@@ -1,6 +1,6 @@
-# ✅ CORRECCIÓN FINAL - Descargas Garantizadas en FLAC
+# CORRECCIÓN FINAL - Descargas Garantizadas en FLAC
 
-## 🎯 Problema Identificado
+## Problema Identificado
 
 **Síntoma**: Archivos descargados como `.flac` pero contenían **MP4/AAC**
 ```
@@ -13,7 +13,7 @@
 
 ---
 
-## 🔧 FIX #1: Comando FFMPEG Incompleto
+## FIX #1: Comando FFMPEG Incompleto
 
 **Archivo**: `backend/app/core/tidal.py` → Línea 563
 
@@ -49,7 +49,7 @@ cmd = [
 
 ---
 
-## 🔧 FIX #2: Lógica de Descarga (DIRECT sin procesar)
+## FIX #2: Lógica de Descarga (DIRECT sin procesar)
 
 **Archivo**: `backend/app/core/tidal.py` → Línea 780-794
 
@@ -78,7 +78,7 @@ if not ok:
 
 ---
 
-## 📋 Archivos Modificados
+## Archivos Modificados
 
 | Archivo | Línea | Fix |
 |---------|------|-----|
@@ -87,7 +87,7 @@ if not ok:
 
 ---
 
-## 🧹 Limpieza Realizada
+## Limpieza Realizada
 
 ```
 ✓ downloads/tidal_dl_0pskwwbt/  → Borrado (contenía MP4 incorrecto)
@@ -95,7 +95,7 @@ if not ok:
 
 ---
 
-## ✨ Validación de Cambios
+## Validación de Cambios
 
 ### Bytes Mágicos Correctos
 ```
@@ -116,7 +116,7 @@ python test_flac_conversion.py
 
 ---
 
-## 📊 Flujo de Descarga Corregido
+## Flujo de Descarga Corregido
 
 ```
 ┌─ Obtener Stream ──┐
@@ -147,9 +147,9 @@ python test_flac_conversion.py
 
 ---
 
-## 🚀 Próximos Pasos
+## Próximos Pasos
 
-### 1️⃣ Restart Backend
+### 1⃣ Restart Backend
 ```bash
 docker-compose down
 docker-compose up -d
@@ -157,17 +157,17 @@ docker-compose up -d
 python run_backend.ps1
 ```
 
-### 2️⃣ Descargar de Prueba
+### 2⃣ Descargar de Prueba
 - Ir a interfaz
 - Descargar un track
 - Esperar a completar
 
-### 3️⃣ Validar
+### 3⃣ Validar
 ```bash
 python test_flac_conversion.py
 ```
 
-### 4️⃣ Verificación Manual (Opcional)
+### 4⃣ Verificación Manual (Opcional)
 ```powershell
 $file = "downloads/..../track.flac"
 [byte[]]$b = [System.IO.File]::ReadAllBytes($file)[0..3]
@@ -177,18 +177,18 @@ $file = "downloads/..../track.flac"
 
 ---
 
-## ✅ Checklist de Confirmación
+## Checklist de Confirmación
 
 - [ ] Backend restarted
 - [ ] Descarga de prueba completada
-- [ ] `test_flac_conversion.py` retorna "✅ FLAC válido"
+- [ ] `test_flac_conversion.py` retorna "FLAC válido"
 - [ ] Archivo reproducible en VLC/Foobar
 - [ ] Metadatos correctos (Title, Artist, Sample Rate)
 - [ ] Bytes mágicos son `664c6143`
 
 ---
 
-## 📞 Si persisten problemas
+## Si persisten problemas
 
 1. **Verificar FFMPEG**:
    ```bash
@@ -203,10 +203,10 @@ $file = "downloads/..../track.flac"
 
 3. **Logs de descarga**:
    - Backend mostrará `[DEBUG]` con cada paso
-   - Buscar líneas con `❌ [ERROR]` si hay fallos
+   - Buscar líneas con `[ERROR]` si hay fallos
 
 4. **Contactar** con error específico de FFMPEG
 
 ---
 
-**Status**: ✅ **CORREGIDO** | Listo para nuevas descargas
+**Status**: **CORREGIDO** | Listo para nuevas descargas

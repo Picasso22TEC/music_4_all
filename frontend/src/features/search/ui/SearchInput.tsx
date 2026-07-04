@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
-import { Search } from 'lucide-react'
+import { CornerDownLeft, Search } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { Input } from '@/shared/ui/Input'
@@ -73,10 +73,10 @@ export function SearchInput({
       </span>
     ) : mode === 'text-search' ? (
       <kbd
-        className="rounded bg-surface-rack px-1 font-mono text-2xs text-secondary"
+        className="inline-flex items-center rounded bg-surface-rack px-1 py-0.5 text-secondary"
         aria-label="Press Enter to search"
       >
-        ↵
+        <CornerDownLeft aria-hidden="true" className="h-3 w-3" />
       </kbd>
     ) : null
 

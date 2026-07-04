@@ -14,7 +14,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Ninguno todavía (no hay cambios visibles).
 - **Impacto técnico**: Medio — toca `globals.css`, `tailwind.config.ts`, `app/layout.tsx` (raíz).
 - **Impacto en rendimiento**: Ninguno.
-- **Riesgo de regresión**: 🟢 Bajo — adiciones puramente declarativas, sin uso activo.
+- **Riesgo de regresión**: Bajo — adiciones puramente declarativas, sin uso activo.
 - **Pruebas manuales requeridas**: `pnpm build` sin errores; verificar que `prefers-reduced-motion: reduce` en DevTools no cambia nada visible aún (no hay animaciones que desactivar todavía).
 - **Pruebas automatizadas requeridas**: ninguna nueva — `pnpm lint` + `pnpm build` deben seguir pasando.
 - **Dependencias previas**: ninguna.
@@ -30,7 +30,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Bajo-medio — solo donde se aplique `variant="neon"` explícitamente (ningún botón existente cambia por defecto).
 - **Impacto técnico**: Bajo — un nuevo valor en un `Record`, aditivo.
 - **Impacto en rendimiento**: Ninguno.
-- **Riesgo de regresión**: 🟢 Bajo — `ButtonVariant` es un union type; TypeScript no rompe consumidores existentes al añadir un miembro.
+- **Riesgo de regresión**: Bajo — `ButtonVariant` es un union type; TypeScript no rompe consumidores existentes al añadir un miembro.
 - **Pruebas manuales requeridas**: render visual de un botón con `variant="neon"` en estado normal/hover/focus/disabled.
 - **Pruebas automatizadas requeridas**: ninguna nueva (no hay test runner de frontend, ver `docs/roadmap.md` §2.5); `pnpm build` debe compilar.
 - **Dependencias previas**: Fase 0 (tokens de glow ya definidos — reutiliza `shadow-glow-active` existente, sin tokens nuevos).
@@ -46,7 +46,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Medio — primer elemento "temático" visible del rediseño.
 - **Impacto técnico**: Bajo — un elemento decorativo adicional condicionado por estado ya leído.
 - **Impacto en rendimiento**: Ninguno — una sola instancia, animación CSS/Framer declarativa.
-- **Riesgo de regresión**: 🟢 Ninguno.
+- **Riesgo de regresión**: Ninguno.
 - **Pruebas manuales requeridas**: iniciar Device Auth, verificar que el vinilo gira solo durante `isFetching`; verificar `prefers-reduced-motion: reduce` deja el vinilo estático.
 - **Pruebas automatizadas requeridas**: ninguna.
 - **Dependencias previas**: Fase 0 (`animate-vinyl-spin` + guard de reduced-motion).
@@ -62,7 +62,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Alto — cambia el contenedor principal de toda la página de login.
 - **Impacto técnico**: Bajo — wrapper visual sobre `Card`, sin cambios de props.
 - **Impacto en rendimiento**: Ninguno (`backdrop-blur` es GPU-accelerated, una sola instancia).
-- **Riesgo de regresión**: 🟢 Bajo — `aria-labelledby="login-heading"` y la estructura interna del formulario no cambian.
+- **Riesgo de regresión**: Bajo — `aria-labelledby="login-heading"` y la estructura interna del formulario no cambian.
 - **Pruebas manuales requeridas**: verificar contraste de texto sobre el fondo con blur (WCAG AA); verificar foco visible (`focus-visible:shadow-glow-focus`) sigue funcionando sobre el nuevo fondo.
 - **Pruebas automatizadas requeridas**: ninguna.
 - **Dependencias previas**: Fase 0.
@@ -78,7 +78,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Bajo-medio — solo visible en el estado de error (código expirado/denegado).
 - **Impacto técnico**: Ninguno.
 - **Impacto en rendimiento**: Ninguno — animación finita, una sola ejecución.
-- **Riesgo de regresión**: 🟢 Ninguno — `role="alert"` y el texto del mensaje no cambian.
+- **Riesgo de regresión**: Ninguno — `role="alert"` y el texto del mensaje no cambian.
 - **Pruebas manuales requeridas**: forzar el estado de error (dejar expirar un Device Auth o denegarlo) y verificar que el mensaje sigue siendo anunciado por lectores de pantalla y el "Cancel and try again" sigue funcional.
 - **Pruebas automatizadas requeridas**: ninguna.
 - **Dependencias previas**: Fase 0.
@@ -94,7 +94,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Alto — primer elemento ambiental visible en ambas páginas.
 - **Impacto técnico**: Bajo — componente nuevo, sin dependencias de stores.
 - **Impacto en rendimiento**: Medio — debe verificarse aislamiento (no se suscribe a `downloads.store`/WS); cantidad de partículas con presupuesto definido (ej. ≤30 elementos animados simultáneos).
-- **Riesgo de regresión**: 🟡 Bajo — si se monta dentro de `(app)/layout.tsx`, debe ir en una capa que no se re-renderice con cambios de `downloads.store`/`queue`.
+- **Riesgo de regresión**: Bajo — si se monta dentro de `(app)/layout.tsx`, debe ir en una capa que no se re-renderice con cambios de `downloads.store`/`queue`.
 - **Pruebas manuales requeridas**: con una descarga activa (mensajes WS `progress` frecuentes), confirmar en React DevTools Profiler que `NeonParticles` no se re-renderiza; verificar `prefers-reduced-motion: reduce` detiene/oculta las partículas.
 - **Pruebas automatizadas requeridas**: ninguna.
 - **Dependencias previas**: Fase 0 (`animate-particle-drift` + guard reduced-motion); paleta de §2.2 de `DESIGN_SYSTEM_VISION.md`.
@@ -110,7 +110,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Medio-alto — refuerza la atmósfera "tienda" solo en la vista principal.
 - **Impacto técnico**: Bajo — componente nuevo, montado condicionalmente en `DashboardClient`.
 - **Impacto en rendimiento**: Medio — riesgo principal del plan si se implementa con `useState`+`setInterval` (re-render constante); mitigado por la implementación obligatoria CSS/`useAnimationFrame` (`DESIGN_SYSTEM_VISION.md` §11).
-- **Riesgo de regresión**: 🟡 Bajo-medio (performance).
+- **Riesgo de regresión**: Bajo-medio (performance).
 - **Pruebas manuales requeridas**: Profiler de React durante navegación y durante descarga activa — `AudioWaves` no debe aparecer como re-renderizado; verificar que solo aparece en `/dashboard`.
 - **Pruebas automatizadas requeridas**: ninguna.
 - **Dependencias previas**: Fase 0; Fase 5 (comparten convención de aislamiento/perf).
@@ -126,7 +126,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Alto — componente visible en `DownloadPanel`, `/downloads` y `PlayerBar` (3 consumidores).
 - **Impacto técnico**: Bajo — extensión de `ANIMATED_GLOWS`/`FILL_COLORS` internos, sin tocar `ProgressBarProps`.
 - **Impacto en rendimiento**: Bajo — `animate-progress-breathe` es CSS puro (`box-shadow`), no debe re-disparar renders ligados a actualizaciones de progreso por WS (varias/segundo).
-- **Riesgo de regresión**: 🟠 Medio — componente crítico con 3 consumidores en producción; cualquier cambio de contrato de props rompe `DownloadJobItem` y `PlayerBar`.
+- **Riesgo de regresión**: Medio — componente crítico con 3 consumidores en producción; cualquier cambio de contrato de props rompe `DownloadJobItem` y `PlayerBar`.
 - **Pruebas manuales requeridas**: iniciar una descarga real, verificar el "latido" del glow durante `variant="download"` con `animated=true` en `DownloadPanel` y `/downloads`; verificar `PlayerBar` (`variant={isPlaying ? 'download' : 'default'}`) sin regresión; verificar `prefers-reduced-motion: reduce` deja el glow estático (sin pulso).
 - **Pruebas automatizadas requeridas**: si existen tests de snapshot/props para `ProgressBar`, deben seguir pasando (verificar `frontend` — hoy no hay test runner unitario, ver `docs/roadmap.md` §2.5; al menos `pnpm build` con los 3 usos tipados debe pasar).
 - **Dependencias previas**: Fase 0 (`animate-progress-breathe`, `shadow-glow-queue`).
@@ -142,7 +142,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Alto — es el elemento central del flujo de autenticación.
 - **Impacto técnico**: Bajo-medio — wrapper visual sobre nodos existentes; verificar legibilidad de `font-retro` en `text-2xs`/`text-xs` (puede requerir +1 escala, `DESIGN_SYSTEM_VISION.md` §4).
 - **Impacto en rendimiento**: Ninguno — animación de entrada finita, una sola instancia.
-- **Riesgo de regresión**: 🟡 Medio si se reemplaza el `<a>` por un `<div>` decorativo (prohibido); 🟢 Bajo si se envuelve sin sustituir.
+- **Riesgo de regresión**: Medio si se reemplaza el `<a>` por un `<div>` decorativo (prohibido); Bajo si se envuelve sin sustituir.
 - **Pruebas manuales requeridas**: abrir el enlace de verificación desde el display retro (debe llevar a la página real de activación de Tidal, no a 404 — ver `docs/troubleshooting.md` #3); verificar lector de pantalla anuncia `aria-label="Open Tidal authorization page in a new tab"` y `title="Authorization code: ..."` sin cambios.
 - **Pruebas automatizadas requeridas**: si existen, los 14 tests de `_ensure_https`/`start_device_auth` (`backend/tests/test_session_service.py`) no se ven afectados (son backend, fuera del alcance de esta fase, pero confirman que el dato que llega al display sigue siendo una URL absoluta válida).
 - **Dependencias previas**: Fase 0 (`font-retro`); Fase 3 (puerta de vidrio, contexto visual).
@@ -158,7 +158,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Alto — componente repetido en grid, el cambio más visible del Dashboard.
 - **Impacto técnico**: Bajo-medio — skin interno de `AlbumCard`, sin nuevos props ni nuevo componente exportado.
 - **Impacto en rendimiento**: Bajo — animaciones por instancia activadas solo en hover/tap (no continuas), `transform`-only.
-- **Riesgo de regresión**: 🟡 Medio — riesgo principal es la **duplicación** (crear un `VinylCard` nuevo con props distintas y tener que tocar `SearchResults`); mitigado por la decisión de skin in-place.
+- **Riesgo de regresión**: Medio — riesgo principal es la **duplicación** (crear un `VinylCard` nuevo con props distintas y tener que tocar `SearchResults`); mitigado por la decisión de skin in-place.
 - **Pruebas manuales requeridas**: grid de resultados de búsqueda con múltiples álbumes — verificar hover/tap en varias cards simultáneas sin jank; verificar que el click en la carátula sigue invocando `onOpen` (→ `handleOpenAlbum`, hoy `console.info`, ver `docs/roadmap.md`) y el botón "↓ Download" sigue invocando `onDownload`; verificar `next/image` (`images.unoptimized: true`) sigue cargando carátulas de `resources.tidal.com`.
 - **Pruebas automatizadas requeridas**: ninguna nueva.
 - **Dependencias previas**: Fase 0; Fase 7 (`Badge`/glow tokens compartidos).
@@ -174,7 +174,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Medio — solo visible cuando no hay reproducción activa.
 - **Impacto técnico**: Bajo — capa decorativa adicional dentro de `PlayerBar`, lectura de store ya existente.
 - **Impacto en rendimiento**: Bajo — animación CSS, baja frecuencia (no infinita sin pausa, según `DESIGN_SYSTEM_VISION.md` §9.2).
-- **Riesgo de regresión**: 🟢 Bajo — no escribe estado, no cambia el layout flex de `PlayerBar`.
+- **Riesgo de regresión**: Bajo — no escribe estado, no cambia el layout flex de `PlayerBar`.
 - **Pruebas manuales requeridas**: verificar que las líneas láser desaparecen al iniciar reproducción (`currentTrack` no nulo) y no se superponen visualmente con `ProgressBar`/controles; `prefers-reduced-motion: reduce` las oculta.
 - **Pruebas automatizadas requeridas**: ninguna.
 - **Dependencias previas**: Fase 0.
@@ -190,7 +190,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Alto — elemento de marca más visible del login.
 - **Impacto técnico**: Bajo — el bloque ya es decorativo (`aria-hidden`), solo se reestructura en spans por letra.
 - **Impacto en rendimiento**: Bajo — animación CSS por elemento, cantidad fija (longitud del texto "MUSIC 4 ALL").
-- **Riesgo de regresión**: 🟡 Medio — **accesibilidad (WCAG 2.3.1)**: frecuencia de parpadeo debe ser ≤3 destellos/seg y de área/contraste limitados; requiere el guard `prefers-reduced-motion` de Fase 0 ya activo.
+- **Riesgo de regresión**: Medio — **accesibilidad (WCAG 2.3.1)**: frecuencia de parpadeo debe ser ≤3 destellos/seg y de área/contraste limitados; requiere el guard `prefers-reduced-motion` de Fase 0 ya activo.
 - **Pruebas manuales requeridas**: medir/observar frecuencia de parpadeo (no debe percibirse como estroboscópico); verificar `prefers-reduced-motion: reduce` deja el letrero en estado "encendido" fijo; verificar que sigue `aria-hidden="true"` (no afecta lectores de pantalla).
 - **Pruebas automatizadas requeridas**: ninguna.
 - **Dependencias previas**: Fase 0 (`font-pixel`, `animate-neon-flicker`, guard reduced-motion — **no mergeable sin esto**).
@@ -206,7 +206,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Medio (MVP) — elemento informativo nuevo.
 - **Impacto técnico**: Medio — única pieza con estado/lógica nueva; decidir si vive como estado local de `LoginForm` o como campo derivado adicional en `auth.store` (evaluar necesidad de persistencia entre remounts).
 - **Impacto en rendimiento**: Bajo-medio — si se usa `setInterval`, debe limitarse a 1Hz y no disparar re-render de componentes hermanos (aislar en su propio componente).
-- **Riesgo de regresión**: 🟡 Bajo-medio — casos borde: `expiresIn` ya vencido al montar (mostrar `00:00` inmediatamente, no negativo); usuario cambia de pestaña y vuelve (recalcular desde `issuedAt` absoluto, no decrementar un contador pausado).
+- **Riesgo de regresión**: Bajo-medio — casos borde: `expiresIn` ya vencido al montar (mostrar `00:00` inmediatamente, no negativo); usuario cambia de pestaña y vuelve (recalcular desde `issuedAt` absoluto, no decrementar un contador pausado).
 - **Pruebas manuales requeridas**: iniciar Device Auth y verificar countdown decrece correctamente; cambiar de pestaña y volver, verificar que el valor mostrado es coherente con el tiempo real transcurrido; dejar expirar el código y verificar que el countdown llega a `00:00` **antes o al mismo tiempo** que `pollingQuery.error` muestra el mensaje de expiración (no debe quedar "00:00" mostrando el botón de conexión activo).
 - **Pruebas automatizadas requeridas**: si se añade lógica extraíble (función pura `computeRemaining(issuedAt, expiresIn)`), es candidata a un test unitario — primera pieza de frontend que podría justificar introducir Vitest (ver `docs/roadmap.md` §2.5), pero no es bloqueante para esta fase.
 - **Dependencias previas**: Fase 0; Fase 8 (display retro, contexto visual del countdown).
@@ -222,7 +222,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Alto — transición central de la experiencia de login.
 - **Impacto técnico**: Medio — `LoginForm` pasa de renderizado condicional simple a `AnimatePresence`; debe preservarse que los bloques `role="status"`/`role="alert"`/`aria-live` permanezcan **fuera** del árbol que se anima o se re-anuncien correctamente tras la transición.
 - **Impacto en rendimiento**: Bajo — transición local, una sola página, sin WS de por medio.
-- **Riesgo de regresión**: 🟢 Bajo — contenido de la página, no del shell; pero requiere QA de accesibilidad (live regions) tras la animación.
+- **Riesgo de regresión**: Bajo — contenido de la página, no del shell; pero requiere QA de accesibilidad (live regions) tras la animación.
 - **Pruebas manuales requeridas**: con lector de pantalla activo, verificar que el cambio de estado (inicial → pendiente → autorizado/error) sigue siendo anunciado; verificar que `handleCancel`/`handleConnect` siguen disparando las mutations correctas durante/después de la animación.
 - **Pruebas automatizadas requeridas**: ninguna.
 - **Dependencias previas**: Fase 3 (puerta de vidrio), Fase 0.
@@ -241,7 +241,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Muy alto — afecta toda la navegación interna y la transición de entrada principal.
 - **Impacto técnico**: Alto — `(app)/layout.tsx` pasa de Server Component puro a tener un wrapper cliente; `app/layout.tsx` raíz gana un overlay condicional.
 - **Impacto en rendimiento**: Medio — `AnimatePresence` con `key={pathname}` re-monta `<main>{children}</main>` en cada navegación (esperado), pero **no** debe re-montar nada fuera de `<main>`.
-- **Riesgo de regresión**: 🔴 Alto — si `DownloadPanel`/`useDownloadSocket()` quedan dentro del árbol animado por error, la conexión WS se cierra/reabre en cada navegación (mismo tipo de bug ya corregido con `isPanelVisible`, ver `docs/troubleshooting.md` #4).
+- **Riesgo de regresión**: Alto — si `DownloadPanel`/`useDownloadSocket()` quedan dentro del árbol animado por error, la conexión WS se cierra/reabre en cada navegación (mismo tipo de bug ya corregido con `isPanelVisible`, ver `docs/troubleshooting.md` #4).
 - **Pruebas manuales requeridas** (exhaustivas):
   - Navegar `/dashboard` → `/downloads` → `/history` → `/dashboard` con una descarga activa en curso: el progreso en `DownloadPanel` no debe interrumpirse ni reiniciarse (verificar en Network/WS que la conexión `/ws/downloads` no se cierra).
   - Verificar `Sidebar`/`AppHeader`/`PlayerBar` no parpadean/remontan visualmente durante la navegación.
@@ -261,7 +261,7 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 - **Impacto visual**: Muy alto (acumulativo).
 - **Impacto técnico**: Bajo — 100% decorativo, `aria-hidden="true"`.
 - **Impacto en rendimiento**: Bajo si cada incremento respeta `DESIGN_SYSTEM_VISION.md` §11 (capas aisladas, `transform`/`opacity`).
-- **Riesgo de regresión**: 🟢 Bajo.
+- **Riesgo de regresión**: Bajo.
 - **Pruebas manuales requeridas**: por incremento — verificar que no se introduce contenido focuseable/interactivo accidental en elementos decorativos.
 - **Pruebas automatizadas requeridas**: ninguna.
 - **Dependencias previas**: Fase 14 completada (no bloquea, pero se recomienda estabilizar transiciones antes de añadir más capas visuales).
@@ -273,22 +273,22 @@ Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DE
 
 | Fase | Elemento | Esfuerzo | Riesgo regresión | Depende de |
 |---|---|---|---|---|
-| 0 | Fundaciones (tokens, a11y guard, fuentes, overlay skeleton) | M | 🟢 | — |
-| 1 | Button variant `neon` | S | 🟢 | 0 |
-| 2 | Login — vinilo girando (polling) | S | 🟢 | 0 |
-| 3 | Login — puerta de vidrio | S-M | 🟢 | 0 |
-| 4 | Login — glitch de error | S | 🟢 | 0 |
-| 5 | `NeonParticles` compartido | M | 🟡 | 0 |
-| 6 | `AudioWaves` (Dashboard) | M | 🟡 | 0, 5 |
-| 7 | `ProgressBar` neón | M | 🟠 | 0 |
-| 8 | Login — display retro + ticket | M | 🟡 | 0, 3 |
-| 9 | Vinyl Card (skin `AlbumCard`) | M | 🟡 | 0, 7 |
-| 10 | `PlayerBar` líneas láser | S-M | 🟢 | 0 |
-| 11 | Login — letrero neón parpadeante | M | 🟡 | 0 |
-| 12 | Login — contador de expiración | M | 🟡 | 0, 8 |
-| 13 | Login — puerta abre/cierra | M | 🟢 | 0, 3 |
-| 14 | Transiciones de página + cross-layout | L | 🔴 | 0, 5+ |
-| 15 | Escena decorativa completa | XL (iterativo) | 🟢 | 14 |
+| 0 | Fundaciones (tokens, a11y guard, fuentes, overlay skeleton) | M | Bajo | — |
+| 1 | Button variant `neon` | S | Bajo | 0 |
+| 2 | Login — vinilo girando (polling) | S | Bajo | 0 |
+| 3 | Login — puerta de vidrio | S-M | Bajo | 0 |
+| 4 | Login — glitch de error | S | Bajo | 0 |
+| 5 | `NeonParticles` compartido | M | Medio | 0 |
+| 6 | `AudioWaves` (Dashboard) | M | Medio | 0, 5 |
+| 7 | `ProgressBar` neón | M | | 0 |
+| 8 | Login — display retro + ticket | M | Medio | 0, 3 |
+| 9 | Vinyl Card (skin `AlbumCard`) | M | Medio | 0, 7 |
+| 10 | `PlayerBar` líneas láser | S-M | Bajo | 0 |
+| 11 | Login — letrero neón parpadeante | M | Medio | 0 |
+| 12 | Login — contador de expiración | M | Medio | 0, 8 |
+| 13 | Login — puerta abre/cierra | M | Bajo | 0, 3 |
+| 14 | Transiciones de página + cross-layout | L | Alto | 0, 5+ |
+| 15 | Escena decorativa completa | XL (iterativo) | Bajo | 14 |
 
 ---
 
@@ -298,15 +298,15 @@ Riesgos técnicos transversales que **cualquier** fase debe respetar, clasificad
 
 | Riesgo | Severidad | Descripción | Fases más expuestas |
 |---|---|---|---|
-| **WebSocket singleton (`useDownloadSocket`)** | 🔴 **High** | `DownloadPanel` (`frontend/src/widgets/download-panel/ui/DownloadPanel.tsx:28`) monta `useDownloadSocket()` como singleton de sesión, fuera de `{children}` en `(app)/layout.tsx`. Cualquier `AnimatePresence`/`key` dinámica que envuelva (directa o indirectamente) este componente lo desmonta/remonta, cerrando la conexión `/ws/downloads` (mismo patrón que el bug ya corregido con `isPanelVisible`, ver `docs/troubleshooting.md` #4). | Fase 14 (directo); Fase 5/6 si `NeonParticles`/`AudioWaves` se montan dentro del árbol incorrecto. |
-| **Zustand persistence (`auth.store`, `downloads.store`, `player.store`)** | 🟢 **Low** | Los stores persistidos (`partialize`: solo `status`/`user`/`expiresAt` en `auth.store`) no requieren cambios para ninguna fase visual. El único riesgo sería llamar a `persist`/reset accidentalmente desde un componente decorativo — ninguna fase lo requiere. | Ninguna directamente; Fase 12 solo si se decide persistir el timestamp del countdown en `auth.store` (evaluar necesidad real primero). |
-| **TanStack Query cache** | 🟢 **Low** | Ninguna fase modifica `useSearchQuery`, `useResolveUrlQuery`, mutations de descarga, ni `useDeviceAuthPollingQuery`. Las fases de Login (2, 8, 12) **leen** `pollingQuery.isFetching`/`pollingQuery.data`/`pollingQuery.error`, ya expuestos hoy. | Ninguna. |
-| **OAuth Device Flow** | 🟡 **Medium** | Fases 2, 3, 4, 8, 11, 12, 13 modifican `LoginForm.tsx`. El riesgo no es la lógica (`_ensure_https`, polling, fallback) sino **preservar los nodos funcionales** (`<a href={verificationUriComplete}>`, `userCode`, `aria-live`, `role="alert"`) dentro de los nuevos skins — ver `DESIGN_SYSTEM_VISION.md` §10.3. | Fase 8 (display retro) es la más sensible — riesgo de reemplazar el `<a>` por un elemento no semántico. |
-| **Download queue** | 🟡 **Medium** | Fases 7 y 9 tocan componentes que muestran estado de cola/descarga (`ProgressBar`, `AlbumCard`). El riesgo es de **contrato de props** (`ProgressBarProps`, `AlbumCardProps`), no de lógica de cola — `DownloadPanel`, `useDownloadsStore`, mutations no se tocan. | Fase 7 (3 consumidores en producción) es la más sensible. |
-| **Page transitions** | 🔴 **High** | Fase 14 es la única que altera la estructura de `(app)/layout.tsx` (Server Component → wrapper cliente) y `app/layout.tsx` raíz. Es el cambio estructural de mayor alcance de todo el plan. | Fase 14 exclusivamente; Fase 13 es de menor riesgo porque es local a `LoginForm`. |
-| **Framer Motion re-mount risks** | 🔴 **High** | Directamente ligado a los dos riesgos anteriores: cualquier `AnimatePresence` con `key` dinámica que incluya (aunque sea indirectamente, por jerarquía de componentes) a `DownloadPanel`, `PlayerBar`, `Sidebar` o `AppHeader` provoca remounts no deseados. Regla de diseño: `key={pathname}` solo en el wrapper de `<main>{children}</main>`, nunca más arriba en el árbol. | Fase 14. |
-| **Performance risks** | 🟡 **Medium** | Animaciones continuas (Fases 5, 6, 10, 11) deben estar aisladas de `downloads.store`/`player.store`/WS para no re-renderizar durante descargas activas (mensajes `progress` varias veces por segundo). Mitigado por `DESIGN_SYSTEM_VISION.md` §11 (transform/opacity, sin `setInterval`+`setState`, componentes memoizados/aislados). | Fase 5, 6, 11; Fase 12 si el countdown usa `setInterval` mal aislado. |
-| **Accessibility risks** | 🟠 **Medium-High** | `prefers-reduced-motion` no existe hoy en el código (gap confirmado, `docs/roadmap.md` §4) — es **bloqueante** (Fase 0) para toda animación continua. WCAG 2.3.1 (destellos) aplica directamente a Fases 11 (letrero), Login §1.2-F (láser, fase futura) y Fase 4 (glitch). Elementos accesibles existentes (skip-link, `aria-live`, `focus-visible`, roles ARIA) deben preservarse en todas las fases que tocan `LoginForm`/`AlbumCard`/`ProgressBar`. | Fase 0 (si se omite, todo lo posterior queda no conforme); Fase 11 (máxima exposición a WCAG 2.3.1). |
+| **WebSocket singleton (`useDownloadSocket`)** | **High** | `DownloadPanel` (`frontend/src/widgets/download-panel/ui/DownloadPanel.tsx:28`) monta `useDownloadSocket()` como singleton de sesión, fuera de `{children}` en `(app)/layout.tsx`. Cualquier `AnimatePresence`/`key` dinámica que envuelva (directa o indirectamente) este componente lo desmonta/remonta, cerrando la conexión `/ws/downloads` (mismo patrón que el bug ya corregido con `isPanelVisible`, ver `docs/troubleshooting.md` #4). | Fase 14 (directo); Fase 5/6 si `NeonParticles`/`AudioWaves` se montan dentro del árbol incorrecto. |
+| **Zustand persistence (`auth.store`, `downloads.store`, `player.store`)** | **Low** | Los stores persistidos (`partialize`: solo `status`/`user`/`expiresAt` en `auth.store`) no requieren cambios para ninguna fase visual. El único riesgo sería llamar a `persist`/reset accidentalmente desde un componente decorativo — ninguna fase lo requiere. | Ninguna directamente; Fase 12 solo si se decide persistir el timestamp del countdown en `auth.store` (evaluar necesidad real primero). |
+| **TanStack Query cache** | **Low** | Ninguna fase modifica `useSearchQuery`, `useResolveUrlQuery`, mutations de descarga, ni `useDeviceAuthPollingQuery`. Las fases de Login (2, 8, 12) **leen** `pollingQuery.isFetching`/`pollingQuery.data`/`pollingQuery.error`, ya expuestos hoy. | Ninguna. |
+| **OAuth Device Flow** | **Medium** | Fases 2, 3, 4, 8, 11, 12, 13 modifican `LoginForm.tsx`. El riesgo no es la lógica (`_ensure_https`, polling, fallback) sino **preservar los nodos funcionales** (`<a href={verificationUriComplete}>`, `userCode`, `aria-live`, `role="alert"`) dentro de los nuevos skins — ver `DESIGN_SYSTEM_VISION.md` §10.3. | Fase 8 (display retro) es la más sensible — riesgo de reemplazar el `<a>` por un elemento no semántico. |
+| **Download queue** | **Medium** | Fases 7 y 9 tocan componentes que muestran estado de cola/descarga (`ProgressBar`, `AlbumCard`). El riesgo es de **contrato de props** (`ProgressBarProps`, `AlbumCardProps`), no de lógica de cola — `DownloadPanel`, `useDownloadsStore`, mutations no se tocan. | Fase 7 (3 consumidores en producción) es la más sensible. |
+| **Page transitions** | **High** | Fase 14 es la única que altera la estructura de `(app)/layout.tsx` (Server Component → wrapper cliente) y `app/layout.tsx` raíz. Es el cambio estructural de mayor alcance de todo el plan. | Fase 14 exclusivamente; Fase 13 es de menor riesgo porque es local a `LoginForm`. |
+| **Framer Motion re-mount risks** | **High** | Directamente ligado a los dos riesgos anteriores: cualquier `AnimatePresence` con `key` dinámica que incluya (aunque sea indirectamente, por jerarquía de componentes) a `DownloadPanel`, `PlayerBar`, `Sidebar` o `AppHeader` provoca remounts no deseados. Regla de diseño: `key={pathname}` solo en el wrapper de `<main>{children}</main>`, nunca más arriba en el árbol. | Fase 14. |
+| **Performance risks** | **Medium** | Animaciones continuas (Fases 5, 6, 10, 11) deben estar aisladas de `downloads.store`/`player.store`/WS para no re-renderizar durante descargas activas (mensajes `progress` varias veces por segundo). Mitigado por `DESIGN_SYSTEM_VISION.md` §11 (transform/opacity, sin `setInterval`+`setState`, componentes memoizados/aislados). | Fase 5, 6, 11; Fase 12 si el countdown usa `setInterval` mal aislado. |
+| **Accessibility risks** | **Medium-High** | `prefers-reduced-motion` no existe hoy en el código (gap confirmado, `docs/roadmap.md` §4) — es **bloqueante** (Fase 0) para toda animación continua. WCAG 2.3.1 (destellos) aplica directamente a Fases 11 (letrero), Login §1.2-F (láser, fase futura) y Fase 4 (glitch). Elementos accesibles existentes (skip-link, `aria-live`, `focus-visible`, roles ARIA) deben preservarse en todas las fases que tocan `LoginForm`/`AlbumCard`/`ProgressBar`. | Fase 0 (si se omite, todo lo posterior queda no conforme); Fase 11 (máxima exposición a WCAG 2.3.1). |
 
 ---
 

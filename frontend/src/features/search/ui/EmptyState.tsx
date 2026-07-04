@@ -1,3 +1,5 @@
+import { CircleAlert, Search, SearchX, type LucideIcon } from 'lucide-react'
+
 import { Button } from '@/shared/ui/Button'
 import { cn } from '@/shared/lib/cn'
 
@@ -16,20 +18,20 @@ export interface EmptyStateProps {
 // ─── Variant configuration ────────────────────────────────────────────────────
 
 type VariantConfig = {
-  icon: string
+  Icon: LucideIcon
   title: string
   description: (query?: string) => string
 }
 
 const VARIANTS: Record<EmptyStateVariant, VariantConfig> = {
   initial: {
-    icon: '⊘',
+    Icon: Search,
     title: 'Start your search',
     description: () =>
       'Paste a Tidal URL or type an album/track name to begin.',
   },
   'no-results': {
-    icon: '≈',
+    Icon: SearchX,
     title: 'No results found',
     description: (query) =>
       query
@@ -37,7 +39,7 @@ const VARIANTS: Record<EmptyStateVariant, VariantConfig> = {
         : 'No results found. Try a different search.',
   },
   error: {
-    icon: '✕',
+    Icon: CircleAlert,
     title: 'Search error',
     description: () =>
       'Something went wrong while searching. Please try again.',
@@ -55,6 +57,7 @@ const VARIANTS: Record<EmptyStateVariant, VariantConfig> = {
  */
 export function EmptyState({ variant, query, onRetry }: EmptyStateProps) {
   const config = VARIANTS[variant]
+  const Icon = config.Icon
   const description = config.description(query)
 
   return (
@@ -64,17 +67,15 @@ export function EmptyState({ variant, query, onRetry }: EmptyStateProps) {
       className="flex flex-col items-center justify-center py-16 text-center"
     >
       {/* Icon */}
-      <span
+      <Icon
         aria-hidden="true"
         className={cn(
-          'mb-4 select-none font-mono text-5xl',
+          'mb-4 h-12 w-12',
           variant === 'error'    && 'text-semantic-error',
           variant === 'initial'  && 'text-disabled',
           variant === 'no-results' && 'text-disabled',
         )}
-      >
-        {config.icon}
-      </span>
+      />
 
       {/* Title */}
       <h2 className="mb-2 font-mono text-heading font-semibold text-primary">

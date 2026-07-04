@@ -16,8 +16,8 @@ Music 4 All se opera mediante `docker compose` (8 servicios: `postgres`, `valkey
 
 | Servicio | Imagen/build | Puerto host | Healthcheck | Restart policy | Volúmenes |
 |---|---|---|---|---|---|
-| `postgres` | postgres (oficial) | 5432 | ✅ `pg_isready` (10s/5s/5 retries) | `[INEXISTENTE]` | `postgres_data` |
-| `valkey` | valkey (oficial) | 6379 | ✅ `valkey-cli ping` (10s/5s/3 retries) | `[INEXISTENTE]` | `valkey_data` |
+| `postgres` | postgres (oficial) | 5432 | `pg_isready` (10s/5s/5 retries) | `[INEXISTENTE]` | `postgres_data` |
+| `valkey` | valkey (oficial) | 6379 | `valkey-cli ping` (10s/5s/3 retries) | `[INEXISTENTE]` | `valkey_data` |
 | `backend` | build local (`target` dev/prod) | 8000 | `[INEXISTENTE]` | `[INEXISTENTE]` | `backend_venv`, bind `./backend:/app`, `./downloads:/app/downloads` |
 | `frontend` | build local | 3000 | `[INEXISTENTE]` | `[INEXISTENTE]` | `frontend_pnpm_store`, bind `./frontend:/app` |
 | `nginx` | nginx (oficial) | 80 | `[INEXISTENTE]` | `[INEXISTENTE]` | configs (ro) |

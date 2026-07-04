@@ -1,6 +1,6 @@
-# 🔧 RESUMEN DE CORRECCIÓN - Descargas FLAC
+# RESUMEN DE CORRECCIÓN - Descargas FLAC
 
-## 📍 El Problema
+## El Problema
 
 **Antes**: Archivos descargados con nombre `.flac` pero contenido **MP4/AAC**
 ```
@@ -11,7 +11,7 @@
 
 ---
 
-## 🎯 Causa Raíz
+## Causa Raíz
 
 El comando FFMPEG **no especificaba explícitamente el formato de salida**:
 
@@ -29,7 +29,7 @@ ffmpeg -y -i input.flac -f flac -acodec flac -compression_level 8 -loglevel erro
 
 ---
 
-## ✅ Archivos Modificados
+## Archivos Modificados
 
 ### `backend/app/core/tidal.py`
 **Función**: `_process_ffmpeg()` (línea 563)
@@ -48,11 +48,11 @@ cmd = [
 ]
 ```
 
-**Impacto**: Todas las futuras descargas FLAC serán correctas ✅
+**Impacto**: Todas las futuras descargas FLAC serán correctas
 
 ---
 
-## 🧹 Archivos Limpiados
+## Archivos Limpiados
 
 ```
 ✓ Eliminadas descargas anteriores MP4/AAC incorrecto
@@ -61,15 +61,15 @@ cmd = [
 
 ---
 
-## ✨ Validación Post-Fix
+## Validación Post-Fix
 
 **Script disponible**: `test_flac_conversion.py`
 
 Verificará automáticamente:
-- ✅ Bytes mágicos correcto (`fLaC` = 66 4C 61 43)
-- ✅ Metadatos válidos (sample rate, bit depth, channels)
-- ✅ Duración y tamaño de archivo
-- ❌ Detectará si hay archivos MP4/AAC incorrectos
+- Bytes mágicos correcto (`fLaC` = 66 4C 61 43)
+- Metadatos válidos (sample rate, bit depth, channels)
+- Duración y tamaño de archivo
+- Detectará si hay archivos MP4/AAC incorrectos
 
 **Uso**:
 ```bash
@@ -84,7 +84,7 @@ python test_flac_conversion.py
 
 ---
 
-## 📋 Checklist de Próximas Descargas
+## Checklist de Próximas Descargas
 
 - [ ] Iniciar backend con correcciones
 - [ ] Descargar canción de prueba
@@ -94,7 +94,7 @@ python test_flac_conversion.py
 
 ---
 
-## 📞 Próximas Acciones (Si persiste el problema)
+## Próximas Acciones (Si persiste el problema)
 
 1. **Verificar FFMPEG**:
    ```bash
@@ -111,4 +111,4 @@ python test_flac_conversion.py
 
 ---
 
-**Status**: ✅ CORREGIDO | Listo para testear nuevas descargas
+**Status**: CORREGIDO | Listo para testear nuevas descargas

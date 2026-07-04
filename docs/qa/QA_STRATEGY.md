@@ -22,13 +22,13 @@ Esta estrategia define objetivos de calidad medibles, una pirámide de testing o
 
 | Objetivo | Definición | Estado actual |
 |---|---|---|
-| **Disponibilidad** | El backend (`/health`) y el flujo de descarga responden cuando el usuario los necesita | ✅ Backend estable; sin SLO formal — ver [`SLO_SLI_SLA.md`](../operations/SLO_SLI_SLA.md) |
-| **Rendimiento** | Búsquedas y descargas completan en tiempos razonables sin degradar la UI | ⚠️ Sin baseline medido — ver [`PERFORMANCE_AUDIT.md`](../audits/PERFORMANCE_AUDIT.md) |
-| **Estabilidad** | El sistema no entra en estados inconsistentes (jobs zombie, sesiones huérfanas, WS desconectados) | ⚠️ `reconcile_stale_jobs` mitiga jobs zombie; 1 test de limpieza WS falla (TD-03) |
-| **Seguridad** | Sin vulnerabilidades High/Critical explotables en el contexto de despliegue actual | ✅ Bandit 0 hallazgos medium/high — ver [`SECURITY_AUDIT.md`](../audits/SECURITY_AUDIT.md) |
-| **Accesibilidad** | WCAG 2.1 AA en flujos críticos (Login, Dashboard, Historial) | ⚠️ Buena base (aria-live, focus-visible, skip-link); `prefers-reduced-motion` ausente — ver [`UX_AUDIT.md`](../audits/UX_AUDIT.md) |
-| **Fidelidad de audio** | Las descargas preservan la calidad solicitada (MASTER/HIRES/HIGH/NORMAL) sin pérdida en la conversión | ✅ Lógica de `_finalize_raw_to_flac`/`_extract_flac_from_mp4` cubierta por tests de integración (no auditado bit-a-bit en este documento) |
-| **UX** | Navegación y feedback consistentes; sin destinos rotos/vacíos | ❌ `/downloads` no existe, `/library`/`/settings` vacíos — ver [`UX_AUDIT.md`](../audits/UX_AUDIT.md) UX-01/UX-02 |
+| **Disponibilidad** | El backend (`/health`) y el flujo de descarga responden cuando el usuario los necesita | Backend estable; sin SLO formal — ver [`SLO_SLI_SLA.md`](../operations/SLO_SLI_SLA.md) |
+| **Rendimiento** | Búsquedas y descargas completan en tiempos razonables sin degradar la UI | Sin baseline medido — ver [`PERFORMANCE_AUDIT.md`](../audits/PERFORMANCE_AUDIT.md) |
+| **Estabilidad** | El sistema no entra en estados inconsistentes (jobs zombie, sesiones huérfanas, WS desconectados) | `reconcile_stale_jobs` mitiga jobs zombie; 1 test de limpieza WS falla (TD-03) |
+| **Seguridad** | Sin vulnerabilidades High/Critical explotables en el contexto de despliegue actual | Bandit 0 hallazgos medium/high — ver [`SECURITY_AUDIT.md`](../audits/SECURITY_AUDIT.md) |
+| **Accesibilidad** | WCAG 2.1 AA en flujos críticos (Login, Dashboard, Historial) | Buena base (aria-live, focus-visible, skip-link); `prefers-reduced-motion` ausente — ver [`UX_AUDIT.md`](../audits/UX_AUDIT.md) |
+| **Fidelidad de audio** | Las descargas preservan la calidad solicitada (MASTER/HIRES/HIGH/NORMAL) sin pérdida en la conversión | Lógica de `_finalize_raw_to_flac`/`_extract_flac_from_mp4` cubierta por tests de integración (no auditado bit-a-bit en este documento) |
+| **UX** | Navegación y feedback consistentes; sin destinos rotos/vacíos | `/downloads` no existe, `/library`/`/settings` vacíos — ver [`UX_AUDIT.md`](../audits/UX_AUDIT.md) UX-01/UX-02 |
 
 ## 2. KPIs cuantificables
 
@@ -50,14 +50,14 @@ Esta estrategia define objetivos de calidad medibles, una pirámide de testing o
 
 | Nivel | Definición | Estado actual | Herramienta actual | Herramienta recomendada |
 |---|---|---|---|---|
-| **Unit** | Funciones/clases aisladas (servicios, repositorios, mappers) | ✅ Backend (`tests/unit/` — inferido por estructura modular) | `pytest` | Frontend: **Vitest** |
-| **Integration** | Interacción entre módulos + dependencias reales (Postgres, Redis vía testcontainers/CI services) | ✅ Backend (`tests/integration/test_download_flow.py`, `tests/test_ws_downloads.py`) | `pytest` + servicios CI (`redis:7-alpine`, Postgres) | Frontend: **Vitest + React Testing Library** para stores/hooks |
-| **Contract** | Verificar que frontend y backend coinciden en formas de request/response (especialmente WS y `/ws/downloads` mensajes) | ❌ [INEXISTENTE] | — | Esquemas compartidos (Pydantic → JSON Schema → validación TS) o tests dedicados de forma de mensaje WS |
-| **System** | Sistema completo vía `docker compose up` | ⚠️ Manual (`docs/e2e-validation.md`) | Checklist manual | Mantener checklist + automatizar subset crítico vía Playwright |
-| **E2E** | Flujos de usuario completos (OAuth → búsqueda → descarga → historial) | ⚠️ Manual | Checklist manual (`docs/e2e-validation.md`) | **Playwright** (frontend) |
-| **Performance** | Carga/concurrencia | ⚠️ Parcial — `locustfile.py` no cubre descargas/WS (ver `PERFORMANCE_AUDIT.md` PERF-05) | Locust | Extender Locust (ver `PERFORMANCE_AUDIT.md` Fase 3) |
-| **Security** | SAST/escaneo de dependencias | ⚠️ Bandit no bloqueante; sin escaneo de dependencias | Bandit | Bandit bloqueante (High) + Dependabot |
-| **Accessibility** | WCAG 2.1 AA automatizado | ❌ [INEXISTENTE] | — | `axe-playwright` o `@axe-core/react` integrado en Playwright E2E |
+| **Unit** | Funciones/clases aisladas (servicios, repositorios, mappers) | Backend (`tests/unit/` — inferido por estructura modular) | `pytest` | Frontend: **Vitest** |
+| **Integration** | Interacción entre módulos + dependencias reales (Postgres, Redis vía testcontainers/CI services) | Backend (`tests/integration/test_download_flow.py`, `tests/test_ws_downloads.py`) | `pytest` + servicios CI (`redis:7-alpine`, Postgres) | Frontend: **Vitest + React Testing Library** para stores/hooks |
+| **Contract** | Verificar que frontend y backend coinciden en formas de request/response (especialmente WS y `/ws/downloads` mensajes) | [INEXISTENTE] | — | Esquemas compartidos (Pydantic → JSON Schema → validación TS) o tests dedicados de forma de mensaje WS |
+| **System** | Sistema completo vía `docker compose up` | Manual (`docs/e2e-validation.md`) | Checklist manual | Mantener checklist + automatizar subset crítico vía Playwright |
+| **E2E** | Flujos de usuario completos (OAuth → búsqueda → descarga → historial) | Manual | Checklist manual (`docs/e2e-validation.md`) | **Playwright** (frontend) |
+| **Performance** | Carga/concurrencia | Parcial — `locustfile.py` no cubre descargas/WS (ver `PERFORMANCE_AUDIT.md` PERF-05) | Locust | Extender Locust (ver `PERFORMANCE_AUDIT.md` Fase 3) |
+| **Security** | SAST/escaneo de dependencias | Bandit no bloqueante; sin escaneo de dependencias | Bandit | Bandit bloqueante (High) + Dependabot |
+| **Accessibility** | WCAG 2.1 AA automatizado | [INEXISTENTE] | — | `axe-playwright` o `@axe-core/react` integrado en Playwright E2E |
 
 ## 4. Herramientas
 

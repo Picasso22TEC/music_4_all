@@ -68,7 +68,7 @@ Notas importantes (ver `docs/troubleshooting.md` para el detalle):
 - El backend usa un **volumen nombrado `backend_venv:/app/.venv`** — no borrar este volumen ni mezclarlo con el `.venv` de Windows del host.
 - `UV_LINK_MODE=copy` está fijado en el entorno del servicio `backend` — necesario porque el bind-mount `./backend:/app` es un filesystem cruzado (Windows host ↔ contenedor Linux).
 - Para reconstruir solo un servicio: `docker compose up --build backend` (o `frontend`).
-- Para limpiar volúmenes (⚠️ destructivo, borra DB/cache): `docker compose down -v`.
+- Para limpiar volúmenes (destructivo, borra DB/cache): `docker compose down -v`.
 
 ---
 

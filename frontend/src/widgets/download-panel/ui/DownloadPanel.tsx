@@ -1,6 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowDown, ChevronDown, ChevronUp, Loader, RotateCw, X } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { useDownloadActions, useDownloadsStore, useDownloadSocket } from '@/features/downloads'
@@ -103,17 +104,19 @@ export function DownloadPanel() {
                   </span>
                 )}
                 {!wsConnected && (
-                  <span className="font-mono text-xs text-semantic-warning animate-pulse">
-                    ◌ Reconnecting…
+                  <span className="flex items-center gap-1 font-mono text-xs text-semantic-warning">
+                    <Loader aria-hidden="true" className="h-3 w-3 animate-spin" />
+                    Reconnecting…
                   </span>
                 )}
                 {isRetrying && (
                   <span
                     role="status"
                     aria-live="polite"
-                    className="font-mono text-xs text-semantic-info animate-pulse"
+                    className="flex items-center gap-1 font-mono text-xs text-semantic-info"
                   >
-                    ↻ Retrying…
+                    <RotateCw aria-hidden="true" className="h-3 w-3 animate-spin" />
+                    Retrying…
                   </span>
                 )}
               </div>
@@ -126,12 +129,13 @@ export function DownloadPanel() {
                     onClick={clearCompleted}
                     aria-label={`Clear ${completedCount} completed download${completedCount !== 1 ? 's' : ''}`}
                     className={cn(
-                      'font-sans text-xs text-secondary',
+                      'inline-flex items-center gap-1 font-sans text-xs text-secondary',
                       'hover:text-primary transition-colors duration-100',
                       'focus-visible:outline-none focus-visible:shadow-glow-focus rounded-sm',
                     )}
                   >
-                    Clear {completedCount} ✕
+                    Clear {completedCount}
+                    <X aria-hidden="true" className="h-3 w-3" />
                   </button>
                 )}
 
@@ -141,12 +145,12 @@ export function DownloadPanel() {
                   onClick={() => setPanelExpanded(false)}
                   aria-label="Collapse download panel"
                   className={cn(
-                    'ml-2 font-mono text-xs text-secondary',
+                    'ml-2 inline-flex items-center font-mono text-xs text-secondary',
                     'hover:text-primary transition-colors duration-100',
                     'focus-visible:outline-none focus-visible:shadow-glow-focus rounded-sm',
                   )}
                 >
-                  ∧
+                  <ChevronUp aria-hidden="true" className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -192,7 +196,7 @@ export function DownloadPanel() {
         aria-atomic="true"
       >
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-teal-500" aria-hidden="true">↓</span>
+          <ArrowDown aria-hidden="true" className="h-3.5 w-3.5 text-teal-500" />
           <span className="font-mono text-xs text-secondary">
             {summaryText}
           </span>
@@ -204,12 +208,22 @@ export function DownloadPanel() {
           aria-label={isPanelExpanded ? 'Collapse download panel' : 'Expand download panel'}
           aria-expanded={isPanelExpanded}
           className={cn(
-            'font-mono text-xs text-secondary',
+            'inline-flex items-center gap-1 font-mono text-xs text-secondary',
             'hover:text-primary transition-colors duration-100',
             'focus-visible:outline-none focus-visible:shadow-glow-focus rounded-sm px-1',
           )}
         >
-          {isPanelExpanded ? '∧ Collapse' : '∨ Expand'}
+          {isPanelExpanded ? (
+            <>
+              <ChevronUp aria-hidden="true" className="h-3.5 w-3.5" />
+              Collapse
+            </>
+          ) : (
+            <>
+              <ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />
+              Expand
+            </>
+          )}
         </button>
       </div>
     </div>

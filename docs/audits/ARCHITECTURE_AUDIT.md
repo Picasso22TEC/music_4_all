@@ -1,8 +1,8 @@
 # Architecture Audit — Music 4 All
 
-> 🕒 **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026). Los hallazgos de deuda ya cerrados en `TECHNICAL_AUDIT.md` deben leerse como resueltos.
-> - ✅ **Ya resuelto:** **AR-05/TD-14** — OAuth device-auth consolidado en `backend/app/core/oauth_helper.py`; **AR-06/TD-08+TD-09** — código huérfano frontend y backend eliminado (el texto de AR-06 aún dice "pendiente validación": ya no lo está).
-> - ⚠️ **Sin verificar en esta revisión (presumiblemente vigentes):** AR-01 (violaciones FSD `shared/ → entities/`), AR-02 (estado en memoria / instancia única), AR-03 (`core/tidal.py` god-dependency), AR-04/07/08 (informativos). No hubo refactor arquitectónico desde la redacción — los commits recientes fueron deuda técnica + rediseño visual.
+> **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026). Los hallazgos de deuda ya cerrados en `TECHNICAL_AUDIT.md` deben leerse como resueltos.
+> - **Ya resuelto:** **AR-05/TD-14** — OAuth device-auth consolidado en `backend/app/core/oauth_helper.py`; **AR-06/TD-08+TD-09** — código huérfano frontend y backend eliminado (el texto de AR-06 aún dice "pendiente validación": ya no lo está).
+> - **Sin verificar en esta revisión (presumiblemente vigentes):** AR-01 (violaciones FSD `shared/ → entities/`), AR-02 (estado en memoria / instancia única), AR-03 (`core/tidal.py` god-dependency), AR-04/07/08 (informativos). No hubo refactor arquitectónico desde la redacción — los commits recientes fueron deuda técnica + rediseño visual.
 
 > Auditoría de arquitectura backend/frontend: dependencias entre módulos, acoplamiento/cohesión, cumplimiento de Feature-Sliced Design (FSD), código huérfano, duplicación y riesgos de escalabilidad/crecimiento. Complementa [`docs/architecture.md`](../architecture.md) (descriptivo) con un enfoque de **auditoría** (qué se desvía del diseño objetivo y por qué importa). Ver también [`TECHNICAL_AUDIT.md`](TECHNICAL_AUDIT.md) para deuda técnica general y [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) para implicaciones de seguridad del estado en memoria.
 
@@ -25,16 +25,16 @@ El resto de la arquitectura es saludable: sin dependencias circulares entre mód
 
 | Dimensión | Estado |
 |---|---|
-| Backend: separación por dominio (`modules/{auth,session,search,metadata,download,jobs,history}`) | ✅ Respetada |
-| Backend: capa `core/` transversal | ✅ Presente, pero con un "god dependency" (`core/tidal.py`, 48 imports desde `modules/`) |
-| Backend: routers legacy vs v2 coexistiendo | ✅ Según diseño (CLAUDE.md regla 2), reutilización parcial via `DownloadRepository` |
-| Backend: dependencias circulares entre módulos | ✅ Ninguna detectada |
-| Backend: estado en memoria cross-request | ⚠️ Presente en 2 puntos (`JobControlRegistry`, `pending_oauth*`) |
-| Backend: código huérfano (`api/v1/`, `services/`, `schemas/`) | ⚠️ Confirmado sin imports — pendiente validación final (ver TECHNICAL_AUDIT TD-09) |
-| Frontend: dirección de dependencias FSD | ⚠️ 4 violaciones `shared/ → entities/` |
-| Frontend: barrels `index.ts` en `features/*` | ✅ Presentes y respetados en todas las slices |
-| Frontend: código huérfano pre-FSD | ✅ Confirmado sin imports (ver TECHNICAL_AUDIT TD-08) |
-| Frontend: `shared/` como "cajón de sastre" de lógica de dominio | ⚠️ Confirmado (`mappers.ts`, `QualitySelector`, `useUrlDetection`, `ws.config.ts`, `api.types.ts`) |
+| Backend: separación por dominio (`modules/{auth,session,search,metadata,download,jobs,history}`) | Respetada |
+| Backend: capa `core/` transversal | Presente, pero con un "god dependency" (`core/tidal.py`, 48 imports desde `modules/`) |
+| Backend: routers legacy vs v2 coexistiendo | Según diseño (CLAUDE.md regla 2), reutilización parcial via `DownloadRepository` |
+| Backend: dependencias circulares entre módulos | Ninguna detectada |
+| Backend: estado en memoria cross-request | Presente en 2 puntos (`JobControlRegistry`, `pending_oauth*`) |
+| Backend: código huérfano (`api/v1/`, `services/`, `schemas/`) | Confirmado sin imports — pendiente validación final (ver TECHNICAL_AUDIT TD-09) |
+| Frontend: dirección de dependencias FSD | 4 violaciones `shared/ → entities/` |
+| Frontend: barrels `index.ts` en `features/*` | Presentes y respetados en todas las slices |
+| Frontend: código huérfano pre-FSD | Confirmado sin imports (ver TECHNICAL_AUDIT TD-08) |
+| Frontend: `shared/` como "cajón de sastre" de lógica de dominio | Confirmado (`mappers.ts`, `QualitySelector`, `useUrlDetection`, `ws.config.ts`, `api.types.ts`) |
 
 ---
 

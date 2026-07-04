@@ -1,9 +1,9 @@
 # Security Audit — Music 4 All
 
-> 🕒 **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026).
-> - ✅ **Ya resuelto:** **SEC-07/TD-07** — `SECRET_KEY` eliminado de `.env.example`; **SEC-09/TD-04** — Bandit ahora bloqueante en CI.
-> - 🔄 **Actualización de matiz — SEC-06:** `frontend/src/middleware.ts` ya **no** es un scaffold sin activar; hoy hace redirección de rutas con la cookie **no-httpOnly** `music4all_session` (RM-03 con cookie httpOnly sigue pendiente). El CSRF sigue sin aplicar hoy (la cookie no se usa como credencial server-side).
-> - ⚠️ **Sin verificar en esta revisión (presumiblemente vigentes):** SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-08 (configuración de infra/Nginx/compose, no modificada).
+> **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026).
+> - **Ya resuelto:** **SEC-07/TD-07** — `SECRET_KEY` eliminado de `.env.example`; **SEC-09/TD-04** — Bandit ahora bloqueante en CI.
+> - **Actualización de matiz — SEC-06:** `frontend/src/middleware.ts` ya **no** es un scaffold sin activar; hoy hace redirección de rutas con la cookie **no-httpOnly** `music4all_session` (RM-03 con cookie httpOnly sigue pendiente). El CSRF sigue sin aplicar hoy (la cookie no se usa como credencial server-side).
+> - **Sin verificar en esta revisión (presumiblemente vigentes):** SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-08 (configuración de infra/Nginx/compose, no modificada).
 
 > Auditoría de seguridad del backend (FastAPI), frontend (Next.js), infraestructura (Docker Compose, Nginx) y CI/CD. Basada en lectura directa de código/configuración y ejecución local de Bandit. Complementa [`TECHNICAL_AUDIT.md`](TECHNICAL_AUDIT.md) (TD-04, TD-07) y [`ARCHITECTURE_AUDIT.md`](ARCHITECTURE_AUDIT.md) (AR-02, estado en memoria).
 >
@@ -31,17 +31,17 @@ Los hallazgos relevantes son de naturaleza **arquitectónica y de configuración
 
 | Control de seguridad | Estado |
 |---|---|
-| CORS | ✅ Correctamente acotado (`cors_origins` configurable, sin `["*"]`) |
-| Rate limiting (slowapi) | ⚠️ Activo pero en memoria (no Redis pese al comentario) |
-| Almacenamiento de tokens OAuth | ⚠️ Redis con TTL, pero clave única global (`music4all:session`) |
+| CORS | Correctamente acotado (`cors_origins` configurable, sin `["*"]`) |
+| Rate limiting (slowapi) | Activo pero en memoria (no Redis pese al comentario) |
+| Almacenamiento de tokens OAuth | Redis con TTL, pero clave única global (`music4all:session`) |
 | CSRF | ➖ No aplica hoy (sin cookies de sesión); riesgo latente si se implementa RM-03 |
-| Headers de seguridad (Nginx) | ⚠️ CSP con `unsafe-inline`/`unsafe-eval`; HSTS comentado; falta `Permissions-Policy` |
-| Secretos / variables de entorno | ⚠️ `SECRET_KEY` declarado sin uso; credenciales DB/Grafana hardcodeadas en compose |
-| Bandit (SAST) | ✅ 0 hallazgos medium/high (ejecutado localmente); ⚠️ no bloqueante en CI |
+| Headers de seguridad (Nginx) | CSP con `unsafe-inline`/`unsafe-eval`; HSTS comentado; falta `Permissions-Policy` |
+| Secretos / variables de entorno | `SECRET_KEY` declarado sin uso; credenciales DB/Grafana hardcodeadas en compose |
+| Bandit (SAST) | 0 hallazgos medium/high (ejecutado localmente); no bloqueante en CI |
 | Dependencias vulnerables | ➖ [NO VERIFICABLE] — sin `pip-audit`/`npm audit`/Dependabot configurados |
-| Autenticación/autorización por ruta | ⚠️ Verifica sesión Tidal del servidor, no identidad del llamante |
-| WebSocket `/ws/downloads` | ✅ Cierra con 1008 si `engine.check_auth()` falla |
-| Validación de URLs (`_ensure_https`) | ✅ Cumple su función (normalización de esquema); sin allowlist de dominio (bajo riesgo, origen confiable) |
+| Autenticación/autorización por ruta | Verifica sesión Tidal del servidor, no identidad del llamante |
+| WebSocket `/ws/downloads` | Cierra con 1008 si `engine.check_auth()` falla |
+| Validación de URLs (`_ensure_https`) | Cumple su función (normalización de esquema); sin allowlist de dominio (bajo riesgo, origen confiable) |
 
 ---
 

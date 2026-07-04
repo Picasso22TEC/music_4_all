@@ -1,8 +1,8 @@
 # UX Audit — Music 4 All
 
-> 🕒 **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026) **parcialmente desfasado**; verificar contra el código actual antes de accionar. Señal automatizada al 2026-07-02 en verde (frontend `lint`/`build` + **87 tests Vitest**).
-> - ✅ **Ya resuelto (NO accionar):** **UX-01** — `/downloads` existe como página completa (`app/(app)/downloads/page.tsx`); **UX-02** — `/library` y `/settings` implementadas (`settings` funcional); **UX-04** — `prefers-reduced-motion` implementado (`shared/hooks/useReducedMotion.ts` + `globals.css`); **UX-07** — `ToastProvider` montado en `providers/Providers.tsx`; **UX-10** — código muerto eliminado, `NeonTitle`/`NeonParticles` viven ahora en `shared/ui/` y **están en uso**. La premisa repetida de "no hay test runner de frontend" es **falsa** (Vitest configurado).
-> - ⚠️ **Sigue vigente:** **UX-03** — sin navegación móvil (`Sidebar` es `hidden lg:flex`, drawer no implementado en `useSidebarState`); **UX-06** — `<h1>` duplicado, **ahora expandido** a las 4 páginas autenticadas (AppHeader + cada página); **UX-05** — `PlayerBar` etiquetado "Próximamente" pero sin reproducción real; **UX-07** (matiz) — Toast montado pero `useToast()` no se invoca desde ninguna mutación.
+> **Estado de vigencia — revisado 2026-07-02.** Documento puntual (~jun-2026) **parcialmente desfasado**; verificar contra el código actual antes de accionar. Señal automatizada al 2026-07-02 en verde (frontend `lint`/`build` + **87 tests Vitest**).
+> - **Ya resuelto (NO accionar):** **UX-01** — `/downloads` existe como página completa (`app/(app)/downloads/page.tsx`); **UX-02** — `/library` y `/settings` implementadas (`settings` funcional); **UX-04** — `prefers-reduced-motion` implementado (`shared/hooks/useReducedMotion.ts` + `globals.css`); **UX-07** — `ToastProvider` montado en `providers/Providers.tsx`; **UX-10** — código muerto eliminado, `NeonTitle`/`NeonParticles` viven ahora en `shared/ui/` y **están en uso**. La premisa repetida de "no hay test runner de frontend" es **falsa** (Vitest configurado).
+> - **Sigue vigente:** **UX-03** — sin navegación móvil (`Sidebar` es `hidden lg:flex`, drawer no implementado en `useSidebarState`); **UX-06** — `<h1>` duplicado, **ahora expandido** a las 4 páginas autenticadas (AppHeader + cada página); **UX-05** — `PlayerBar` etiquetado "Próximamente" pero sin reproducción real; **UX-07** (matiz) — Toast montado pero `useToast()` no se invoca desde ninguna mutación.
 
 > Auditoría del estado **actual** del frontend (Next.js 14, FSD) frente a la experiencia esperada de un producto listo para usuarios reales, y frente a la visión documentada en [`docs/frontend/FRONTEND_VISION.md`](../frontend/FRONTEND_VISION.md) y [`docs/frontend/DESIGN_SYSTEM_VISION.md`](../frontend/DESIGN_SYSTEM_VISION.md). Cubre: Login, Dashboard, Descargas, Historial, Navegación, Accesibilidad, Responsive, estados vacíos/error/carga, y feedback visual. Complementa [`TECHNICAL_AUDIT.md`](TECHNICAL_AUDIT.md) (TD-10, TD-12, TD-13).
 
@@ -28,22 +28,22 @@ Adicionalmente, `PlayerBar` es **puramente decorativo** (sin elemento `<audio>`,
 
 | Ruta | Estado | Evidencia |
 |---|---|---|
-| `/login` (auth) | ✅ Completo — `LoginForm` con máquina de estados OAuth Device Flow | `frontend/src/app/(auth)/login/page.tsx` |
-| `/dashboard` | ✅ Completo — búsqueda, resultados, descarga | `frontend/src/app/(app)/dashboard/page.tsx` + `DashboardClient.tsx` |
-| `/history` | ✅ Completo — loading/error/empty/success | `frontend/src/app/(app)/history/page.tsx` |
-| `/library` | ❌ `return null` (placeholder Phase 3+) | `frontend/src/app/(app)/library/page.tsx` |
-| `/settings` | ❌ `return null` (placeholder Phase 3+) | `frontend/src/app/(app)/settings/page.tsx` |
-| `/downloads` | ❌ **No existe** — sin `page.tsx` bajo `(app)/downloads/` | research UX punto 1 |
+| `/login` (auth) | Completo — `LoginForm` con máquina de estados OAuth Device Flow | `frontend/src/app/(auth)/login/page.tsx` |
+| `/dashboard` | Completo — búsqueda, resultados, descarga | `frontend/src/app/(app)/dashboard/page.tsx` + `DashboardClient.tsx` |
+| `/history` | Completo — loading/error/empty/success | `frontend/src/app/(app)/history/page.tsx` |
+| `/library` | `return null` (placeholder Phase 3+) | `frontend/src/app/(app)/library/page.tsx` |
+| `/settings` | `return null` (placeholder Phase 3+) | `frontend/src/app/(app)/settings/page.tsx` |
+| `/downloads` | **No existe** — sin `page.tsx` bajo `(app)/downloads/` | research UX punto 1 |
 
 ## Componentes transversales
 
 | Componente | Estado funcional | Estado responsive |
 |---|---|---|
-| `Sidebar` | ✅ Navegación activa con `aria-current` | ❌ `hidden lg:flex` — invisible <1024px, sin alternativa |
-| `AppHeader` | ✅ Título dinámico por ruta | ⚠️ Sin prefijos responsive, fijo |
-| `DownloadPanel` | ✅ WS singleton, estados de progreso | ⚠️ Sin prefijos responsive (no verificado a fondo) |
-| `PlayerBar` | ❌ Decorativo, sin `<audio>` ni controles | ⚠️ Oculta progreso (`md:`) y volumen (`lg:`), barra base siempre visible |
-| Toast/Notificaciones | ⚠️ Componente existe (`shared/ui/Toast/`), uso real no confirmado | — |
+| `Sidebar` | Navegación activa con `aria-current` | `hidden lg:flex` — invisible <1024px, sin alternativa |
+| `AppHeader` | Título dinámico por ruta | Sin prefijos responsive, fijo |
+| `DownloadPanel` | WS singleton, estados de progreso | Sin prefijos responsive (no verificado a fondo) |
+| `PlayerBar` | Decorativo, sin `<audio>` ni controles | Oculta progreso (`md:`) y volumen (`lg:`), barra base siempre visible |
+| Toast/Notificaciones | Componente existe (`shared/ui/Toast/`), uso real no confirmado | — |
 
 ---
 

@@ -72,14 +72,14 @@ Music 4 All tiene una pila de observabilidad **desplegada y provisionada** (Prom
 
 | Métrica | Tipo | Estado |
 |---|---|---|
-| `music4all_downloads_total{status}` (completed/failed) | Counter | ✅ Disponible |
-| `music4all_downloads_in_progress` | Gauge | ✅ Disponible |
-| `music4all_download_duration_seconds` (buckets 15-1800s+inf) | Histogram | ✅ Disponible |
-| `music4all_tracks_downloaded_total` | Counter | ✅ Disponible |
-| `music4all_queue_depth` | Gauge | ✅ Disponible |
-| `music4all_downloads_concurrency_limit` | Gauge | ✅ Disponible |
-| `music4all_auth_logins_total{status}` (success/failure) | Counter | ✅ Disponible |
-| `http_requests_total`, `http_request_duration_seconds_bucket` | Counter/Histogram | ✅ Disponible (via `prometheus-fastapi-instrumentator`) |
+| `music4all_downloads_total{status}` (completed/failed) | Counter | Disponible |
+| `music4all_downloads_in_progress` | Gauge | Disponible |
+| `music4all_download_duration_seconds` (buckets 15-1800s+inf) | Histogram | Disponible |
+| `music4all_tracks_downloaded_total` | Counter | Disponible |
+| `music4all_queue_depth` | Gauge | Disponible |
+| `music4all_downloads_concurrency_limit` | Gauge | Disponible |
+| `music4all_auth_logins_total{status}` (success/failure) | Counter | Disponible |
+| `http_requests_total`, `http_request_duration_seconds_bucket` | Counter/Histogram | Disponible (via `prometheus-fastapi-instrumentator`) |
 | Errores de WebSocket / desconexiones | — | `[INEXISTENTE]` |
 | Tamaño/latencia de operaciones Redis | — | `[INEXISTENTE]` (sin instrumentación) |
 | Latencia/errores de queries SQL | — | `[INEXISTENTE]` (sin instrumentación) |
@@ -122,10 +122,10 @@ Music 4 All tiene una pila de observabilidad **desplegada y provisionada** (Prom
 
 | Dashboard | Paneles propuestos | Estado |
 |---|---|---|
-| **Music4All — Overview** (existente, `music4all.json`) | 7 paneles actuales | ✅ Existe |
-| **Music4All — Logs** | Panel Loki: tasa de logs por `level`, búsqueda por `job_id`, errores recientes (`level="ERROR"`) | 🎯 Propuesto — datasource ya provisionado, solo falta el dashboard |
-| **Music4All — Infraestructura** | CPU/memoria de contenedores (requiere `cAdvisor` o `docker stats` exporter — `[INEXISTENTE]`), espacio en disco de volúmenes (`postgres_data`, `loki_data`) | 🎯 Propuesto, requiere exporters nuevos |
-| **Music4All — WebSocket** | Conexiones activas a `/ws/downloads`, tasa de cierres con código 1008 | 🎯 Propuesto — requiere instrumentar `download/ws.py` con nuevas métricas |
+| **Music4All — Overview** (existente, `music4all.json`) | 7 paneles actuales | Existe |
+| **Music4All — Logs** | Panel Loki: tasa de logs por `level`, búsqueda por `job_id`, errores recientes (`level="ERROR"`) | Propuesto — datasource ya provisionado, solo falta el dashboard |
+| **Music4All — Infraestructura** | CPU/memoria de contenedores (requiere `cAdvisor` o `docker stats` exporter — `[INEXISTENTE]`), espacio en disco de volúmenes (`postgres_data`, `loki_data`) | Propuesto, requiere exporters nuevos |
+| **Music4All — WebSocket** | Conexiones activas a `/ws/downloads`, tasa de cierres con código 1008 | Propuesto — requiere instrumentar `download/ws.py` con nuevas métricas |
 
 ---
 

@@ -83,12 +83,12 @@ class TidalDownloader:
     def _setup_temp_dir(self):
         self._temp_dir = Path(tempfile.mkdtemp(prefix="tidal_dl_"))
         atexit.register(self._cleanup_temp_dir)
-        self.log(f"📁 Directorio temporal de descargas: {self._temp_dir}")
+        self.log(f"Directorio temporal de descargas: {self._temp_dir}")
 
     def _cleanup_temp_dir(self):
         if self._temp_dir and self._temp_dir.exists():
             shutil.rmtree(self._temp_dir, ignore_errors=True)
-            self.log("🧹 Directorio temporal eliminado.")
+            self.log("Directorio temporal eliminado.")
 
     @property
     def download_folder(self) -> Path:
@@ -103,7 +103,7 @@ class TidalDownloader:
         ffmpeg_in_path = shutil.which("ffmpeg") or shutil.which("ffmpeg.exe")
         if ffmpeg_in_path:
             self.FFMPEG_BIN = Path(ffmpeg_in_path)
-            self.log(f"✅ ffmpeg encontrado en PATH: {self.FFMPEG_BIN}")
+            self.log(f"ffmpeg encontrado en PATH: {self.FFMPEG_BIN}")
             return
 
         # Rutas comunes en Windows
@@ -115,10 +115,10 @@ class TidalDownloader:
         for candidate in common:
             if candidate.exists():
                 self.FFMPEG_BIN = candidate
-                self.log(f"✅ ffmpeg encontrado en: {candidate}")
+                self.log(f"ffmpeg encontrado en: {candidate}")
                 return
 
-        self.log("⚠️ ffmpeg no encontrado. La conversión a FLAC fallará si no se configura el PATH.")
+        self.log("ffmpeg no encontrado. La conversión a FLAC fallará si no se configura el PATH.")
 
     # ---------- Autenticación ----------
     def _load_session(self, session_data: dict | None) -> Session:
@@ -133,7 +133,7 @@ class TidalDownloader:
                     expiry,
                 )
             except Exception as e:
-                self.log(f"⚠️ Error cargando sesión desde memoria: {str(e)}")
+                self.log(f"Error cargando sesión desde memoria: {str(e)}")
         return session
 
     def get_session_data(self) -> dict | None:
@@ -162,7 +162,7 @@ class TidalDownloader:
         except requests.exceptions.RequestException:
             return False
         except Exception as e:
-            self.log(f"⚠️ Error verificando estado de sesión: {str(e)}")
+            self.log(f"Error verificando estado de sesión: {str(e)}")
         return False
 
     # ---------- Parseo ----------
@@ -609,7 +609,7 @@ class TidalDownloader:
             pass
 
         if not self.FFMPEG_BIN.exists():
-            self.log("⚠️ ffmpeg no disponible; no se puede extraer FLAC del contenedor.")
+            self.log("ffmpeg no disponible; no se puede extraer FLAC del contenedor.")
             return source_path
 
         tmp = source_path.with_suffix(".tmp.flac")
@@ -619,7 +619,7 @@ class TidalDownloader:
             tmp.replace(source_path)
             return source_path
         except Exception as e:
-            self.log(f"⚠️ Falló extracción FLAC: {e}")
+            self.log(f"Falló extracción FLAC: {e}")
             return source_path
 
     # ---------- Info de audio ----------
@@ -745,7 +745,7 @@ class TidalDownloader:
                 else:
                     apply_m4a_metadata(final_path, track_meta)
             except Exception as e:
-                self.log(f"⚠️ Error aplicando metadatos: {e}")
+                self.log(f"Error aplicando metadatos: {e}")
                 calidad_txt = "Tags Fallaron"
 
             # Limpiar temporal
@@ -754,7 +754,7 @@ class TidalDownloader:
             return True, str(final_path), calidad_txt, s_rate, s_bits
 
         except Exception as e:
-            self.log(f"💥 Error crítico en download_single_track: {e}")
+            self.log(f"Error crítico en download_single_track: {e}")
             return False, f"Fallo Crítico: {str(e)}", "", 0, 0
 
     # ---------- ZIP ----------

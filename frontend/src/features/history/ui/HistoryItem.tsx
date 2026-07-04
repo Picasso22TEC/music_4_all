@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { Music } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import type { HistoryRecord } from '../model/history.types'
@@ -55,8 +56,8 @@ export function HistoryItem({ record }: HistoryItemProps) {
             className="object-cover"
           />
         ) : (
-          <span className="flex h-full w-full items-center justify-center text-xl text-disabled">
-            ♪
+          <span className="flex h-full w-full items-center justify-center text-disabled">
+            <Music aria-hidden="true" className="h-5 w-5" />
           </span>
         )}
       </div>

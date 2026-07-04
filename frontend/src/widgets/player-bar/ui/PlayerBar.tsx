@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { CircleSlash, Music } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { formatDuration } from '@/shared/lib/format'
@@ -47,7 +48,7 @@ export function PlayerBar() {
             className="h-full w-full object-cover"
           />
         ) : (
-          <span className="select-none text-base text-disabled" aria-hidden="true">♪</span>
+          <Music aria-hidden="true" className="h-5 w-5 text-disabled" />
         )}
       </div>
 
@@ -81,11 +82,12 @@ export function PlayerBar() {
           </>
         ) : (
           <p
-            className="font-sans text-sm text-disabled"
+            className="flex items-center gap-2 font-sans text-sm text-disabled"
             aria-live="polite"
             aria-label="No track currently playing"
           >
-            ⊘ Nothing playing
+            <CircleSlash aria-hidden="true" className="h-4 w-4" />
+            Nothing playing
           </p>
         )}
       </div>

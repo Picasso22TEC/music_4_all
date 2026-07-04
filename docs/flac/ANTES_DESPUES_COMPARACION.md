@@ -1,6 +1,6 @@
-# 📊 ANTES vs DESPUÉS - Comparación Visual
+# ANTES vs DESPUÉS - Comparación Visual
 
-## ❌ ANTES (Incorrecto)
+## ANTES (Incorrecto)
 
 ```
 ┌─ Descargar Track ─────────────────────┐
@@ -28,7 +28,7 @@
 
 ---
 
-## ✅ DESPUÉS (Correcto)
+## DESPUÉS (Correcto)
 
 ```
 ┌─ Descargar Track ─────────────────────┐
@@ -65,7 +65,7 @@
 
 ---
 
-## 🔄 Cambios de Código
+## Cambios de Código
 
 ### Cambio #1: Comando FFMPEG
 
@@ -91,21 +91,21 @@
 
 ---
 
-## 📈 Impacto
+## Impacto
 
 | Aspecto | Antes | Después |
 |---------|-------|---------|
-| **Formato Real** | MP4/AAC | ✅ FLAC |
-| **Bytes Mágicos** | ❌ 0000001c... | ✅ 664c6143 |
-| **FFMPEG Explícito** | ❌ No | ✅ Sí |
-| **Siempre Procesado** | ❌ No (DIRECT saltaba) | ✅ Sí |
-| **Reproducible** | ❌ Solo en algunos players | ✅ Universal |
-| **Metadatos** | ⚠️ Incompletos | ✅ Completos |
-| **Garantía** | ❌ No | ✅ FLAC 100% |
+| **Formato Real** | MP4/AAC | FLAC |
+| **Bytes Mágicos** | 0000001c... | 664c6143 |
+| **FFMPEG Explícito** | No | Sí |
+| **Siempre Procesado** | No (DIRECT saltaba) | Sí |
+| **Reproducible** | Solo en algunos players | Universal |
+| **Metadatos** | Incompletos | Completos |
+| **Garantía** | No | FLAC 100% |
 
 ---
 
-## 🧪 Validación
+## Validación
 
 ```bash
 # Comando para verificar
@@ -120,10 +120,10 @@ $file = "downloads/.../track.flac"
 
 ---
 
-## ✨ Conclusión
+## Conclusión
 
 **2 fixes críticos aplicados:**
-1. ✅ Comando FFMPEG con formato/codec explícitos
-2. ✅ Lógica de descarga SIEMPRE procesa con FFMPEG
+1. Comando FFMPEG con formato/codec explícitos
+2. Lógica de descarga SIEMPRE procesa con FFMPEG
 
 **Resultado**: 100% garantizado FLAC válido desde ahora en adelante

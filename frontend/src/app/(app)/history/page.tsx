@@ -4,11 +4,12 @@
  * History page — v2 stack only.
  *
  * Eliminated legacy dependencies:
- *   ✗  historyApi  from '@/lib/api'  →  useHistoryQuery from features/history
- *   ✗  DownloadRecord legacy type    →  HistoryRecord (camelCase, mapped from DTO)
+ *   -historyApi  from '@/lib/api'  →  useHistoryQuery from features/history
+ *   -DownloadRecord legacy type    →  HistoryRecord (camelCase, mapped from DTO)
  */
 
 import Link from 'next/link'
+import { CircleAlert } from 'lucide-react'
 
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { Button } from '@/shared/ui/Button'
@@ -87,9 +88,7 @@ export default function HistoryPage() {
             role="alert"
             className="flex flex-col items-center gap-4 py-16 text-center"
           >
-            <span className="font-mono text-5xl text-semantic-error" aria-hidden="true">
-              ✕
-            </span>
+            <CircleAlert className="h-12 w-12 text-semantic-error" aria-hidden="true" />
             <p className="font-sans text-sm text-semantic-error">
               Error loading download history.
             </p>

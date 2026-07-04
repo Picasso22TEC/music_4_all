@@ -1,6 +1,6 @@
-# 📋 VALIDACIÓN DE DESCARGA FLAC - Guía Rápida
+# VALIDACIÓN DE DESCARGA FLAC - Guía Rápida
 
-## ✅ Verificación Rápida de Archivos
+## Verificación Rápida de Archivos
 
 ### Opción 1: Usar PowerShell (Más rápido)
 ```powershell
@@ -24,7 +24,7 @@ Genera reporte detallado con:
 - Duración / Tamaño del archivo
 - Metadatos (Título, Artista, etc)
 
-## 🔍 Qué se corrigió
+## Qué se corrigió
 
 ### Problema: Descargas como MP4/AAC con extensión .flac
 
@@ -37,27 +37,27 @@ Genera reporte detallado con:
 ```
 
 ### Cambios clave:
-- ✅ Agregado `-f flac` (especificar formato contenedor)
-- ✅ Agregado `-acodec flac` (especificar codec audio)
-- ✅ Aumentada compresión de 5 a 8 (máxima sin pérdida)
+- Agregado `-f flac` (especificar formato contenedor)
+- Agregado `-acodec flac` (especificar codec audio)
+- Aumentada compresión de 5 a 8 (máxima sin pérdida)
 
-## 📊 Formato de Bytes Mágicos (Validación)
+## Formato de Bytes Mágicos (Validación)
 
 | Formato | Bytes Mágicos | Hex |
 |---------|------|-----|
-| **✅ FLAC** | `fLaC` | `66 4C 61 43` |
-| ❌ MP4 | `....ftyp` | `00 00 00 1C 66 74 79 70` |
-| ❌ MP3 | `ÿû` | `FF FB` |
-| ❌ AAC | `ÿá/ÿá` | `FF E1 / FF F1` |
+| **FLAC** | `fLaC` | `66 4C 61 43` |
+| MP4 | `....ftyp` | `00 00 00 1C 66 74 79 70` |
+| MP3 | `ÿû` | `FF FB` |
+| AAC | `ÿá/ÿá` | `FF E1 / FF F1` |
 
-## 🧪 Próximas Descargas
+## Próximas Descargas
 
 1. El sistema ahora generará **FLAC válidos**
 2. Ejecuta `test_flac_conversion.py` después de descargar
-3. Si ves "`✅ FLAC válido`" → Todo correcto
-4. Si ves "`❌ ARCHIVO MP4/AAC`" → Revisa FFMPEG
+3. Si ves "`FLAC válido`" → Todo correcto
+4. Si ves "`ARCHIVO MP4/AAC`" → Revisa FFMPEG
 
-## 📝 Nota Importante
+## Nota Importante
 
 Si el backend está corriendo en Docker, verifica que:
 - FFMPEG esté instalado: `docker-compose exec backend ffmpeg -version`

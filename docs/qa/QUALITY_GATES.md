@@ -14,18 +14,18 @@ Music 4 All cuenta con un pipeline de CI (`.github/workflows/ci.yml`) que ya imp
 
 | Gate | Tipo | Estado actual | Bloqueante hoy |
 |---|---|---|---|
-| `ruff check` (backend) | Merge Gate | Implementado (`ci.yml` job `lint-backend`) | ✅ Sí |
-| `ruff format --check` (backend) | Merge Gate | Implementado (mismo job) | ✅ Sí |
-| `pnpm lint` (frontend) | Merge Gate | Implementado (`ci.yml` job `build-frontend`) | ✅ Sí |
-| `pnpm build` / `next build` (frontend) | Merge Gate | Implementado (mismo job) | ✅ Sí |
-| `pytest` (backend) | Merge Gate | Implementado pero **no bloqueante** (`\|\| echo "No tests found — skipping"`) | ❌ No (TD-03) |
-| `bandit` (backend) | Security Gate | Implementado pero **no bloqueante** (`\|\| true`) | ❌ No (TD-04/SEC-09) |
-| Cobertura mínima backend | Merge Gate | `[NO IMPLEMENTADO]` — sin `pytest-cov` (TP-01) | ❌ No |
-| Cobertura mínima frontend | Merge Gate | `[NO IMPLEMENTADO]` — sin tests frontend (TP-04) | ❌ No |
-| Escaneo de dependencias (`pip-audit`/`npm audit`) | Security Gate | `[NO IMPLEMENTADO]` (SEC-05) | ❌ No |
-| Validación OAuth Device Flow | Release Gate | `[NO IMPLEMENTADO]` como gate automatizado — checklist manual (`E2E_VALIDATION.md`) | ❌ No |
-| Validación WebSocket (`/ws/downloads`) | Release Gate | `[NO IMPLEMENTADO]` como gate automatizado — checklist manual + 1 test fallando | ❌ No |
-| `docker-build` (backend `production` + frontend `builder`) | Merge Gate | Implementado, depende de los 3 jobs anteriores | ✅ Sí (condicional) |
+| `ruff check` (backend) | Merge Gate | Implementado (`ci.yml` job `lint-backend`) | Sí |
+| `ruff format --check` (backend) | Merge Gate | Implementado (mismo job) | Sí |
+| `pnpm lint` (frontend) | Merge Gate | Implementado (`ci.yml` job `build-frontend`) | Sí |
+| `pnpm build` / `next build` (frontend) | Merge Gate | Implementado (mismo job) | Sí |
+| `pytest` (backend) | Merge Gate | Implementado pero **no bloqueante** (`\|\| echo "No tests found — skipping"`) | No (TD-03) |
+| `bandit` (backend) | Security Gate | Implementado pero **no bloqueante** (`\|\| true`) | No (TD-04/SEC-09) |
+| Cobertura mínima backend | Merge Gate | `[NO IMPLEMENTADO]` — sin `pytest-cov` (TP-01) | No |
+| Cobertura mínima frontend | Merge Gate | `[NO IMPLEMENTADO]` — sin tests frontend (TP-04) | No |
+| Escaneo de dependencias (`pip-audit`/`npm audit`) | Security Gate | `[NO IMPLEMENTADO]` (SEC-05) | No |
+| Validación OAuth Device Flow | Release Gate | `[NO IMPLEMENTADO]` como gate automatizado — checklist manual (`E2E_VALIDATION.md`) | No |
+| Validación WebSocket (`/ws/downloads`) | Release Gate | `[NO IMPLEMENTADO]` como gate automatizado — checklist manual + 1 test fallando | No |
+| `docker-build` (backend `production` + frontend `builder`) | Merge Gate | Implementado, depende de los 3 jobs anteriores | Sí (condicional) |
 | Despliegue a producción | Production Gate | `[NO IMPLEMENTADO]` — job `deploy` comentado | N/A |
 | Rollback | Rollback Gate | `[NO IMPLEMENTADO]` — sin estrategia documentada | N/A |
 
@@ -33,19 +33,19 @@ Music 4 All cuenta con un pipeline de CI (`.github/workflows/ci.yml`) que ya imp
 
 # Merge Gates (PR → `main`)
 
-Criterios obligatorios antes de hacer merge de un Pull Request a `main`. Estado **objetivo** (✅ = ya bloqueante, 🎯 = objetivo a implementar):
+Criterios obligatorios antes de hacer merge de un Pull Request a `main`. Estado **objetivo** (= ya bloqueante, = objetivo a implementar):
 
 | ID | Criterio | Comando | Estado |
 |---|---|---|---|
-| QG-01 | Lint backend sin errores | `uv run ruff check .` | ✅ Bloqueante |
-| QG-02 | Formato backend correcto | `uv run ruff format --check .` | ✅ Bloqueante |
-| QG-03 | Lint frontend sin errores ni warnings | `pnpm lint` | ✅ Bloqueante |
-| QG-04 | Build frontend exitoso (type-check incluido) | `pnpm build` | ✅ Bloqueante |
-| QG-05 | Suite pytest backend pasa al 100% | `uv run pytest -q` | 🎯 Objetivo (hoy: 3 tests fallando, TD-03 — no bloqueante) |
-| QG-06 | Bandit sin hallazgos High/Critical | `uv run bandit -r app/ -ll` | 🎯 Objetivo (hoy: `\|\| true`, no bloqueante; local: 0 hallazgos) |
-| QG-07 | Cobertura backend ≥ umbral acordado | `pytest --cov` | 🎯 Objetivo — requiere TP-01 (`pytest-cov`) primero, luego fijar umbral |
-| QG-08 | Sin nuevas dependencias con vulnerabilidades Critical/High conocidas | `pip-audit` / `npm audit --audit-level=high` | 🎯 Objetivo — requiere SEC-05 (no implementado) |
-| QG-09 | `docker-build` exitoso (backend `production` + frontend `builder`) | `docker compose build` | ✅ Bloqueante (depende de QG-01/03/06) |
+| QG-01 | Lint backend sin errores | `uv run ruff check .` | Bloqueante |
+| QG-02 | Formato backend correcto | `uv run ruff format --check .` | Bloqueante |
+| QG-03 | Lint frontend sin errores ni warnings | `pnpm lint` | Bloqueante |
+| QG-04 | Build frontend exitoso (type-check incluido) | `pnpm build` | Bloqueante |
+| QG-05 | Suite pytest backend pasa al 100% | `uv run pytest -q` | Objetivo (hoy: 3 tests fallando, TD-03 — no bloqueante) |
+| QG-06 | Bandit sin hallazgos High/Critical | `uv run bandit -r app/ -ll` | Objetivo (hoy: `\|\| true`, no bloqueante; local: 0 hallazgos) |
+| QG-07 | Cobertura backend ≥ umbral acordado | `pytest --cov` | Objetivo — requiere TP-01 (`pytest-cov`) primero, luego fijar umbral |
+| QG-08 | Sin nuevas dependencias con vulnerabilidades Critical/High conocidas | `pip-audit` / `npm audit --audit-level=high` | Objetivo — requiere SEC-05 (no implementado) |
+| QG-09 | `docker-build` exitoso (backend `production` + frontend `builder`) | `docker compose build` | Bloqueante (depende de QG-01/03/06) |
 
 **Regla de aplicación**: QG-05 y QG-06 deben pasar de "no bloqueante" a "bloqueante" en `ci.yml` **únicamente después de** resolver TD-03 (3 tests fallando) y confirmar 0 hallazgos High/Critical en bandit de forma estable — de lo contrario, activar el gate bloquearía todo merge inmediatamente.
 
@@ -57,11 +57,11 @@ Criterios adicionales antes de considerar una rama "lista para release", más al
 
 | ID | Criterio | Verificación | Estado |
 |---|---|---|---|
-| QG-10 | Smoke Tests de `E2E_VALIDATION.md` ejecutados y en verde | Manual (checklist, 8 ítems) | 🎯 Objetivo — `[NO IMPLEMENTADO]` como proceso formal |
-| QG-11 | OAuth Device Flow validado end-to-end (Escenario 1 de `E2E_VALIDATION.md`) | Manual | 🎯 Objetivo |
-| QG-12 | WebSocket `/ws/downloads` validado: conexión autenticada, `ping`/`pong`, `progress`, cierre 1008 sin sesión | Manual + `tests/test_ws_downloads.py` | 🎯 Objetivo (bloqueado por E2E-05/TD-03 hasta resolución) |
-| QG-13 | Descarga de track único y de álbum (ZIP) validadas (Escenario 3 de `E2E_VALIDATION.md`) | Manual | 🎯 Objetivo |
-| QG-14 | Migraciones Alembic aplican sin error sobre una copia de la base actual (`alembic upgrade head`) | Manual/CI | 🎯 Objetivo — hoy sin paso de migración en el entrypoint Docker |
+| QG-10 | Smoke Tests de `E2E_VALIDATION.md` ejecutados y en verde | Manual (checklist, 8 ítems) | Objetivo — `[NO IMPLEMENTADO]` como proceso formal |
+| QG-11 | OAuth Device Flow validado end-to-end (Escenario 1 de `E2E_VALIDATION.md`) | Manual | Objetivo |
+| QG-12 | WebSocket `/ws/downloads` validado: conexión autenticada, `ping`/`pong`, `progress`, cierre 1008 sin sesión | Manual + `tests/test_ws_downloads.py` | Objetivo (bloqueado por E2E-05/TD-03 hasta resolución) |
+| QG-13 | Descarga de track único y de álbum (ZIP) validadas (Escenario 3 de `E2E_VALIDATION.md`) | Manual | Objetivo |
+| QG-14 | Migraciones Alembic aplican sin error sobre una copia de la base actual (`alembic upgrade head`) | Manual/CI | Objetivo — hoy sin paso de migración en el entrypoint Docker |
 | QG-15 | Changelog/notas de release actualizadas | Manual | `[NO VERIFICABLE]` — sin convención de changelog confirmada |
 
 ---
@@ -72,12 +72,12 @@ Criterios adicionales antes de considerar una rama "lista para release", más al
 
 | ID | Criterio | Estado |
 |---|---|---|
-| QG-16 | Variables de entorno de producción (`SECRET_KEY`, credenciales Postgres/Redis, `GF_SECURITY_ADMIN_PASSWORD`) provienen de secretos gestionados, no de valores hardcodeados en `docker-compose.yml` (SEC-03) | 🎯 Objetivo — bloqueante de seguridad antes de cualquier despliegue público |
-| QG-17 | `CORS_ORIGINS` configurado con el/los dominios reales de producción, sin `localhost` | 🎯 Objetivo |
-| QG-18 | Healthchecks de `backend` definidos en `docker-compose.yml` (hoy solo `postgres`/`valkey` los tienen) | 🎯 Objetivo |
-| QG-19 | Límites de recursos (`deploy.resources`) definidos para servicios con uso intensivo de CPU/memoria (backend, worker, ffmpeg) — PERF-03 | 🎯 Objetivo |
-| QG-20 | HSTS habilitado en Nginx (actualmente comentado, SEC-04) si se sirve sobre HTTPS | 🎯 Objetivo |
-| QG-21 | Backup de `postgres_data` ejecutado y verificado antes del despliegue (ver `DISASTER_RECOVERY.md`) | 🎯 Objetivo |
+| QG-16 | Variables de entorno de producción (`SECRET_KEY`, credenciales Postgres/Redis, `GF_SECURITY_ADMIN_PASSWORD`) provienen de secretos gestionados, no de valores hardcodeados en `docker-compose.yml` (SEC-03) | Objetivo — bloqueante de seguridad antes de cualquier despliegue público |
+| QG-17 | `CORS_ORIGINS` configurado con el/los dominios reales de producción, sin `localhost` | Objetivo |
+| QG-18 | Healthchecks de `backend` definidos en `docker-compose.yml` (hoy solo `postgres`/`valkey` los tienen) | Objetivo |
+| QG-19 | Límites de recursos (`deploy.resources`) definidos para servicios con uso intensivo de CPU/memoria (backend, worker, ffmpeg) — PERF-03 | Objetivo |
+| QG-20 | HSTS habilitado en Nginx (actualmente comentado, SEC-04) si se sirve sobre HTTPS | Objetivo |
+| QG-21 | Backup de `postgres_data` ejecutado y verificado antes del despliegue (ver `DISASTER_RECOVERY.md`) | Objetivo |
 
 ---
 
@@ -87,9 +87,9 @@ Criterios adicionales antes de considerar una rama "lista para release", más al
 
 | ID | Criterio | Estado |
 |---|---|---|
-| QG-22 | Existe un procedimiento documentado para volver a la imagen Docker anterior (`docker compose` con tag previo) | 🎯 Objetivo — ver `RUNBOOK.md`/`DISASTER_RECOVERY.md` |
-| QG-23 | Migraciones Alembic tienen `downgrade()` probado para la migración más reciente antes de aplicarla en producción | 🎯 Objetivo — `001_initial_tables.py` es la única migración existente; `[REQUIERE VALIDACIÓN]` si su `downgrade()` está implementado y probado |
-| QG-24 | Criterio de decisión de rollback definido (ej.: tasa de error HTTP 5xx > X% durante Y minutos tras despliegue) | 🎯 Objetivo — depende de `SLO_SLI_SLA.md` |
+| QG-22 | Existe un procedimiento documentado para volver a la imagen Docker anterior (`docker compose` con tag previo) | Objetivo — ver `RUNBOOK.md`/`DISASTER_RECOVERY.md` |
+| QG-23 | Migraciones Alembic tienen `downgrade()` probado para la migración más reciente antes de aplicarla en producción | Objetivo — `001_initial_tables.py` es la única migración existente; `[REQUIERE VALIDACIÓN]` si su `downgrade()` está implementado y probado |
+| QG-24 | Criterio de decisión de rollback definido (ej.: tasa de error HTTP 5xx > X% durante Y minutos tras despliegue) | Objetivo — depende de `SLO_SLI_SLA.md` |
 
 ---
 
