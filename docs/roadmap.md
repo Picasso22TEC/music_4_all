@@ -12,7 +12,7 @@ Estado de pendientes, deuda técnica, mejoras futuras y riesgos conocidos, basad
 - **`/library` y `/settings`** (`(app)/library/page.tsx`, `(app)/settings/page.tsx`) son placeholders (`return null`) — sin implementación.
 - **`AlbumDetailPanel`** (Phase 6C) no está conectado — `handleOpenAlbum` en `DashboardClient.tsx` solo hace `console.info`.
 - **RM-03 (sesión vía cookie httpOnly)**: `middleware.ts` tiene el scaffolding (`PROTECTED_PATHS`, `AUTH_PATHS`, `matcher`) pero el cuerpo no aplica redirecciones — la protección de rutas es 100% client-side (rehidratación de `auth.store`). Pendiente: backend debe emitir cookie `session_id` httpOnly y el middleware debe activarse.
-- **Rediseño "neón retro 90s"**: el **Login ya está implementado** (letrero neón Monoton "moribundo", commits `852c72d`/`ea184c1`); el **Dashboard sigue pendiente**. Ver sección 3.
+- **Rediseño "neón retro 90s"**: el **Login ya está implementado** (letrero neón Monoton "moribundo", commits `b90cee5`/`a23a8f9`); el **Dashboard sigue pendiente**. Ver sección 3.
 
 > El ítem previo "limpieza de código legacy pendiente" (`src/store/`, `src/components/`, `src/hooks/`, `src/lib/`, carpetas de ruta vacías) **ya no aplica**: esos directorios no existen — el frontend está 100% en FSD.
 
@@ -65,7 +65,7 @@ Analizado en sesión previa: veredicto "capa visual compatible si se aplica por 
 - Atender el gap de `prefers-reduced-motion` (no manejado actualmente en ningún punto del frontend).
 
 ### 3.2 Rediseño visual "puerta de tienda de discos nocturna" — Login
-> **IMPLEMENTADO (2026-07, commits `852c72d` → `ea184c1`)**: letrero neón `Monoton` morado/rosa "moribundo" (parpadeo caótico por letra, reencendido por falso contacto), arcos eléctricos, marco neón, fondo negro absoluto, código OAuth en tubos retro y countdown de expiración — respetando `prefers-reduced-motion` y WCAG 2.3.1. Lo siguiente documenta el análisis previo que guió la implementación.
+> **IMPLEMENTADO (2026-07, commits `b90cee5` → `a23a8f9`)**: letrero neón `Monoton` morado/rosa "moribundo" (parpadeo caótico por letra, reencendido por falso contacto), arcos eléctricos, marco neón, fondo negro absoluto, código OAuth en tubos retro y countdown de expiración — respetando `prefers-reduced-motion` y WCAG 2.3.1. Lo siguiente documenta el análisis previo que guió la implementación.
 
 Analizado: el login es buen candidato a rediseño casi completo (página autocontenida, máquina de estados pequeña y bien definida). Orden recomendado: vinilo girando durante polling → "puerta de vidrio" (Card + `backdrop-blur`) → glitch de error → display retro del código OAuth → letrero neón con parpadeo → partículas/humo con parallax → countdown de expiración → animación puerta abre/cierra → transición cross-layout a Dashboard (compartida con 3.1) → escena decorativa completa (opcional/iterativo).
 
