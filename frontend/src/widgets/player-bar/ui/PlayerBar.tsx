@@ -5,6 +5,7 @@ import { CircleSlash, Music } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { formatDuration } from '@/shared/lib/format'
+import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { ProgressBar } from '@/shared/ui/ProgressBar'
 import { usePlayerStore } from '@/features/player'
 
@@ -15,6 +16,7 @@ export function PlayerBar() {
   const isPlaying     = usePlayerStore((s) => s.isPlaying)
   const progressSec   = usePlayerStore((s) => s.progressSeconds)
   const volume        = usePlayerStore((s) => s.volume)
+  const reducedMotion = useReducedMotion()
 
   const progressPercent = currentTrack
     ? Math.min(100, Math.max(0, Math.round((progressSec / currentTrack.durationSeconds) * 100)))
@@ -34,6 +36,24 @@ export function PlayerBar() {
         'flex items-center gap-4 px-4 lg:pl-64',
       )}
     >
+      {/* ── Láseres ambientales en idle ─────────────────────────────────
+          Barrido teal continuo (7s lineal — sin destellos, WCAG 2.3.1)
+          mientras no hay pista activa. currentTrack ya se lee arriba: no es
+          una suscripción nueva. El root es fixed: ya actúa como containing
+          block para esta capa. */}
+      {!currentTrack && !reducedMotion && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+        >
+          <span className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-transparent via-teal-500/15 to-transparent animate-laser-scan" />
+          <span
+            className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-transparent via-teal-300/10 to-transparent animate-laser-scan"
+            style={{ animationDelay: '3.5s' }}
+          />
+        </div>
+      )}
+
       {/* ── Artwork ─────────────────────────────────────────────────── */}
       <div
         aria-hidden="true"
