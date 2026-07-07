@@ -68,8 +68,10 @@ export function DownloadPanel() {
       aria-label="Download panel"
       aria-busy={activeCount > 0 || undefined}
       className={cn(
-        // Position — fixed above PlayerBar (wireframes §2)
-        'fixed bottom-20 left-0 right-0',
+        // Position — fixed above PlayerBar (wireframes §2). En lg+ arranca
+        // tras el sidebar (240px): sin el offset, el sidebar (z-sticky 200 >
+        // z-panel 150) tapaba titulo/velocidad/resumen de cada job.
+        'fixed bottom-20 left-0 right-0 lg:left-60',
         // Stacking — z-panel: 150 (design-system §1.5)
         'z-panel',
         // Surface + separator — el borde superior se ilumina segun actividad
