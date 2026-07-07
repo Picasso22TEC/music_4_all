@@ -70,10 +70,11 @@ export function ProgressBar({
   const clampedValue = Math.min(100, Math.max(0, value))
 
   const glowClass = animated ? ANIMATED_GLOWS[variant] : undefined
-  // "Respiración" neón — pulsa el box-shadow del fill (no su opacidad, que
-  // atenuaba la barra entera). Solo download y sin prefers-reduced-motion;
-  // el glow estático de ANIMATED_GLOWS queda como fallback.
-  const pulseClass = animated && variant === 'download' && !reducedMotion ? 'animate-progress-breathe' : undefined
+  // "Respiración" neón — overlay con el glow a intensidad fija cuya OPACIDAD
+  // pulsa (compositor puro: nunca se anima box-shadow, que repinta por frame).
+  // Solo download y sin prefers-reduced-motion; el glow estático de
+  // ANIMATED_GLOWS queda como base y fallback.
+  const showBreathe = animated && variant === 'download' && !reducedMotion
 
   return (
     <div
@@ -99,11 +100,17 @@ export function ProgressBar({
           'transition-all duration-300',
           // Shimmer solo si se permite animación (a11y — prefers-reduced-motion)
           isIndeterminate && !reducedMotion && 'animate-shimmer',
-          glowClass,
-          pulseClass
+          glowClass
         )}
         style={isIndeterminate ? { width: '100%' } : { width: `${clampedValue}%` }}
-      />
+      >
+        {showBreathe && (
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-full shadow-glow-active animate-pulse-neon"
+          />
+        )}
+      </div>
     </div>
   )
 }

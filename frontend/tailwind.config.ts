@@ -191,7 +191,6 @@ const config: Config = {
         shimmer:                 'shimmer 1500ms linear infinite',
         'progress-indeterminate':'progressIndeterminate 1500ms ease-in-out infinite',
         // vNext neon (DESIGN_SYSTEM_VISION §9.2)
-        'progress-breathe':      'progressBreathe 2.4s ease-in-out infinite',
         'laser-scan':            'laserScan 7s linear infinite',
         'audio-wave':            'audioWave 1.6s ease-in-out infinite',
       },
@@ -207,12 +206,6 @@ const config: Config = {
         progressIndeterminate: {
           '0%':   { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(400%)' },
-        },
-        // "Respiracion" de descargas activas: pulsa el box-shadow (no la opacidad
-        // del fill). Excepcion aceptada a transform/opacity — sin layout shift.
-        progressBreathe: {
-          '0%, 100%': { boxShadow: '0 0 4px 0 rgba(0,201,167,0.25), 0 0 12px 0 rgba(0,201,167,0.10)' },
-          '50%':      { boxShadow: '0 0 10px 1px rgba(0,201,167,0.55), 0 0 28px 2px rgba(0,201,167,0.22)' },
         },
         // Barrido laser continuo (7s lineal, sin destellos — WCAG 2.3.1).
         // El span mide w-24; recorre todo el ancho del contenedor y sale.

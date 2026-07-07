@@ -73,8 +73,9 @@ export function DownloadPanel() {
         // Stacking — z-panel: 150 (design-system §1.5)
         'z-panel',
         // Surface + separator — el borde superior se ilumina segun actividad
-        // (activeCount ya viene de useDownloadPanel: sin suscripciones nuevas)
-        'bg-surface-console border-t',
+        // (activeCount ya viene de useDownloadPanel: sin suscripciones nuevas).
+        // transition-shadow suaviza el cambio de estado (puntual, no continuo).
+        'bg-surface-console border-t transition-shadow duration-300',
         activeCount > 0
           ? 'border-t-teal-500/40 shadow-glow-panel-active'
           : 'border-t-teal-700/30 shadow-glow-panel',
