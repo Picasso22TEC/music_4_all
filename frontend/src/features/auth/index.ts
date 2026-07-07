@@ -15,7 +15,8 @@ export {
   useLogoutMutation,
 } from './model/auth.queries'
 export { authApi } from './api/auth.api'
-export { LoginForm, SessionRecoveryModal } from './ui'
+export { LoginForm, SessionRecoveryModal, AuthTransitionOverlay } from './ui'
+export { playAuthTransition } from './model/auth-transition.store'
 
 // ── Public API for triggering recovery from DownloadPanel (Fase 6E/6F) ───────
 // Widgets can call this without importing from features/auth internals.

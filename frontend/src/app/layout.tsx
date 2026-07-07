@@ -4,6 +4,7 @@ import { Inter, Monoton, VT323 } from 'next/font/google'
 
 import './globals.css'
 import { Providers } from '@/providers/Providers'
+import { AuthTransitionOverlay } from '@/features/auth'
 
 // ── B-04: Tipografías del Design System (design-system §2.1) ─────────────────
 
@@ -61,7 +62,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${GeistMono.variable} ${monoton.variable} ${vt323.variable}`}
     >
       <body className="min-h-screen bg-surface-void font-sans text-primary antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          {/* Overlay one-shot Login → Dashboard: vive en el root (por encima de
+              los grupos (auth) y (app)) para cruzar el swap de layouts. Sin
+              AnimatePresence sobre children ni keys dinamicas: el shell y el
+              WebSocket singleton no se tocan. */}
+          <AuthTransitionOverlay />
+        </Providers>
       </body>
     </html>
   )

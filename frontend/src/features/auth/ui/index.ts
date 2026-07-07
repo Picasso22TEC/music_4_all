@@ -1,5 +1,7 @@
 export { LoginForm } from './LoginForm'
 
+export { AuthTransitionOverlay } from './AuthTransitionOverlay'
+
 export { SessionRecoveryModal } from './SessionRecoveryModal'
 
 export { SessionRecoveryContent } from './SessionRecoveryContent'

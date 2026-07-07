@@ -14,6 +14,7 @@ import { RetroDisplay } from '@/shared/ui/RetroDisplay'
 
 // Intra-feature imports — avoid barrel to prevent circular dependency
 import { useAuthStore } from '@/features/auth/model/auth.store'
+import { playAuthTransition } from '@/features/auth/model/auth-transition.store'
 import {
   useDeviceAuthPollingQuery,
   useInitDeviceAuthMutation,
@@ -116,6 +117,10 @@ export function LoginForm() {
         useAuthStore.getState().setAuthenticated(data.user, data.expiresAt)
       }
       useAuthStore.getState().clearDeviceAuth()
+      // Transición visual Login → Dashboard (overlay en el root layout).
+      // Corre en paralelo: la navegación no se retrasa. Solo aquí — nunca en
+      // el redirect por rehidratación ni en el recovery de sesión.
+      playAuthTransition()
       router.replace('/dashboard')
     }
   }, [pollingQuery.data, router])
