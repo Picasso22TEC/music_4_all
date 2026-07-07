@@ -193,6 +193,8 @@ const config: Config = {
         // vNext neon (DESIGN_SYSTEM_VISION §9.2)
         'laser-scan':            'laserScan 7s linear infinite',
         'audio-wave':            'audioWave 1.6s ease-in-out infinite',
+        // Fase 15 — balanceo pendular del letrero colgado (solo rotate)
+        'sign-sway':             'signSway 6.5s ease-in-out infinite alternate',
       },
       keyframes: {
         pulseNeon: {
@@ -217,6 +219,13 @@ const config: Config = {
         audioWave: {
           '0%, 100%': { transform: 'scaleY(0.2)' },
           '50%':      { transform: 'scaleY(1)' },
+        },
+        // Letrero colgado: péndulo sutil alrededor del anclaje de las cadenas
+        // (origin-top en el elemento). Amplitud mínima para leerse como una
+        // corriente de aire, no como movimiento que distrae.
+        signSway: {
+          from: { transform: 'rotate(-0.7deg)' },
+          to:   { transform: 'rotate(0.7deg)' },
         },
       },
     },

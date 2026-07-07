@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Disc3 } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
-import { NeonTitle } from '@/shared/ui'
+import { NeonTitle, SignFrame } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
 
 import { NAV_ITEMS, SESSION_DOT, SESSION_LABEL } from '../model/nav'
@@ -34,13 +34,16 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
     <>
       {/* ── Brand — el letrero de la tienda visto desde dentro ─────────────
           NeonTitle stable: mismos tubos morado/rosa del Login, encendido fijo
-          (sin parpadeo — visible en toda sesión). NeonTitle es aria-hidden:
-          el span sr-only preserva el nombre accesible del brand. */}
+          (sin parpadeo — visible en toda sesión). SignFrame (Fase 15) lo cuelga
+          de cadenas en una placa con remaches. Ambos son aria-hidden: el span
+          sr-only preserva el nombre accesible del brand. */}
       <div className="flex shrink-0 items-center gap-2 border-b border-subtle px-4 h-header">
-        <Disc3 aria-hidden="true" className="h-4 w-4 text-teal-500" />
-        <NeonTitle variant="stable" className="select-none text-sm tracking-wide">
-          MUSIC 4 ALL
-        </NeonTitle>
+        <Disc3 aria-hidden="true" className="h-4 w-4 shrink-0 text-teal-500" />
+        <SignFrame className="h-full pb-1.5">
+          <NeonTitle variant="stable" className="select-none text-sm tracking-wide">
+            MUSIC 4 ALL
+          </NeonTitle>
+        </SignFrame>
         <span className="sr-only">MUSIC 4 ALL</span>
       </div>
 

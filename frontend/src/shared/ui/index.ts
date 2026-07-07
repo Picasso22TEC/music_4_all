@@ -32,3 +32,6 @@ export * from './PageTransition'
 
 // ── Rediseño neón Dashboard — ecualizador decorativo de fondo ─────────────────
 export * from './AudioWaves'
+
+// ── Fase 15 (escena decorativa) — marco del letrero con remaches y cadenas ────
+export * from './SignFrame'
