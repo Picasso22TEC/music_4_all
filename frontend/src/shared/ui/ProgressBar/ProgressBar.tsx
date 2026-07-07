@@ -5,7 +5,7 @@ import { cn } from '@/shared/lib/cn'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type ProgressBarVariant = 'default' | 'download' | 'success' | 'error' | 'indeterminate'
+export type ProgressBarVariant = 'default' | 'download' | 'success' | 'error' | 'queue' | 'indeterminate'
 export type ProgressBarSize = 'sm' | 'md' | 'lg'
 
 export interface ProgressBarProps {
@@ -33,6 +33,7 @@ const FILL_COLORS: Record<ProgressBarVariant, string> = {
   download:      'bg-teal-400',
   success:       'bg-semantic-success',
   error:         'bg-semantic-error',
+  queue:         'bg-semantic-queue',
   indeterminate: 'bg-teal-400',
 }
 
@@ -41,6 +42,13 @@ const ANIMATED_GLOWS: Partial<Record<ProgressBarVariant, string>> = {
   download: 'shadow-glow-active',
   success:  'shadow-glow-success',
   error:    'shadow-glow-error',
+}
+
+// Glow del TRACK por variante — en cola el fill mide 0% (sería invisible),
+// así que el brillo violeta vive en el contenedor. Estático: seguro bajo
+// prefers-reduced-motion.
+const TRACK_GLOWS: Partial<Record<ProgressBarVariant, string>> = {
+  queue: 'shadow-glow-queue',
 }
 
 // Shimmer del estado indeterminate — sweep de luz sobre teal-400 (tokens, sin hex sueltos)
@@ -62,8 +70,10 @@ export function ProgressBar({
   const clampedValue = Math.min(100, Math.max(0, value))
 
   const glowClass = animated ? ANIMATED_GLOWS[variant] : undefined
-  // "Brillo pulsante" — solo download, y solo si el usuario no pide menos movimiento.
-  const pulseClass = animated && variant === 'download' && !reducedMotion ? 'animate-pulse-neon' : undefined
+  // "Respiración" neón — pulsa el box-shadow del fill (no su opacidad, que
+  // atenuaba la barra entera). Solo download y sin prefers-reduced-motion;
+  // el glow estático de ANIMATED_GLOWS queda como fallback.
+  const pulseClass = animated && variant === 'download' && !reducedMotion ? 'animate-progress-breathe' : undefined
 
   return (
     <div
@@ -77,6 +87,7 @@ export function ProgressBar({
         // Track — Fase 3: fondo surface-rack, completamente redondeado
         'relative w-full overflow-hidden rounded-full bg-surface-rack',
         SIZES[size],
+        TRACK_GLOWS[variant],
         className
       )}
     >

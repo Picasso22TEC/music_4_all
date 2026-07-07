@@ -10,6 +10,7 @@ import { Button } from '@/shared/ui/Button'
 import { ProgressBar } from '@/shared/ui/ProgressBar'
 import type { DownloadJob } from '@/entities'
 import type { BadgeVariant } from '@/shared/ui/Badge'
+import type { ProgressBarVariant } from '@/shared/ui/ProgressBar'
 
 // ─── Status badge mapping ─────────────────────────────────────────────────────
 
@@ -21,13 +22,13 @@ const STATUS_BADGE: Record<DownloadJob['status'], { variant: BadgeVariant; label
   error:     { variant: 'status-error', label: 'ERROR'  },
 }
 
-const PROGRESS_VARIANT = {
+const PROGRESS_VARIANT: Record<DownloadJob['status'], ProgressBarVariant> = {
   active:    'download',
   paused:    'default',
   completed: 'success',
   error:     'error',
-  queued:    'default',
-} as const
+  queued:    'queue',
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -151,7 +152,7 @@ export function DownloadJobItem({
       {!isError && (
         <ProgressBar
           value={job.progressPercent}
-          variant={progressVariant as 'download' | 'success' | 'default' | 'error'}
+          variant={progressVariant}
           size="md"
           animated={isActive && glowActive}
           label={`Download progress for ${job.albumTitle}: ${job.progressPercent}%`}
