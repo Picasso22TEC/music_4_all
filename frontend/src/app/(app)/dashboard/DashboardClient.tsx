@@ -5,7 +5,15 @@ import { useRouter } from 'next/navigation'
 
 import type { Album, AudioQuality } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
-import { AudioWaves, Button, Modal, PottedPlant, QualitySelector, VintageSpeaker } from '@/shared/ui'
+import {
+  AudioWaves,
+  Button,
+  CassetteStack,
+  Modal,
+  PottedPlant,
+  QualitySelector,
+  VintageSpeaker,
+} from '@/shared/ui'
 import { cn } from '@/shared/lib/cn'
 
 import { useAuthStore } from '@/features/auth'
@@ -222,6 +230,9 @@ export default function DashboardClient() {
       {/* Altavoz vintage (Fase 15) — utilería en la esquina opuesta, misma
           línea de suelo que el ecualizador y la planta */}
       <VintageSpeaker className="absolute bottom-0 left-6 -z-10 hidden h-36 w-auto sm:block" />
+
+      {/* Cassettes apilados (Fase 15) — pila desalineada junto al altavoz */}
+      <CassetteStack className="absolute bottom-0 left-36 -z-10 hidden h-24 w-auto sm:block" />
 
       {/* Accessible live region for screen reader announcements */}
       <div

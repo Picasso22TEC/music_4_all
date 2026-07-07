@@ -41,3 +41,6 @@ export * from './PottedPlant'
 
 // ── Fase 15 (escena decorativa) — altavoz vintage ──────────────────────────────
 export * from './VintageSpeaker'
+
+// ── Fase 15 (escena decorativa) — cassettes apilados ───────────────────────────
+export * from './CassetteStack'
