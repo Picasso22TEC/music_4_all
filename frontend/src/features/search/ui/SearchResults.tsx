@@ -64,7 +64,14 @@ export function SearchResults({
   return (
     <section
       aria-label={`${albums.length} album${albums.length !== 1 ? 's' : ''} found`}
+      className="relative isolate"
     >
+      {/* Retícula técnica decorativa tras las cards — isolate crea el stacking
+          context para que -z-10 quede detrás del grid pero sobre el fondo */}
+      <div
+        aria-hidden="true"
+        className="texture-grid pointer-events-none absolute -inset-3 -z-10 rounded-lg"
+      />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {albums.map((album) => (
           <AlbumCard
