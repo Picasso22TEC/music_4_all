@@ -35,3 +35,6 @@ export * from './AudioWaves'
 
 // ── Fase 15 (escena decorativa) — marco del letrero con remaches y cadenas ────
 export * from './SignFrame'
+
+// ── Fase 15 (escena decorativa) — planta de interior en la esquina ────────────
+export * from './PottedPlant'
