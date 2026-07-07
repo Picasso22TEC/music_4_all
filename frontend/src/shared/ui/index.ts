@@ -44,3 +44,6 @@ export * from './VintageSpeaker'
 
 // ── Fase 15 (escena decorativa) — cassettes apilados ───────────────────────────
 export * from './CassetteStack'
+
+// ── Fase 15 (escena decorativa) — tocadiscos con plato girando ─────────────────
+export * from './Turntable'

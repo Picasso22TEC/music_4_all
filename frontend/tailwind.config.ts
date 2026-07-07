@@ -195,6 +195,8 @@ const config: Config = {
         'audio-wave':            'audioWave 1.6s ease-in-out infinite',
         // Fase 15 — balanceo pendular del letrero colgado (solo rotate)
         'sign-sway':             'signSway 6.5s ease-in-out infinite alternate',
+        // Fase 15 — giro perezoso del plato del tocadiscos decorativo
+        'record-spin':           'recordSpin 8s linear infinite',
       },
       keyframes: {
         pulseNeon: {
@@ -226,6 +228,12 @@ const config: Config = {
         signSway: {
           from: { transform: 'rotate(-0.7deg)' },
           to:   { transform: 'rotate(0.7deg)' },
+        },
+        // Plato del tocadiscos: rotacion continua lenta (solo transform);
+        // mas lenta que un 33rpm real a proposito — ambientacion, no realismo.
+        recordSpin: {
+          from: { transform: 'rotate(0deg)' },
+          to:   { transform: 'rotate(360deg)' },
         },
       },
     },

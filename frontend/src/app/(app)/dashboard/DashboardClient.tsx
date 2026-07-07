@@ -12,6 +12,7 @@ import {
   Modal,
   PottedPlant,
   QualitySelector,
+  Turntable,
   VintageSpeaker,
 } from '@/shared/ui'
 import { cn } from '@/shared/lib/cn'
@@ -233,6 +234,10 @@ export default function DashboardClient() {
 
       {/* Cassettes apilados (Fase 15) — pila desalineada junto al altavoz */}
       <CassetteStack className="absolute bottom-0 left-36 -z-10 hidden h-24 w-auto sm:block" />
+
+      {/* Tocadiscos (Fase 15) — mesa con plato girando lento, entre el
+          ecualizador y la planta */}
+      <Turntable className="absolute bottom-0 right-40 -z-10 hidden h-28 w-auto md:block" />
 
       {/* Accessible live region for screen reader announcements */}
       <div
