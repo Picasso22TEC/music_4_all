@@ -38,3 +38,6 @@ export * from './SignFrame'
 
 // ── Fase 15 (escena decorativa) — planta de interior en la esquina ────────────
 export * from './PottedPlant'
+
+// ── Fase 15 (escena decorativa) — altavoz vintage ──────────────────────────────
+export * from './VintageSpeaker'

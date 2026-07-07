@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 
 import type { Album, AudioQuality } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
-import { AudioWaves, Button, Modal, PottedPlant, QualitySelector } from '@/shared/ui'
+import { AudioWaves, Button, Modal, PottedPlant, QualitySelector, VintageSpeaker } from '@/shared/ui'
 import { cn } from '@/shared/lib/cn'
 
 import { useAuthStore } from '@/features/auth'
@@ -218,6 +218,10 @@ export default function DashboardClient() {
       {/* Planta de interior (Fase 15) — utilería en la esquina, delante del
           skyline del ecualizador pero siempre tras el contenido (-z-10) */}
       <PottedPlant className="absolute bottom-0 right-6 -z-10 hidden h-40 w-auto sm:block" />
+
+      {/* Altavoz vintage (Fase 15) — utilería en la esquina opuesta, misma
+          línea de suelo que el ecualizador y la planta */}
+      <VintageSpeaker className="absolute bottom-0 left-6 -z-10 hidden h-36 w-auto sm:block" />
 
       {/* Accessible live region for screen reader announcements */}
       <div
