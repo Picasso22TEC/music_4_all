@@ -95,6 +95,11 @@
   --glow-error:    0 0 8px 0 rgba(232,64,64,0.35);
   --glow-success:  0 0 8px 0 rgba(57,211,83,0.30);
   --glow-download: 0 0 8px 0 rgba(59,130,246,0.35);
+  --glow-queue:    0 0 8px 0 rgba(139,92,246,0.40), 0 0 24px 0 rgba(139,92,246,0.15);
+  --glow-panel:    0 -4px 16px -4px rgba(0,201,167,0.12);
+
+  /* ── Textura de retícula técnica (rediseño neón — fondo del grid) ──────── */
+  --texture-grid-line: rgba(0, 201, 167, 0.05);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -164,6 +169,62 @@
   .glow-error    { box-shadow: var(--glow-error); }
   .glow-success  { box-shadow: var(--glow-success); }
   .glow-download { box-shadow: var(--glow-download); }
+  .glow-queue    { box-shadow: var(--glow-queue); }
+
+  /* Retícula técnica teal — fondo decorativo del grid de resultados.
+     Dos familias de líneas (horizontal/vertical) de 1px cada 24px, con
+     máscara radial para desvanecer los bordes. Solo ambientación: la capa
+     que la use debe ser aria-hidden + pointer-events-none. */
+  .texture-grid {
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        var(--texture-grid-line) 0px,
+        var(--texture-grid-line) 1px,
+        transparent 1px,
+        transparent 24px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        var(--texture-grid-line) 0px,
+        var(--texture-grid-line) 1px,
+        transparent 1px,
+        transparent 24px
+      );
+    -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 45%, black 55%, transparent 100%);
+    mask-image: radial-gradient(ellipse 90% 85% at 50% 45%, black 55%, transparent 100%);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   AudioWaves — desfases del ecualizador decorativo (rediseño neón Dashboard)
+   Cada barra lleva la utilidad Tailwind animate-audio-wave (que emite los
+   @keyframes); aquí solo se reparten delays/duraciones por nth-child para que
+   las barras no respiren al unísono. 100% CSS: cero JS por frame.
+───────────────────────────────────────────────────────────────────────────── */
+
+.audio-waves span {
+  transform-origin: bottom;
+}
+
+.audio-waves span:nth-child(2n) {
+  animation-delay: -0.4s;
+  animation-duration: 1.9s;
+}
+
+.audio-waves span:nth-child(3n) {
+  animation-delay: -0.9s;
+  animation-duration: 1.4s;
+}
+
+.audio-waves span:nth-child(5n) {
+  animation-delay: -1.2s;
+  animation-duration: 2.2s;
+}
+
+.audio-waves span:nth-child(7n) {
+  animation-delay: -0.6s;
+  animation-duration: 1.7s;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
