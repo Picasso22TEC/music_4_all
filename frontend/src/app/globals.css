@@ -100,6 +100,12 @@
 
   /* ── Textura de retícula técnica (rediseño neón — fondo del grid) ──────── */
   --texture-grid-line: rgba(0, 201, 167, 0.05);
+
+  /* ── Textura de estantería (Fase 15 — madera oscura tras las vinyl cards) ─ */
+  --texture-shelf-board:  rgba(112, 72, 42, 0.22);
+  --texture-shelf-grain:  rgba(112, 72, 42, 0.10);
+  --texture-shelf-edge:   rgba(232, 239, 245, 0.06);
+  --texture-shelf-shadow: rgba(0, 0, 0, 0.32);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -190,6 +196,35 @@
         var(--texture-grid-line) 1px,
         transparent 1px,
         transparent 24px
+      );
+    -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 45%, black 55%, transparent 100%);
+    mask-image: radial-gradient(ellipse 90% 85% at 50% 45%, black 55%, transparent 100%);
+  }
+
+  /* Estantería de madera oscura — Fase 15, tras las vinyl cards.
+     Tablones horizontales abstractos (canto iluminado de 1px + tablón + sombra
+     que se desvanece por debajo) cada 118px, con veta vertical sutil. Estática
+     (cero animación) y con la misma máscara radial que .texture-grid; la capa
+     que la use debe ser aria-hidden + pointer-events-none. */
+  .texture-shelf {
+    background-image:
+      repeating-linear-gradient(
+        180deg,
+        transparent 0px,
+        transparent 104px,
+        var(--texture-shelf-edge) 104px,
+        var(--texture-shelf-edge) 105px,
+        var(--texture-shelf-board) 105px,
+        var(--texture-shelf-board) 112px,
+        var(--texture-shelf-shadow) 112px,
+        transparent 122px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        var(--texture-shelf-grain) 0px,
+        var(--texture-shelf-grain) 1px,
+        transparent 1px,
+        transparent 48px
       );
     -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 45%, black 55%, transparent 100%);
     mask-image: radial-gradient(ellipse 90% 85% at 50% 45%, black 55%, transparent 100%);
