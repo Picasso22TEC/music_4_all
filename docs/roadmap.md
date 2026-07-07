@@ -12,7 +12,7 @@ Estado de pendientes, deuda técnica, mejoras futuras y riesgos conocidos, basad
 - **`/library` y `/settings`** (`(app)/library/page.tsx`, `(app)/settings/page.tsx`) son placeholders (`return null`) — sin implementación.
 - **`AlbumDetailPanel`** (Phase 6C) no está conectado — `handleOpenAlbum` en `DashboardClient.tsx` solo hace `console.info`.
 - **RM-03 (sesión vía cookie httpOnly)**: `middleware.ts` tiene el scaffolding (`PROTECTED_PATHS`, `AUTH_PATHS`, `matcher`) pero el cuerpo no aplica redirecciones — la protección de rutas es 100% client-side (rehidratación de `auth.store`). Pendiente: backend debe emitir cookie `session_id` httpOnly y el middleware debe activarse.
-- **Rediseño "neón retro 90s"**: **Login y Dashboard implementados** (Login: commits `b90cee5`/`a23a8f9`; Dashboard: rama `feat/dashboard-neon-retro`, 2026-07-06 — incluye navegación móvil UX-03 y transición cross-layout). Solo queda la escena decorativa iterativa (Fase 15). Ver sección 3.
+- **Rediseño "neón retro 90s"**: **Login, Dashboard y escena decorativa implementados** (Login: commits `b90cee5`/`a23a8f9`; Dashboard: rama `feat/dashboard-neon-retro`, 2026-07-06 — incluye navegación móvil UX-03 y transición cross-layout; escena decorativa Fase 15: rama `feat/dashboard-escena-decorativa`, 2026-07-07). Ver sección 3.
 
 > El ítem previo "limpieza de código legacy pendiente" (`src/store/`, `src/components/`, `src/hooks/`, `src/lib/`, carpetas de ruta vacías) **ya no aplica**: esos directorios no existen — el frontend está 100% en FSD.
 
@@ -67,7 +67,7 @@ Estado de pendientes, deuda técnica, mejoras futuras y riesgos conocidos, basad
 > - **Navegación móvil (UX-03 cerrado)**: drawer `MobileNav` reutilizando `SidebarContent` extraído (sin duplicar NAV_ITEMS), focus trap compartido (`shared/hooks/useFocusTrap`, extraído de Modal), Escape/backdrop/navegación cierran, foco devuelto al trigger; trigger compuesto en `AppHeader` vía prop `menuSlot` (sin cross-imports entre widgets).
 > - **Transición cross-layout Login→Dashboard**: overlay one-shot en el root layout disparado por store transitorio (`auth-transition.store`, sin persist) — sin flashes falsos en recovery/rehidratación.
 >
-> Pendiente del rediseño: escena decorativa completa (Fase 15 del plan, iterativa/opcional). Lo siguiente documenta el análisis previo que guió la implementación.
+> **Fase 15 — escena decorativa (IMPLEMENTADA, 2026-07-07, rama `feat/dashboard-escena-decorativa`)**: seis incrementos, cada uno con gates propios (lint + build + 98 Vitest + 21 e2e + verificación visual con screenshots): `SignFrame` (letrero del Sidebar colgado en placa con remaches y cadenas, balanceo solo-rotate), `.texture-shelf` (tablones de madera oscura tras las vinyl cards, tokens `--texture-shelf-*`), `PottedPlant` (sansevieria plana), `VintageSpeaker` (caja acústica), `CassetteStack` (pila desalineada) y `Turntable` (plato girando, CSS puro). Todos aria-hidden + pointer-events-none, sin stores/WS, solo transform/opacity y `useReducedMotion`; sin glow nuevo (el acento synthwave de cada vista se mantiene único). Lo siguiente documenta el análisis previo que guió la implementación.
 
 Analizado en sesión previa: veredicto "capa visual compatible si se aplica por fases, no un reemplazo total". Orden recomendado de implementación: D → A → F → C → B → G → E (decoración/partículas primero, integraciones más invasivas al final). Requiere:
 - Nuevo componente `NeonParticles` (reutilizable también en Login).
