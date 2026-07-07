@@ -11,6 +11,12 @@ import { cn } from '@/shared/lib/cn'
 export interface NeonTitleProps {
   children: React.ReactNode
   className?: string
+  /**
+   * 'chaotic' — parpadeo caótico por letra (letrero del Login).
+   * 'stable' — tubos encendidos fijos con glow, sin loops de animación
+   *            (brand del Sidebar: visible en toda sesión, cero coste continuo).
+   */
+  variant?: 'chaotic' | 'stable'
 }
 
 // ─── Paleta (FRONTEND_VISION.md §1.2-A) — neón morado/rosa "moribundo" ───────
@@ -160,16 +166,49 @@ function NeonLetter({ char, color, index }: { char: string; color: string; index
   )
 }
 
+// ─── Letra estática — tubo encendido fijo, sin ciclo de vida ──────────────────
+// Componente separado (no un condicional dentro de NeonLetter) para no
+// condicionar hooks (rules of hooks). Sin framer: cero coste de animación.
+
+function StaticNeonLetter({ char, color }: { char: string; color: string }) {
+  if (char === ' ') {
+    return (
+      <span aria-hidden="true" className="inline-block whitespace-pre">
+        {char}
+      </span>
+    )
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-block"
+      style={{
+        color: 'transparent',
+        WebkitTextStroke: `1px ${color}`,
+        textShadow: glowFor(color),
+        opacity: BASE_BRIGHT,
+      }}
+    >
+      {char}
+    </span>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function NeonTitle({ children, className }: NeonTitleProps) {
+export function NeonTitle({ children, className, variant = 'chaotic' }: NeonTitleProps) {
   const text = typeof children === 'string' ? children : String(children)
 
   return (
     <span aria-hidden="true" className={cn('inline-block font-neon leading-none', className)}>
-      {text.split('').map((char, index) => (
-        <NeonLetter key={`${index}-${char}`} char={char} color={colorFor(index)} index={index} />
-      ))}
+      {text.split('').map((char, index) =>
+        variant === 'stable' ? (
+          <StaticNeonLetter key={`${index}-${char}`} char={char} color={colorFor(index)} />
+        ) : (
+          <NeonLetter key={`${index}-${char}`} char={char} color={colorFor(index)} index={index} />
+        ),
+      )}
     </span>
   )
 }

@@ -13,6 +13,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
+import { NeonTitle } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
 
 // ─── Navigation items (wireframes §15) ───────────────────────────────────────
@@ -62,12 +63,16 @@ export function Sidebar() {
         'hidden lg:flex',
       )}
     >
-      {/* ── Brand ─────────────────────────────────────────────────────── */}
+      {/* ── Brand — el letrero de la tienda visto desde dentro ─────────────
+          NeonTitle stable: mismos tubos morado/rosa del Login, encendido fijo
+          (sin parpadeo — visible en toda sesión). NeonTitle es aria-hidden:
+          el span sr-only preserva el nombre accesible del brand. */}
       <div className="flex shrink-0 items-center gap-2 border-b border-subtle px-4 h-header">
         <Disc3 aria-hidden="true" className="h-4 w-4 text-teal-500" />
-        <span className="select-none font-mono text-sm font-bold tracking-widest text-teal-500">
+        <NeonTitle variant="stable" className="select-none text-sm tracking-wide">
           MUSIC 4 ALL
-        </span>
+        </NeonTitle>
+        <span className="sr-only">MUSIC 4 ALL</span>
       </div>
 
       {/* ── Navigation list ────────────────────────────────────────────── */}
