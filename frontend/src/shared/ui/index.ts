@@ -29,3 +29,6 @@ export * from './RetroDisplay'
 
 // ── Phase 7 (visual transformation) — page transitions ─────────────────────────
 export * from './PageTransition'
+
+// ── Rediseño neón Dashboard — ecualizador decorativo de fondo ─────────────────
+export * from './AudioWaves'

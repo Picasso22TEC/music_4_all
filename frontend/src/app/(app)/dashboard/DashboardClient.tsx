@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 
 import type { Album, AudioQuality } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
-import { Button, Modal, QualitySelector } from '@/shared/ui'
+import { AudioWaves, Button, Modal, QualitySelector } from '@/shared/ui'
 import { cn } from '@/shared/lib/cn'
 
 import { useAuthStore } from '@/features/auth'
@@ -208,7 +208,12 @@ export default function DashboardClient() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="relative isolate flex min-h-full flex-col gap-6 p-6">
+
+      {/* Ecualizador decorativo de fondo — solo Dashboard. El relative va en
+          este root (no contra el motion.div de PageTransition, cuyo transform
+          crea un containing block intermitente durante las transiciones). */}
+      <AudioWaves className="absolute inset-x-0 bottom-0 -z-10 h-40" />
 
       {/* Accessible live region for screen reader announcements */}
       <div
