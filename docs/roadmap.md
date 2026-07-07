@@ -12,7 +12,7 @@ Estado de pendientes, deuda técnica, mejoras futuras y riesgos conocidos, basad
 - **`/library` y `/settings`** (`(app)/library/page.tsx`, `(app)/settings/page.tsx`) son placeholders (`return null`) — sin implementación.
 - **`AlbumDetailPanel`** (Phase 6C) no está conectado — `handleOpenAlbum` en `DashboardClient.tsx` solo hace `console.info`.
 - **RM-03 (sesión vía cookie httpOnly)**: `middleware.ts` tiene el scaffolding (`PROTECTED_PATHS`, `AUTH_PATHS`, `matcher`) pero el cuerpo no aplica redirecciones — la protección de rutas es 100% client-side (rehidratación de `auth.store`). Pendiente: backend debe emitir cookie `session_id` httpOnly y el middleware debe activarse.
-- **Rediseño "neón retro 90s"**: el **Login ya está implementado** (letrero neón Monoton "moribundo", commits `b90cee5`/`a23a8f9`); el **Dashboard sigue pendiente**. Ver sección 3.
+- **Rediseño "neón retro 90s"**: **Login y Dashboard implementados** (Login: commits `b90cee5`/`a23a8f9`; Dashboard: rama `feat/dashboard-neon-retro`, 2026-07-06 — incluye navegación móvil UX-03 y transición cross-layout). Solo queda la escena decorativa iterativa (Fase 15). Ver sección 3.
 
 > El ítem previo "limpieza de código legacy pendiente" (`src/store/`, `src/components/`, `src/hooks/`, `src/lib/`, carpetas de ruta vacías) **ya no aplica**: esos directorios no existen — el frontend está 100% en FSD.
 
@@ -58,6 +58,17 @@ Estado de pendientes, deuda técnica, mejoras futuras y riesgos conocidos, basad
 ## 3. Mejoras futuras (analizadas, no implementadas)
 
 ### 3.1 Rediseño visual "tienda de discos nocturna de los 90" — Dashboard
+> **IMPLEMENTADO (2026-07-06, rama `feat/dashboard-neon-retro`)**: rediseño completado end-to-end respetando las restricciones (WS singleton intacto, decorativos sin stores, `prefers-reduced-motion`, WCAG 2.3.1, contrato e2e). Entregado:
+> - **Tokens/keyframes**: `glow-queue`/`glow-panel(-active)`, `laser-scan`, `audio-wave`, utilidad `.texture-grid` (retícula técnica teal, dirección validada con mockups de Google Stitch).
+> - **ProgressBar neón**: variante `queue` (fill violeta + glow en el track) y "respiración" en descargas activas vía overlay cuya opacidad pulsa (solo compositor — gate del skill review-animations; se descartó animar `box-shadow`).
+> - **`AudioWaves`** (`shared/ui`): ecualizador de fondo solo-Dashboard, mulberry32 con semilla fija (SSR-safe), animación 100% CSS con desfases `nth-child`; skyline estático bajo reduced-motion.
+> - **PlayerBar**: barrido láser teal en idle (7s lineal, sin destellos). **DownloadPanel**: borde superior con glow según actividad + **fix** del bug preexistente que dejaba el panel oculto tras el sidebar en lg+ (`lg:left-60`).
+> - **Sidebar**: letrero "MUSIC 4 ALL" en tubos neón morado/rosa modo `stable` (sin parpadeo, cero animación permanente; `NeonTitle` ganó la prop `variant`).
+> - **Navegación móvil (UX-03 cerrado)**: drawer `MobileNav` reutilizando `SidebarContent` extraído (sin duplicar NAV_ITEMS), focus trap compartido (`shared/hooks/useFocusTrap`, extraído de Modal), Escape/backdrop/navegación cierran, foco devuelto al trigger; trigger compuesto en `AppHeader` vía prop `menuSlot` (sin cross-imports entre widgets).
+> - **Transición cross-layout Login→Dashboard**: overlay one-shot en el root layout disparado por store transitorio (`auth-transition.store`, sin persist) — sin flashes falsos en recovery/rehidratación.
+>
+> Pendiente del rediseño: escena decorativa completa (Fase 15 del plan, iterativa/opcional). Lo siguiente documenta el análisis previo que guió la implementación.
+
 Analizado en sesión previa: veredicto "capa visual compatible si se aplica por fases, no un reemplazo total". Orden recomendado de implementación: D → A → F → C → B → G → E (decoración/partículas primero, integraciones más invasivas al final). Requiere:
 - Nuevo componente `NeonParticles` (reutilizable también en Login).
 - Extensión de `tailwind.config.ts` con paleta neón (mapeada sobre tokens `teal-*`/`synthwave-*`/`semantic-*` existentes donde sea posible).

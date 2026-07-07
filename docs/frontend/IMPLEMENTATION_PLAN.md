@@ -1,5 +1,14 @@
 # Implementation Plan — "Tienda de Discos Neón Nocturna" — Music 4 All
 
+> **ESTADO (2026-07-06) — REDISEÑO COMPLETADO.** Login y Dashboard implementados; este documento queda como registro de planificación. Estado real por fase, en la rama `feat/dashboard-neon-retro`:
+>
+> - **Hechas tal como se planearon**: Fase 0 (fundaciones/reduced-motion), 1 (Button `neon`), 2–4 y 8, 11–13 (Login completo), 5 (`NeonParticles`), 7 (ProgressBar neón), 9 (Vinyl Card como skin de `AlbumCard`), 10 (láseres PlayerBar), 6 (`AudioWaves`).
+> - **Desviaciones deliberadas**: la fuente del letrero es **Monoton** (no Press Start 2P — decisión de usuario, ver `roadmap.md` §3.2); `AudioWaves` se monta en `DashboardClient` (la página es dueña de su escena), no en el shell; la "respiración" del ProgressBar pulsa la **opacidad de un overlay con glow** (no `box-shadow` directo — estándar de performance: solo compositor); el glow de cola vive en el **track** (el fill a 0% sería invisible).
+> - **Fase 14 (cross-layout)**: implementada con un **store transitorio** (`auth-transition.store`, sin persist) disparado por LoginForm — no se infiere de `auth.store` (evita flashes falsos en recovery/rehidratación). `PageTransition` por ruta ya existía. El shell y el WS singleton no se tocaron.
+> - **Alcance adicional no previsto aquí**: letrero neón estable en el Sidebar (`NeonTitle variant="stable"`), **drawer de navegación móvil** (cierra UX-03, reutiliza `SidebarContent`), textura de retícula tras el grid (validada con mockups de Google Stitch), glow del borde del DownloadPanel por actividad, y fix del panel oculto tras el sidebar (`lg:left-60`).
+> - **Fase 15 (escena decorativa completa)**: sigue pendiente/iterativa, única fase no ejecutada.
+> - Nota: las menciones "no hay test runner de frontend" en fases antiguas están obsoletas — existe Vitest (98 tests) + Playwright e2e (21 specs), ver `roadmap.md` §2.5.
+
 Roadmap de ejecución para `FRONTEND_VISION.md`, usando los tokens/normas de `DESIGN_SYSTEM_VISION.md`. Cada fase es incremental, autocontenida y validable de forma independiente con `pnpm lint` + `pnpm build` + QA manual (descarga activa, WebSocket, historial, autenticación) antes de pasar a la siguiente.
 
 **Orden**: combina el orden recomendado de los dos análisis previos (Dashboard: D→A→F→C→B→G→E; Login: D→B→error→C→A→E→F→puerta→cross-layout→escena) en una sola secuencia, con una fase 0 de fundaciones que bloquea todo lo que introduce animación continua.
