@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { cn } from '@/shared/lib/cn'
+import { useFocusTrap } from '@/shared/hooks/useFocusTrap'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -46,32 +47,6 @@ const panelV = {
   hidden:  { opacity: 0, scale: 0.96 },
   visible: { opacity: 1, scale: 1,   transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] } },
   exit:    { opacity: 0, scale: 0.96, transition: { duration: 0.15, ease: 'easeIn' } },
-}
-
-// ─── Focus trap helper ────────────────────────────────────────────────────────
-
-const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
-
-function useFocusTrap(ref: React.RefObject<HTMLElement>, active: boolean) {
-  useEffect(() => {
-    if (!active || !ref.current) return
-    const el = ref.current
-    const items = el.querySelectorAll<HTMLElement>(FOCUSABLE)
-    const first = items[0]
-    const last  = items[items.length - 1]
-    first?.focus()
-
-    const trap = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return
-      if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last?.focus() }
-      } else {
-        if (document.activeElement === last)  { e.preventDefault(); first?.focus() }
-      }
-    }
-    document.addEventListener('keydown', trap)
-    return () => document.removeEventListener('keydown', trap)
-  }, [ref, active])
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

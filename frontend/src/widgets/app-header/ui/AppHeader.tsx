@@ -31,9 +31,18 @@ const SESSION_BADGE: Record<string, SessionBadgeConfig> = {
   unauthenticated: { variant: 'status-error', label: 'OFFLINE' },
 }
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+export interface AppHeaderProps {
+  /** Slot para el trigger de navegación móvil (MobileNav). La capa app compone
+   *  ambos widgets — AppHeader no importa nada del sidebar (FSD: sin
+   *  cross-imports entre widgets). */
+  menuSlot?: React.ReactNode
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AppHeader() {
+export function AppHeader({ menuSlot }: AppHeaderProps) {
   const pathname   = usePathname() ?? ''
   const status     = useAuthStore((s) => s.status)
 
@@ -56,10 +65,13 @@ export function AppHeader() {
         'h-header px-6',
       )}
     >
-      {/* Left: dynamic page title */}
-      <h1 className="font-mono text-lg font-semibold leading-none text-primary">
-        {pageTitle}
-      </h1>
+      {/* Left: mobile menu trigger (only < lg) + dynamic page title */}
+      <div className="flex items-center gap-2">
+        {menuSlot}
+        <h1 className="font-mono text-lg font-semibold leading-none text-primary">
+          {pageTitle}
+        </h1>
+      </div>
 
       {/* Right: Tidal session status */}
       <div className="flex items-center gap-3" aria-label="Session status">

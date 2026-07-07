@@ -4,7 +4,7 @@ import { SessionRecoveryModal } from '@/features/auth'
 import { AppHeader } from '@/widgets/app-header'
 import { DownloadPanel } from '@/widgets/download-panel'
 import { PlayerBar } from '@/widgets/player-bar'
-import { Sidebar } from '@/widgets/sidebar'
+import { MobileNav, Sidebar } from '@/widgets/sidebar'
 
 import { AnimatedMain } from './AnimatedMain'
 
@@ -51,8 +51,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/*  lg:ml-60 = 240px = w-sidebar (16 × 15 = 240px in Tailwind) */}
       <div className="flex h-full flex-col overflow-hidden lg:ml-60">
 
-        {/* Sticky header */}
-        <AppHeader />
+        {/* Sticky header — la capa app compone AppHeader + MobileNav (UX-03):
+            los widgets no se importan entre sí (dirección FSD) */}
+        <AppHeader menuSlot={<MobileNav />} />
 
         {/* Scrollable page content — client boundary, owns page transitions (Fase 7) */}
         {/*  pb-20 = 80px = h-player, clears the fixed PlayerBar */}
