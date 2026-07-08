@@ -136,6 +136,14 @@ async def _process_job(
     last_file_path = None
     loop = asyncio.get_running_loop()
 
+    # Throttle progress publishing. TidalDownloader's per-chunk callback fires
+    # ~150×/s; publishing each one floods Redis (two PUBLISH per event) and
+    # balloons the connection pool. One update per whole-percent step (or every
+    # 0.5 s while stalled) is smooth in the UI and cheap. Shared across tracks so
+    # the cap is per job, not per track. Only the worker's download thread reads
+    # and writes it, and tracks download sequentially, so no locking is needed.
+    last_pub = {"t": 0.0, "pct": -1}
+
     for i, track in enumerate(tracks):
         # Pause: block between tracks until resumed or cancelled.
         while ctrl.pause_event.is_set():
@@ -152,7 +160,14 @@ async def _process_job(
         def make_cb(idx: int, name: str, n_done: int):
             def cb(p: float) -> None:
                 ovr = round((idx + p) / total * 100, 1)
-                elapsed = time.monotonic() - start_time
+                now = time.monotonic()
+                # Throttle: emit only when the whole-percent step advances, or at
+                # least every 0.5 s so a slow/stalled track still ticks.
+                if int(ovr) == last_pub["pct"] and now - last_pub["t"] < 0.5:
+                    return
+                last_pub["pct"] = int(ovr)
+                last_pub["t"] = now
+                elapsed = now - start_time
                 # Linear ETA from elapsed time and overall progress.
                 # speed_mbps stays 0.0 — no byte-count data available from TidalDownloader.
                 eta = round(elapsed * (100.0 - ovr) / ovr) if ovr > 0.0 else 0
