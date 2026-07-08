@@ -40,6 +40,8 @@ export interface DownloadJobItemProps {
   onPause:   (jobId: string) => void
   onResume:  (jobId: string) => void
   onRemove:  (jobId: string) => void
+  /** Play this completed single-track download in the PlayerBar. */
+  onPlay?:   (job: DownloadJob) => void
   /**
    * Opens SessionRecoveryModal for this job.
    * Shown when error.code is 401 or 403 (session expired).
@@ -61,6 +63,7 @@ export function DownloadJobItem({
   onPause,
   onResume,
   onRemove,
+  onPlay,
   onCheckSession,
 }: DownloadJobItemProps) {
   // Auto-remove completed jobs after 10s (wireframes §11)
@@ -112,6 +115,18 @@ export function DownloadJobItem({
 
         {/* Action buttons */}
         <div className="flex shrink-0 items-center gap-1">
+          {/* Play — only for a completed single-track download (albums are ZIPs) */}
+          {isCompleted && job.totalTracks === 1 && onPlay && (
+            <Button
+              type="button"
+              variant="icon-only"
+              size="sm"
+              onClick={() => onPlay(job)}
+              aria-label={`Play: ${job.albumTitle}`}
+            >
+              <Play aria-hidden="true" className="h-4 w-4 text-teal-500" />
+            </Button>
+          )}
           {isActive && (
             <Button
               type="button"

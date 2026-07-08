@@ -1,6 +1,9 @@
 export function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
+  // Floor to whole seconds — callers may pass a fractional currentTime from the
+  // <audio> element, and duration is NaN until its metadata loads.
+  const total = Number.isFinite(seconds) ? Math.floor(seconds) : 0
+  const m = Math.floor(total / 60)
+  const s = total % 60
   return `${m}:${String(s).padStart(2, '0')}`
 }
 

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { SessionRecoveryModal } from '@/features/auth'
+import { AudioController } from '@/features/player'
 import { AppHeader } from '@/widgets/app-header'
 import { DownloadPanel } from '@/widgets/download-panel'
 import { PlayerBar } from '@/widgets/player-bar'
@@ -72,6 +73,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* ── Player bar — fixed bottom ──────────────────────────────── */}
       {/*  Rendered outside the column so it spans full viewport width */}
       <PlayerBar />
+
+      {/* ── Audio engine — the single <audio> element (hidden); PlayerBar
+          is its UI. Mounted here so playback survives route changes. ── */}
+      <AudioController />
 
     </div>
   )

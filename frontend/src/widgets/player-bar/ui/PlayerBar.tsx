@@ -1,31 +1,34 @@
 'use client'
 
 import Image from 'next/image'
-import { CircleSlash, Music } from 'lucide-react'
+import { CircleSlash, Music, Pause, Play, Volume2 } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { formatDuration } from '@/shared/lib/format'
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
-import { ProgressBar } from '@/shared/ui/ProgressBar'
 import { usePlayerStore } from '@/features/player'
 
 // ─── Component (wireframes §16) ───────────────────────────────────────────────
 
 export function PlayerBar() {
-  const currentTrack  = usePlayerStore((s) => s.currentTrack)
+  const current       = usePlayerStore((s) => s.current)
   const isPlaying     = usePlayerStore((s) => s.isPlaying)
   const progressSec   = usePlayerStore((s) => s.progressSeconds)
+  const durationSec   = usePlayerStore((s) => s.durationSeconds)
   const volume        = usePlayerStore((s) => s.volume)
+  const toggle        = usePlayerStore((s) => s.toggle)
+  const seek          = usePlayerStore((s) => s.seek)
+  const setVolume     = usePlayerStore((s) => s.setVolume)
   const reducedMotion = useReducedMotion()
 
-  const progressPercent = currentTrack
-    ? Math.min(100, Math.max(0, Math.round((progressSec / currentTrack.durationSeconds) * 100)))
-    : 0
+  const hasTrack = current !== null
+  const max = durationSec > 0 ? durationSec : 0
+  const progressPercent = max > 0 ? Math.min(100, Math.max(0, (progressSec / max) * 100)) : 0
 
   return (
     <div
       role="region"
-      aria-label="Reproductor de audio — próximamente"
+      aria-label="Audio player"
       className={cn(
         // Position — fixed bottom, full width (wireframes §16 — z-sticky:200)
         'fixed bottom-0 left-0 right-0',
@@ -38,10 +41,9 @@ export function PlayerBar() {
     >
       {/* ── Láseres ambientales en idle ─────────────────────────────────
           Barrido teal continuo (7s lineal — sin destellos, WCAG 2.3.1)
-          mientras no hay pista activa. currentTrack ya se lee arriba: no es
-          una suscripción nueva. El root es fixed: ya actúa como containing
-          block para esta capa. */}
-      {!currentTrack && !reducedMotion && (
+          mientras no hay pista activa. El root es fixed: ya actúa como
+          containing block para esta capa. */}
+      {!hasTrack && !reducedMotion && (
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -59,10 +61,10 @@ export function PlayerBar() {
         aria-hidden="true"
         className="shrink-0 h-12 w-12 overflow-hidden rounded-sm bg-surface-rack flex items-center justify-center"
       >
-        {currentTrack?.coverUrl ? (
+        {current?.coverUrl ? (
           <Image
-            src={currentTrack.coverUrl}
-            alt={`Cover for ${currentTrack.albumTitle} by ${currentTrack.artist.name}`}
+            src={current.coverUrl}
+            alt=""
             width={48}
             height={48}
             className="h-full w-full object-cover"
@@ -74,9 +76,8 @@ export function PlayerBar() {
 
       {/* ── Track info ──────────────────────────────────────────────── */}
       <div className="min-w-0 flex-1">
-        {currentTrack ? (
+        {current ? (
           <>
-            {/* Title with active indicator dot */}
             <div className="flex items-center gap-1.5">
               {isPlaying && (
                 <span
@@ -88,16 +89,19 @@ export function PlayerBar() {
                 className="truncate font-sans text-sm font-medium text-primary"
                 aria-live="polite"
                 aria-atomic="true"
-                aria-label={`Now playing: ${currentTrack.title}`}
+                aria-label={`Now playing: ${current.title}`}
               >
-                {currentTrack.title}
+                {current.title}
               </p>
             </div>
-            {/* Artist · Album */}
             <p className="truncate font-sans text-xs text-secondary">
-              {currentTrack.artist.name}
-              <span aria-hidden="true"> · </span>
-              {currentTrack.albumTitle}
+              {current.artist}
+              {current.album && (
+                <>
+                  <span aria-hidden="true"> · </span>
+                  {current.album}
+                </>
+              )}
             </p>
           </>
         ) : (
@@ -112,52 +116,64 @@ export function PlayerBar() {
         )}
       </div>
 
-      {/* ── Progress (md+) ──────────────────────────────────────────── */}
-      <div
-        className="hidden md:flex w-40 shrink-0 flex-col items-center gap-1"
-        aria-label="Track progress"
+      {/* ── Play / pause ────────────────────────────────────────────── */}
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={!hasTrack}
+        aria-label={isPlaying ? 'Pause' : 'Play'}
+        className={cn(
+          'shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full',
+          'bg-teal-500 text-surface-void',
+          'transition-transform duration-150 ease-out active:scale-95',
+          'hover:bg-teal-400 focus-visible:outline-none focus-visible:shadow-glow-focus',
+          'disabled:cursor-not-allowed disabled:bg-surface-rack disabled:text-disabled',
+        )}
       >
-        <ProgressBar
-          value={progressPercent}
-          variant={isPlaying ? 'download' : 'default'}
-          size="sm"
-          animated={isPlaying}
-          label={`Track progress: ${progressPercent}%`}
+        {isPlaying ? (
+          <Pause aria-hidden="true" className="h-4 w-4" />
+        ) : (
+          <Play aria-hidden="true" className="h-4 w-4 translate-x-px" />
+        )}
+      </button>
+
+      {/* ── Seek bar + times (md+) ──────────────────────────────────── */}
+      <div className="hidden md:flex w-56 shrink-0 items-center gap-2">
+        <span className="w-9 text-right font-mono text-xs text-secondary tabular-nums">
+          {formatDuration(progressSec)}
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={max || 100}
+          step={1}
+          value={Math.min(progressSec, max || 0)}
+          onChange={(e) => seek(Number(e.currentTarget.value))}
+          disabled={!hasTrack || max === 0}
+          aria-label="Seek"
+          className="player-range h-1 flex-1"
+          style={{ ['--range-fill' as string]: `${progressPercent}%` }}
         />
-
-        {/* Elapsed / Total */}
-        <div className="flex items-center gap-2 font-mono text-xs text-secondary">
-          <span aria-label={`${formatDuration(progressSec)} elapsed`}>
-            {formatDuration(progressSec)}
-          </span>
-          <span aria-hidden="true">/</span>
-          <span
-            aria-label={
-              currentTrack
-                ? `${formatDuration(currentTrack.durationSeconds)} total`
-                : ''
-            }
-          >
-            {currentTrack ? formatDuration(currentTrack.durationSeconds) : '0:00'}
-          </span>
-        </div>
-      </div>
-
-      {/* ── Volume indicator (lg+) ──────────────────────────────────── */}
-      <div className="hidden lg:flex shrink-0 items-center gap-1" aria-label="Volume">
-        <span aria-hidden="true" className="font-mono text-xs text-disabled">Vol:</span>
-        <span className="font-mono text-xs text-secondary w-8 text-right">
-          {Math.round(volume * 100)}%
+        <span className="w-9 font-mono text-xs text-secondary tabular-nums">
+          {formatDuration(max)}
         </span>
       </div>
 
-      {/* ── "Próximamente" badge — reproducción real aún no implementada (TD-12) ── */}
-      <span
-        aria-hidden="true"
-        className="hidden sm:inline-flex shrink-0 items-center rounded-full border border-subtle bg-surface-rack px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-disabled"
-      >
-        Próximamente
-      </span>
+      {/* ── Volume (lg+) ────────────────────────────────────────────── */}
+      <div className="hidden lg:flex shrink-0 items-center gap-2" aria-label="Volume">
+        <Volume2 aria-hidden="true" className="h-4 w-4 text-disabled" />
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={volume}
+          onChange={(e) => setVolume(Number(e.currentTarget.value))}
+          aria-label="Volume"
+          className="player-range h-1 w-20"
+          style={{ ['--range-fill' as string]: `${Math.round(volume * 100)}%` }}
+        />
+      </div>
     </div>
   )
 }

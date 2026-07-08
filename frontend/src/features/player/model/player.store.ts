@@ -1,76 +1,73 @@
 import { create } from 'zustand'
 
-import type { Track } from '@/entities'
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+/**
+ * A playable source for the audio player. Built from a completed download
+ * (see DownloadPanel) — `src` is the streaming URL of the downloaded file.
+ */
+export interface PlayerTrack {
+  id: string
+  title: string
+  artist: string
+  album?: string
+  coverUrl?: string | null
+  /** Audio URL fed to the <audio> element (e.g. /api/download/file/{jobId}). */
+  src: string
+}
 
 interface PlayerState {
-  currentTrack: Track | null
+  current: PlayerTrack | null
   isPlaying: boolean
   progressSeconds: number
-  volume: number          // 0–1
-  queue: Track[]
-  queueIndex: number
+  /** From the <audio> element's loadedmetadata — 0 until known. */
+  durationSeconds: number
+  volume: number // 0–1
 }
 
 interface PlayerActions {
-  play: (track: Track, queue?: Track[]) => void
+  play: (track: PlayerTrack) => void
+  toggle: () => void
   pause: () => void
   resume: () => void
-  next: () => void
-  previous: () => void
   seek: (seconds: number) => void
   setVolume: (v: number) => void
   setProgress: (seconds: number) => void
+  setDuration: (seconds: number) => void
+  stop: () => void
 }
 
-export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => ({
-  currentTrack: null,
+// ─── Store ────────────────────────────────────────────────────────────────────
+//
+// Pure state. The actual playback lives in AudioController, which owns the one
+// <audio> element, applies this state to it, and writes progress/duration back.
+
+export const usePlayerStore = create<PlayerState & PlayerActions>((set) => ({
+  current: null,
   isPlaying: false,
   progressSeconds: 0,
+  durationSeconds: 0,
   volume: 0.8,
-  queue: [],
-  queueIndex: 0,
 
-  play: (track, queue) => {
-    const effectiveQueue = queue ?? [track]
-    set({
-      currentTrack: track,
-      isPlaying: true,
-      progressSeconds: 0,
-      queue: effectiveQueue,
-      queueIndex: effectiveQueue.findIndex((t) => t.id === track.id),
-    })
-  },
+  play: (track) =>
+    set({ current: track, isPlaying: true, progressSeconds: 0, durationSeconds: 0 }),
 
+  toggle: () => set((s) => (s.current ? { isPlaying: !s.isPlaying } : {})),
   pause: () => set({ isPlaying: false }),
-  resume: () => set({ isPlaying: true }),
+  resume: () => set((s) => (s.current ? { isPlaying: true } : {})),
 
-  next: () => {
-    const { queue, queueIndex } = get()
-    const next = queueIndex + 1
-    if (next < queue.length) {
-      set({ currentTrack: queue[next], queueIndex: next, progressSeconds: 0 })
-    }
-  },
-
-  previous: () => {
-    const { queue, queueIndex, progressSeconds } = get()
-    if (progressSeconds > 3) {
-      set({ progressSeconds: 0 })
-      return
-    }
-    const prev = queueIndex - 1
-    if (prev >= 0) set({ currentTrack: queue[prev], queueIndex: prev, progressSeconds: 0 })
-  },
-
+  // seek and setProgress both write progressSeconds; AudioController reconciles a
+  // user seek (a large jump from the element's currentTime) vs. the small steps
+  // it reports from timeupdate.
   seek: (progressSeconds) => set({ progressSeconds }),
-  setVolume: (v) => set({ volume: Math.max(0, Math.min(1, v)) }),
   setProgress: (progressSeconds) => set({ progressSeconds }),
+
+  setDuration: (durationSeconds) => set({ durationSeconds }),
+  setVolume: (v) => set({ volume: Math.max(0, Math.min(1, v)) }),
+
+  stop: () => set({ current: null, isPlaying: false, progressSeconds: 0, durationSeconds: 0 }),
 }))
 
-// Selectors
-export const selectIsPlayerActive = (s: PlayerState) => s.isPlaying
-export const selectCurrentTrack = (s: PlayerState) => s.currentTrack
-export const selectProgressPercent = (s: PlayerState): number => {
-  if (!s.currentTrack) return 0
-  return (s.progressSeconds / s.currentTrack.durationSeconds) * 100
-}
+// ─── Selectors ──────────────────────────────────────────────────────────────
+
+export const selectIsPlayerActive = (s: PlayerState): boolean => s.isPlaying

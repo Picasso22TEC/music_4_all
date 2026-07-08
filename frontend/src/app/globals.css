@@ -263,6 +263,78 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   PlayerBar — sliders de seek/volumen (input[type=range]).
+   Pista fina con relleno teal hasta --range-fill; thumb circular pequeño.
+   Cross-browser (WebKit + Firefox). Tokens del Design System.
+───────────────────────────────────────────────────────────────────────────── */
+
+.player-range {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.player-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.player-range:focus-visible {
+  outline: none;
+}
+
+/* WebKit — track pintado con el relleno; el thumb se centra sobre 4px. */
+.player-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--color-teal-500) var(--range-fill, 0%),
+    var(--color-studio) var(--range-fill, 0%)
+  );
+}
+
+.player-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  width: 12px;
+  margin-top: -4px;
+  border-radius: 9999px;
+  background: var(--color-teal-300);
+}
+
+.player-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--glow-focus);
+}
+
+/* Firefox — track + progress + thumb por separado. */
+.player-range::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--color-studio);
+}
+
+.player-range::-moz-range-progress {
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--color-teal-500);
+}
+
+.player-range::-moz-range-thumb {
+  height: 12px;
+  width: 12px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--color-teal-300);
+}
+
+.player-range:focus-visible::-moz-range-thumb {
+  box-shadow: var(--glow-focus);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    Legacy neon utilities — mantenidos para compatibilidad
    NO eliminar hasta que los componentes legacy sean migrados al Design System
 ───────────────────────────────────────────────────────────────────────────── */

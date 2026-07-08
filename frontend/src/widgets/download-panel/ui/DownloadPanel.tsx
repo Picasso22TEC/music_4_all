@@ -6,6 +6,8 @@ import { ArrowDown, ChevronDown, ChevronUp, Loader, RotateCw, X } from 'lucide-r
 import { cn } from '@/shared/lib/cn'
 import { useDownloadActions, useDownloadsStore, useDownloadSocket } from '@/features/downloads'
 import { openSessionRecovery } from '@/features/auth'
+import { usePlayerStore } from '@/features/player'
+import type { DownloadJob } from '@/entities'
 
 import { useDownloadPanel } from '../model/useDownloadPanel'
 import { useDownloadRecovery } from '../model/useDownloadRecovery'
@@ -49,6 +51,17 @@ export function DownloadPanel() {
   /** Manual "Check Session" from DownloadJobItem error state */
   function handleCheckSession(backendJobId: string) {
     openSessionRecovery(backendJobId)
+  }
+
+  /** Play a completed single-track download in the PlayerBar. The backend
+   *  streams the file (with range support) at /download/file/{jobId}. */
+  function handlePlay(job: DownloadJob) {
+    usePlayerStore.getState().play({
+      id:     job.backendJobId,
+      title:  job.albumTitle, // single-track jobs store the track title here
+      artist: job.artistName,
+      src:    `/api/download/file/${job.backendJobId}`,
+    })
   }
 
   // Panel is always mounted so the WS socket stays alive, but renders
@@ -186,6 +199,7 @@ export function DownloadPanel() {
                       onResume={resume}
                       onCancel={cancel}
                       onRemove={removeJob}
+                      onPlay={handlePlay}
                       onCheckSession={handleCheckSession}
                     />
                   </div>
