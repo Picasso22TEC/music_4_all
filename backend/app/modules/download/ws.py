@@ -114,30 +114,49 @@ async def websocket_downloads(websocket: WebSocket) -> None:
     async def relay_redis() -> None:
         """
         Consumes the global progress channel and forwards spec messages.
-        Exits on any exception (WebSocket closed, pubsub error, task cancelled).
+
+        Polls with a short per-call timeout instead of ``pubsub.listen()``: an
+        idle pub/sub read raises redis ``TimeoutError`` (the socket read times
+        out while no job is publishing), and ``async for … in listen()`` lets
+        that bubble up and kill the relay for the whole connection. A WebSocket
+        opened before any download then never receives progress even though its
+        subscription is still live — the job appears stuck in "queued".
+        ``get_message(timeout=…)`` returns ``None`` on an idle tick, so the
+        relay survives quiet periods and keeps forwarding once a job starts.
+        Only a genuinely broken socket (send failure) or task cancellation ends
+        it. Mirrors the resilient loop already used by the legacy per-job WS.
         """
-        try:
-            async for message in pubsub.listen():
-                if not isinstance(message, dict):
-                    continue
-                if message.get("type") != "message":
-                    continue
-                raw_data = message.get("data", "")
-                if not isinstance(raw_data, str):
-                    continue
-                try:
-                    flat: object = json.loads(raw_data)
-                    if isinstance(flat, dict):
-                        spec = flat_to_spec_message(flat)
-                        if spec is not None:
-                            async with send_lock:
-                                await websocket.send_json(spec)
-                except json.JSONDecodeError:
-                    pass
-        except asyncio.CancelledError:
-            pass
-        except Exception:
-            pass
+        while True:
+            try:
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                # Transient pub/sub read hiccup (idle read timeout, etc.) — the
+                # subscription is still valid, so keep the relay alive.
+                await asyncio.sleep(0.1)
+                continue
+
+            if not isinstance(message, dict) or message.get("type") != "message":
+                continue
+            raw_data = message.get("data", "")
+            if not isinstance(raw_data, str):
+                continue
+            try:
+                flat: object = json.loads(raw_data)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(flat, dict):
+                continue
+            spec = flat_to_spec_message(flat)
+            if spec is None:
+                continue
+            try:
+                async with send_lock:
+                    await websocket.send_json(spec)
+            except Exception:
+                # WebSocket closed/broken — stop; the main loop handles teardown.
+                break
 
     relay: asyncio.Task[None] = asyncio.create_task(relay_redis())
 

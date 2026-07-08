@@ -11,6 +11,7 @@ Covers:
 
 from __future__ import annotations
 
+import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock
 
@@ -24,7 +25,12 @@ from app.main import app
 
 
 def _make_pubsub(messages: list[dict] | None = None) -> MagicMock:
-    """Sync-iterable pubsub mock: listen() yields `messages` then stops."""
+    """Pubsub mock: get_message() returns each queued message once, then None.
+
+    Mirrors redis-py's ``PubSub.get_message(timeout=…)`` which returns ``None``
+    on an idle tick (no message) rather than raising — the poll pattern the
+    relay relies on to survive quiet periods.
+    """
     ps = MagicMock()
     ps.subscribe = AsyncMock()
     ps.unsubscribe = AsyncMock()
@@ -32,11 +38,16 @@ def _make_pubsub(messages: list[dict] | None = None) -> MagicMock:
 
     msg_list = list(messages or [])
 
-    async def _listen():
-        for msg in msg_list:
-            yield msg
+    async def _get_message(
+        ignore_subscribe_messages: bool = False, timeout: float | None = None
+    ) -> dict | None:
+        if msg_list:
+            return msg_list.pop(0)
+        # Idle tick: yield control so the socket send/receive can proceed.
+        await asyncio.sleep(0.01)
+        return None
 
-    ps.listen = _listen
+    ps.get_message = _get_message
     return ps
 
 
