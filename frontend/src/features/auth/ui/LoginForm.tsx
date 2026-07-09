@@ -11,7 +11,6 @@ import { Card } from '@/shared/ui/Card'
 import { NeonArcs } from '@/shared/ui/NeonArcs'
 import { NeonTitle } from '@/shared/ui/NeonTitle'
 import { RetroDisplay } from '@/shared/ui/RetroDisplay'
-import { SignFrame } from '@/shared/ui/SignFrame'
 
 // Intra-feature imports — avoid barrel to prevent circular dependency
 import { useAuthStore } from '@/features/auth/model/auth.store'
@@ -170,17 +169,13 @@ export function LoginForm() {
       </div>
 
       {/* ── Brand — neon sign: framed purple/pink tube, chaotic per-letter
-          flicker, and white electric arcs bursting from the tube ends. Hung from
-          rivets + chains (SignFrame, plate=false — the magenta border is its own
-          plate) so it reads as physically suspended, matching the Sidebar sign. */}
+          flicker, and white electric arcs bursting from the tube ends ──────── */}
       <div className="mb-12 flex flex-col items-center text-center">
-        <SignFrame plate={false} chainClassName="h-8 w-2/3 sm:h-12">
-          <div className="relative inline-block rounded-[1.5rem] border-2 border-synthwave-magenta px-4 py-4 shadow-neon-frame sm:px-10 sm:py-7">
-            <NeonTitle className="text-[clamp(1.4rem,6vw,5rem)]">MUSIC 4 ALL</NeonTitle>
-            {/* Arcos eléctricos saltando desde los bornes del letrero */}
-            <NeonArcs density="high" />
-          </div>
-        </SignFrame>
+        <div className="relative inline-block rounded-[1.5rem] border-2 border-synthwave-magenta px-4 py-4 shadow-neon-frame sm:px-10 sm:py-7">
+          <NeonTitle className="text-[clamp(1.4rem,6vw,5rem)]">MUSIC 4 ALL</NeonTitle>
+          {/* Arcos eléctricos saltando desde los bornes del letrero */}
+          <NeonArcs density="high" />
+        </div>
         <p className="mt-6 font-retro text-lg tracking-[0.3em] text-secondary">
           LOSSLESS AUDIO DOWNLOADER
         </p>
