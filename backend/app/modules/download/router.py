@@ -1,7 +1,9 @@
+import asyncio
 from pathlib import PurePath
 
+import requests
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from app.core import redis_client as rc
 from app.core.rate_limiter import limiter
@@ -71,4 +73,73 @@ async def get_file(request: Request, job_id: str):
         file_path,
         media_type=_media_type_for(file_path),
         filename=PurePath(file_path).name,
+    )
+
+
+# Headers de la respuesta upstream de Tidal que reenviamos tal cual (habilitan
+# el seek del <audio>: rango parcial 206).
+_PROXY_PASSTHROUGH_HEADERS = ("Content-Length", "Content-Range", "Accept-Ranges")
+
+
+@router.get("/stream/{track_id}")
+@limiter.limit("240/minute")
+async def stream_track(
+    request: Request,
+    track_id: str,
+    engine: TidalDownloader = Depends(get_authenticated_engine),
+):
+    """Reproduce (streaming) un track de Tidal por su id, sin descargarlo.
+
+    Resuelve la URL AAC/MP4 directa (calidad NORMAL) y la **proxea** al cliente
+    con soporte de Range, para que el `<audio>` pueda hacer seek. No se redirige
+    porque las URLs de Tidal son firmadas, efímeras y sin CORS. El lossless
+    (DASH segmentado) queda fuera de este endpoint.
+    """
+    try:
+        tid = int(track_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Track no encontrado") from None
+
+    try:
+        track_obj = await asyncio.to_thread(engine.session.track, tid)
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail="Track no encontrado") from exc
+
+    # Llamada de red a Tidal → hilo (no bloquear el event loop).
+    url, method = await asyncio.to_thread(engine.get_stream_source, track_obj, "NORMAL")
+    if not url or method != "DIRECT":
+        raise HTTPException(status_code=502, detail="No se pudo resolver el stream del track")
+
+    # Reenviar el Range entrante a la CDN de Tidal para habilitar el seek.
+    range_header = request.headers.get("range")
+    fwd_headers = {"Range": range_header} if range_header else {}
+
+    def _open_upstream() -> requests.Response:
+        r = requests.get(url, stream=True, headers=fwd_headers, timeout=15)
+        r.raise_for_status()
+        return r
+
+    try:
+        upstream = await asyncio.to_thread(_open_upstream)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Error abriendo el stream") from exc
+
+    passthrough = {
+        h: upstream.headers[h] for h in _PROXY_PASSTHROUGH_HEADERS if h in upstream.headers
+    }
+    passthrough.setdefault("Accept-Ranges", "bytes")
+
+    def _body():
+        try:
+            for chunk in upstream.iter_content(chunk_size=64 * 1024):
+                if chunk:
+                    yield chunk
+        finally:
+            upstream.close()
+
+    return StreamingResponse(
+        _body(),
+        status_code=upstream.status_code,  # 206 si respetó el Range, si no 200
+        media_type="audio/mp4",
+        headers=passthrough,
     )

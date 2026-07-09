@@ -497,6 +497,23 @@ class TidalDownloader:
 
         return None, None, "Formato desconocido"
 
+    # ---------- Fuente de streaming (reproducción sin descargar) ----------
+    def get_stream_source(self, track_obj, quality: str = "NORMAL") -> tuple[str | None, str]:
+        """Resuelve una URL de audio directamente reproducible para un track.
+
+        Para NORMAL/AAC (`low_320k`) Tidal devuelve un manifiesto BTS → una única
+        URL directa MP4/AAC (método "DIRECT"), consumible por un `<audio>` del
+        navegador. Las calidades lossless resuelven a DASH segmentado (método
+        "DASH"), que un `<audio>` plano no puede reproducir — los callers deben
+        usar solo DIRECT. Devuelve `(url, method)` o `(None, method_o_error)`.
+        Reutiliza `_get_stream_url_and_type`, que toma `_stream_lock` para
+        mutar `session.audio_quality` de forma atómica.
+        """
+        _url_init, url_media, method = self._get_stream_url_and_type(track_obj, quality)
+        if method in ("DIRECT", "DASH"):
+            return url_media, method
+        return None, method
+
     # ---------- Descarga raw ----------
     @retry(max_retries=2)
     def _download_raw_audio(
