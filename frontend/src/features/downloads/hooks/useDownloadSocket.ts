@@ -135,7 +135,22 @@ class DownloadWebSocketClient {
   disconnect(): void {
     this.destroyed = true
     this.stopHeartbeat()
-    this.ws?.close()
+    const ws = this.ws
+    if (ws) {
+      // Cerrar un socket aún en CONNECTING dispara el warning "WebSocket is
+      // closed before the connection is established" (visible en dev por el
+      // doble-invoke de efectos de React StrictMode: mount → cleanup → mount).
+      // Si sigue conectando, esperamos a onopen para cerrarlo limpio y
+      // desconectamos los handlers para que no reprograme reconexión.
+      if (ws.readyState === WebSocket.CONNECTING) {
+        ws.onmessage = null
+        ws.onerror = null
+        ws.onclose = null
+        ws.onopen = () => ws.close()
+      } else {
+        ws.close()
+      }
+    }
     this.ws = null
   }
 }
