@@ -197,6 +197,9 @@ const config: Config = {
         'sign-sway':             'signSway 6.5s ease-in-out infinite alternate',
         // Fase 15 — giro perezoso del plato del tocadiscos decorativo
         'record-spin':           'recordSpin 8s linear infinite',
+        // Fase 5 — carretes del cassette en el reproductor Now Playing (Walkman).
+        // Mas rapido que el plato (2.5s) y sin destellos; solo rotate.
+        'reel-spin':             'reelSpin 2.5s linear infinite',
       },
       keyframes: {
         pulseNeon: {
@@ -232,6 +235,12 @@ const config: Config = {
         // Plato del tocadiscos: rotacion continua lenta (solo transform);
         // mas lenta que un 33rpm real a proposito — ambientacion, no realismo.
         recordSpin: {
+          from: { transform: 'rotate(0deg)' },
+          to:   { transform: 'rotate(360deg)' },
+        },
+        // Carretes del cassette: rotacion continua (solo transform). El grupo
+        // usa transform-box: fill-box + origin center para girar sobre su eje.
+        reelSpin: {
           from: { transform: 'rotate(0deg)' },
           to:   { transform: 'rotate(360deg)' },
         },

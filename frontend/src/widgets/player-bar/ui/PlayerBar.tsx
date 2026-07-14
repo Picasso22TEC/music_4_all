@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import {
+  ChevronUp,
   CircleSlash,
   Music,
   Pause,
@@ -18,6 +20,8 @@ import { cn } from '@/shared/lib/cn'
 import { formatDuration } from '@/shared/lib/format'
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { usePlayerStore, selectHasNext, selectHasPrevious } from '@/features/player'
+
+import { NowPlaying } from './NowPlaying'
 
 // ─── Transport button (secondary controls) ───────────────────────────────────
 
@@ -78,6 +82,8 @@ export function PlayerBar() {
   const hasPrevious   = usePlayerStore(selectHasPrevious)
   const reducedMotion = useReducedMotion()
 
+  const [expanded, setExpanded] = useState(false)
+
   const hasTrack = current !== null
   const max = durationSec > 0 ? durationSec : 0
   const progressPercent = max > 0 ? Math.min(100, Math.max(0, (progressSec / max) * 100)) : 0
@@ -114,10 +120,20 @@ export function PlayerBar() {
         </div>
       )}
 
-      {/* ── Artwork ─────────────────────────────────────────────────── */}
-      <div
-        aria-hidden="true"
-        className="shrink-0 h-12 w-12 overflow-hidden rounded-sm bg-surface-rack flex items-center justify-center"
+      {/* ── Artwork — abre la vista Now Playing (Walkman) ─────────────── */}
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        disabled={!hasTrack}
+        aria-label="Abrir reproductor Now Playing"
+        aria-haspopup="dialog"
+        className={cn(
+          'group relative shrink-0 h-12 w-12 overflow-hidden rounded-sm bg-surface-rack',
+          'flex items-center justify-center',
+          'transition-transform duration-150 ease-out active:scale-95',
+          'focus-visible:outline-none focus-visible:shadow-glow-focus',
+          'disabled:cursor-default',
+        )}
       >
         {current?.coverUrl ? (
           <Image
@@ -130,7 +146,19 @@ export function PlayerBar() {
         ) : (
           <Music aria-hidden="true" className="h-5 w-5 text-disabled" />
         )}
-      </div>
+        {/* Pista visual de "expandir" al pasar el cursor (solo con pista) */}
+        {hasTrack && (
+          <span
+            aria-hidden="true"
+            className={cn(
+              'absolute inset-0 flex items-center justify-center bg-surface-void/60',
+              'opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100',
+            )}
+          >
+            <ChevronUp className="h-5 w-5 text-primary" />
+          </span>
+        )}
+      </button>
 
       {/* ── Track info ──────────────────────────────────────────────── */}
       <div className="min-w-0 flex-1">
@@ -271,6 +299,9 @@ export function PlayerBar() {
           style={{ ['--range-fill' as string]: `${Math.round(volume * 100)}%` }}
         />
       </div>
+
+      {/* ── Vista expandida Now Playing (Walkman) ─────────────────────── */}
+      <NowPlaying open={expanded} onClose={() => setExpanded(false)} />
     </div>
   )
 }
