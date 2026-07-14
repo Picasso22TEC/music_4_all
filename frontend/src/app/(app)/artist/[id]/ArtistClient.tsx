@@ -16,6 +16,7 @@ import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
 import { useDownloadsStore, useStartDownloadMutation } from '@/features/downloads'
 
 import { ReleaseSection } from './ReleaseSection'
+import { SectionHeading } from './SectionHeading'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -181,13 +182,11 @@ export function ArtistClient({ artistId }: { artistId: string }) {
           </section>
 
           {/* ── Content ────────────────────────────────────────────────── */}
-          <div className="flex flex-col gap-8 px-6 pb-8 pt-6">
+          <div className="flex flex-col gap-12 px-6 pb-8 pt-6">
           {/* ── Top tracks ─────────────────────────────────────────────── */}
           {data.topTracks.length > 0 && (
-            <section aria-label="Top tracks" className="flex flex-col gap-2">
-              <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
-                Popular
-              </h2>
+            <section aria-label="Top tracks" className="flex flex-col gap-3">
+              <SectionHeading title="Popular" subtitle="On heavy rotation" />
               <ol className="flex flex-col">
                 {(showAllTracks ? data.topTracks : data.topTracks.slice(0, 5)).map((track, index) => (
                   <li key={track.id}>
@@ -241,18 +240,21 @@ export function ArtistClient({ artistId }: { artistId: string }) {
           {/* ── Releases — carruseles con flechas + View all ───────────── */}
           <ReleaseSection
             title="Albums"
+            subtitle="Full-length LPs"
             albums={data.albums}
             onPlay={handlePlayAlbum}
             onDownload={handleDownloadAlbum}
           />
           <ReleaseSection
             title="Singles & EPs"
+            subtitle="45s and extended plays"
             albums={data.epSingles}
             onPlay={handlePlayAlbum}
             onDownload={handleDownloadAlbum}
           />
           <ReleaseSection
             title="Compilations"
+            subtitle="Collected cuts and features"
             albums={data.other}
             onPlay={handlePlayAlbum}
             onDownload={handleDownloadAlbum}
@@ -260,10 +262,8 @@ export function ArtistClient({ artistId }: { artistId: string }) {
 
           {/* ── Fans also like ─────────────────────────────────────────── */}
           {data.similar.length > 0 && (
-            <section aria-label="Fans also like" className="flex flex-col gap-3">
-              <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
-                Fans also like
-              </h2>
+            <section aria-label="Fans also like" className="flex flex-col gap-4">
+              <SectionHeading title="Fans also like" subtitle="More from the same crate" />
               <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
                 {data.similar.map((similarArtist) => (
                   <ArtistCard key={similarArtist.id} artist={similarArtist} />

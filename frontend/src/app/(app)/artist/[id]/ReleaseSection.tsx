@@ -7,6 +7,8 @@ import { cn } from '@/shared/lib/cn'
 import { AlbumCard } from '@/features/search'
 import type { Album } from '@/entities'
 
+import { SectionHeading } from './SectionHeading'
+
 // ─── Arrow button ─────────────────────────────────────────────────────────────
 
 function ArrowButton({
@@ -47,11 +49,13 @@ function ArrowButton({
  */
 export function ReleaseSection({
   title,
+  subtitle,
   albums,
   onPlay,
   onDownload,
 }: {
   title: string
+  subtitle: string
   albums: Album[]
   onPlay?: (albumId: string) => void
   onDownload?: (albumId: string) => void
@@ -81,13 +85,11 @@ export function ReleaseSection({
   if (albums.length === 0) return null
 
   return (
-    <section aria-label={title} className="flex flex-col gap-3">
-      {/* Header — title + View all + arrows (arrows only while collapsed) */}
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
-          {title}
-        </h2>
-        <div className="flex items-center gap-1.5">
+    <section aria-label={title} className="flex flex-col gap-4">
+      {/* Header — title + subtitle (left) · View all + arrows (right) */}
+      <div className="flex items-start justify-between gap-2">
+        <SectionHeading title={title} subtitle={subtitle} />
+        <div className="flex shrink-0 items-center gap-1.5">
           {albums.length > 1 && (
             <button
               type="button"

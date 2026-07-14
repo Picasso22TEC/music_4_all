@@ -8,16 +8,6 @@ import type { BadgeVariant } from '@/shared/ui/Badge'
 import { useAuthStore } from '@/features/auth'
 import { SearchInput, useSearchStore } from '@/features/search'
 
-// ─── Page title map ───────────────────────────────────────────────────────────
-
-const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/library':   'Library',
-  '/downloads': 'Downloads',
-  '/history':   'History',
-  '/settings':  'Settings',
-}
-
 // ─── Session badge config ─────────────────────────────────────────────────────
 // Label max 8 chars (design-system §3.6)
 
@@ -58,9 +48,6 @@ export function AppHeader({ menuSlot }: AppHeaderProps) {
     if (pathname !== '/dashboard') router.push('/dashboard')
   }
 
-  // Resolve page title — fallback to app name
-  const pageTitle = PAGE_TITLES[pathname] ?? 'Music 4 All'
-
   // Resolve badge config — fallback to offline
   const badge = SESSION_BADGE[status] ?? SESSION_BADGE.unauthenticated
 
@@ -77,13 +64,9 @@ export function AppHeader({ menuSlot }: AppHeaderProps) {
         'h-header px-6',
       )}
     >
-      {/* Left: mobile menu trigger (only < lg) + dynamic page title */}
-      <div className="flex shrink-0 items-center gap-2">
-        {menuSlot}
-        <h1 className="hidden font-mono text-lg font-semibold leading-none text-primary md:block">
-          {pageTitle}
-        </h1>
-      </div>
+      {/* Left: mobile menu trigger (only < lg). El nombre de la app vive en el
+          cartel neón del sidebar; no se repite aquí (evita redundancia). */}
+      {menuSlot && <div className="flex shrink-0 items-center">{menuSlot}</div>}
 
       {/* Center: global search — present on every app page (A2/A4) */}
       <div className="mx-3 max-w-lg flex-1 sm:mx-4">
