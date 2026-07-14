@@ -175,8 +175,8 @@ export function PlayerBar() {
                 className="truncate font-sans text-sm font-medium text-primary"
                 aria-live="polite"
                 aria-atomic="true"
-                aria-label={`Now playing: ${current.title}`}
               >
+                <span className="sr-only">Now playing: </span>
                 {current.title}
               </p>
             </div>
@@ -194,7 +194,6 @@ export function PlayerBar() {
           <p
             className="flex items-center gap-2 font-sans text-sm text-disabled"
             aria-live="polite"
-            aria-label="No track currently playing"
           >
             <CircleSlash aria-hidden="true" className="h-4 w-4" />
             Nothing playing
@@ -285,7 +284,7 @@ export function PlayerBar() {
       </div>
 
       {/* ── Volume (lg+) ────────────────────────────────────────────── */}
-      <div className="hidden lg:flex shrink-0 items-center gap-2" aria-label="Volume">
+      <div className="hidden lg:flex shrink-0 items-center gap-2" role="group" aria-label="Volume">
         <Volume2 aria-hidden="true" className="h-4 w-4 text-disabled" />
         <input
           type="range"

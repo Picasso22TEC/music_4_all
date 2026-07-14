@@ -74,7 +74,7 @@ export function AppHeader({ menuSlot }: AppHeaderProps) {
       </div>
 
       {/* Right: Tidal session status */}
-      <div className="flex items-center gap-3" aria-label="Session status">
+      <div className="flex items-center gap-3" role="group" aria-label="Session status">
         <Badge
           variant={badge.variant}
           dot

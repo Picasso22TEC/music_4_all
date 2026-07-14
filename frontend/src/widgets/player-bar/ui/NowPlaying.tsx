@@ -176,8 +176,8 @@ export function NowPlaying({ open, onClose }: NowPlayingProps) {
               className="truncate font-sans text-base font-semibold text-primary"
               aria-live="polite"
               aria-atomic="true"
-              aria-label={current ? `Now playing: ${current.title}` : undefined}
             >
+              <span className="sr-only">Now playing: </span>
               {current?.title}
             </p>
             <p className="truncate font-sans text-sm text-secondary">
@@ -263,7 +263,7 @@ export function NowPlaying({ open, onClose }: NowPlayingProps) {
             <Square aria-hidden="true" className="h-4 w-4" />
           </WalkmanKey>
 
-          <div className="flex flex-1 items-center gap-2" aria-label="Volume">
+          <div className="flex flex-1 items-center gap-2" role="group" aria-label="Volume">
             <Volume2 aria-hidden="true" className="h-4 w-4 shrink-0 text-disabled" />
             <input
               type="range"

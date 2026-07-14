@@ -77,6 +77,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {mounted &&
         createPortal(
           <div
+            role="region"
             aria-live="polite"
             aria-label="Notifications"
             className="fixed bottom-4 right-4 z-toast flex flex-col gap-2 pointer-events-none"
