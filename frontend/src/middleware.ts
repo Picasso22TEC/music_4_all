@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Routes that require an authenticated session
-const PROTECTED_PATHS = ['/dashboard', '/library', '/downloads', '/history', '/settings']
+const PROTECTED_PATHS = ['/dashboard', '/library', '/downloads', '/history', '/settings', '/artist']
 // Routes that redirect to dashboard when already authenticated
 const AUTH_PATHS = ['/login']
 

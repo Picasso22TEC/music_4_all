@@ -28,7 +28,11 @@ export function ArtistClient({ artistId }: { artistId: string }) {
     if (status === 'expired' || status === 'unauthenticated') router.replace('/login')
   }, [status, hasHydrated, router])
 
-  const query = useArtistDetailQuery(artistId)
+  // Gate the query on auth: en carga en frío por URL, disparar antes de que el
+  // store confirme la sesión produce un 401 que el interceptor convierte en
+  // setExpired(). `status` ya es 'unauthenticated' hasta rehidratar (default
+  // seguro) y pasa a 'authenticated' cuando la sesión está lista.
+  const query = useArtistDetailQuery(artistId, status === 'authenticated')
   const data = query.data
   const downloadMutation = useStartDownloadMutation()
 

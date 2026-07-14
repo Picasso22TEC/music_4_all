@@ -108,15 +108,22 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         expiresAt: s.expiresAt,
       }),
       onRehydrateStorage: () => (state) => {
-        // Mark as expired on rehydration if token has elapsed
-        if (state?.expiresAt && new Date(state.expiresAt) < new Date()) {
-          state.status = 'expired'
-        }
-        // Sync session cookie so middleware sees the auth state on next navigation
-        if (state?.status === 'authenticated' && state.expiresAt) {
-          setSessionCookie(state.expiresAt)
-        } else {
-          clearSessionCookie()
+        // El callback puede dispararse con `state` undefined en una pasada de
+        // rehidratación espuria (Next App Router evalúa el store más de una vez);
+        // en ese caso NO debemos tocar la cookie, o borraríamos la que la pasada
+        // buena (con datos) acaba de sembrar y el middleware nos echaría a /login.
+        if (state) {
+          // Marcar expirada si el token ya venció.
+          if (state.expiresAt && new Date(state.expiresAt) < new Date()) {
+            state.status = 'expired'
+          }
+          // Sincronizar la cookie para que el middleware vea el estado de auth
+          // en la siguiente navegación.
+          if (state.status === 'authenticated' && state.expiresAt) {
+            setSessionCookie(state.expiresAt)
+          } else {
+            clearSessionCookie()
+          }
         }
         useAuthStore.setState({ hasHydrated: true })
       },
