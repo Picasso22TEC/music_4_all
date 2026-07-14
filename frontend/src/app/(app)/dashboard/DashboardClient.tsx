@@ -22,10 +22,10 @@ import { cn } from '@/shared/lib/cn'
 import { useAuthStore } from '@/features/auth'
 import {
   EmptyState,
-  SearchInput,
   SearchResults,
   useResolveUrlQuery,
   useSearchQuery,
+  useSearchStore,
 } from '@/features/search'
 import { useStartDownloadMutation, useDownloadsStore } from '@/features/downloads'
 import { useAlbumDetailQuery } from '@/features/album-detail'
@@ -67,7 +67,8 @@ export default function DashboardClient() {
   }, [status, hasHydrated, router])
 
   // ── Search state ────────────────────────────────────────────────────────────
-  const [query,   setQuery]   = useState('')
+  // Query lives in the global store (driven by the AppHeader search bar, A2/A4).
+  const query = useSearchStore((s) => s.query)
   const [quality, setQuality] = useState<AudioQuality>('MASTER')
 
   const trimmed  = query.trim()
@@ -261,28 +262,14 @@ export default function DashboardClient() {
         {isError && 'Search error. Please try again.'}
       </div>
 
-      {/* ── Search + Quality toolbar ────────────────────────────────────── */}
-      <section aria-label="Search and download quality settings">
-        <div className="flex flex-col gap-4">
-          {/* SearchInput — State A input, URL detection, text search */}
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-          />
-
-          {/* QualitySelector — role="radiogroup", keyboard arrow nav */}
-          <div className="flex items-center gap-3">
-            <span
-              className="font-sans text-xs text-secondary"
-              aria-hidden="true"
-            >
-              Quality:
-            </span>
-            <QualitySelector
-              value={quality}
-              onChange={setQuality}
-            />
-          </div>
+      {/* ── Download quality toolbar (search lives in the AppHeader now) ──── */}
+      <section aria-label="Download quality settings">
+        {/* QualitySelector — role="radiogroup", keyboard arrow nav */}
+        <div className="flex items-center gap-3">
+          <span className="font-sans text-xs text-secondary" aria-hidden="true">
+            Quality:
+          </span>
+          <QualitySelector value={quality} onChange={setQuality} />
         </div>
       </section>
 

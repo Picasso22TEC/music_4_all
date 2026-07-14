@@ -1,11 +1,12 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 import { cn } from '@/shared/lib/cn'
 import { Badge } from '@/shared/ui/Badge'
 import type { BadgeVariant } from '@/shared/ui/Badge'
 import { useAuthStore } from '@/features/auth'
+import { SearchInput, useSearchStore } from '@/features/search'
 
 // ─── Page title map ───────────────────────────────────────────────────────────
 
@@ -44,7 +45,18 @@ export interface AppHeaderProps {
 
 export function AppHeader({ menuSlot }: AppHeaderProps) {
   const pathname   = usePathname() ?? ''
+  const router     = useRouter()
   const status     = useAuthStore((s) => s.status)
+
+  // Global search — the single app-wide search entry point (A2/A4).
+  const query    = useSearchStore((s) => s.query)
+  const setQuery = useSearchStore((s) => s.setQuery)
+
+  // Typing from any other page jumps to the dashboard, where results render.
+  function handleSearchChange(value: string) {
+    setQuery(value)
+    if (pathname !== '/dashboard') router.push('/dashboard')
+  }
 
   // Resolve page title — fallback to app name
   const pageTitle = PAGE_TITLES[pathname] ?? 'Music 4 All'
@@ -66,15 +78,20 @@ export function AppHeader({ menuSlot }: AppHeaderProps) {
       )}
     >
       {/* Left: mobile menu trigger (only < lg) + dynamic page title */}
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         {menuSlot}
-        <h1 className="font-mono text-lg font-semibold leading-none text-primary">
+        <h1 className="hidden font-mono text-lg font-semibold leading-none text-primary md:block">
           {pageTitle}
         </h1>
       </div>
 
+      {/* Center: global search — present on every app page (A2/A4) */}
+      <div className="mx-3 max-w-lg flex-1 sm:mx-4">
+        <SearchInput value={query} onChange={handleSearchChange} />
+      </div>
+
       {/* Right: Tidal session status */}
-      <div className="flex items-center gap-3" role="group" aria-label="Session status">
+      <div className="flex shrink-0 items-center gap-3" role="group" aria-label="Session status">
         <Badge
           variant={badge.variant}
           dot

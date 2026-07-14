@@ -1,6 +1,7 @@
 // ── Model ─────────────────────────────────────────────────────────────────────
 export { useSearchQuery, useResolveUrlQuery } from './model/search.queries'
 export { isValidTidalUrl, getTidalUrlType } from './model/url-detection.utils'
+export { useSearchStore } from './model/search.store'
 
 // ── API ───────────────────────────────────────────────────────────────────────
 export { searchApi } from './api/search.api'
