@@ -121,6 +121,9 @@ def _track_to_out(track: object, include_album: bool = True) -> TrackOut:
         album_dict = {
             "id": str(getattr(track_album, "id", "")),
             "title": str(getattr(track_album, "name", "")),
+            # UUID de portada (mismo formato que AlbumOut.cover); el frontend
+            # construye la URL. Vacio si tidalapi no lo trae en esta ruta.
+            "cover": str(getattr(track_album, "cover", "") or ""),
         }
     return TrackOut(
         id=str(getattr(track, "id", "")),

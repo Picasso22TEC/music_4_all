@@ -8,7 +8,7 @@ const TIDAL_IMAGE_BASE = 'https://resources.tidal.com/images'
 // Tidal CDN solo sirve tamaños pre-renderizados: 80, 160, 320, 640, 750, 1080, 1280.
 // 480 NO existe y CloudFront responde 403. 640 es el óptimo para miniaturas de la grid.
 // NOTA: independiente de la carátula embebida en la descarga (backend, 1280x1280).
-function coverIdToUrl(coverId: string, size = 640): string {
+export function coverIdToUrl(coverId: string, size = 640): string {
   return `${TIDAL_IMAGE_BASE}/${coverId.replace(/-/g, '/')}/${size}x${size}.jpg`
 }
 

@@ -39,7 +39,7 @@ class TrackOut(BaseModel):
     audio_modes: list[str]
     isrc: str | None = None
     artist: ArtistOut
-    album: dict[str, Any] | None = None  # {"id": str, "title": str}
+    album: dict[str, Any] | None = None  # {"id": str, "title": str, "cover": str}
 
 
 class PlaylistOut(BaseModel):

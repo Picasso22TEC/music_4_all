@@ -37,7 +37,7 @@ export interface TrackDTO {
   audio_modes?: AudioMode[]
   isrc?: string
   artist: ArtistDTO
-  album?: { id: string; title: string }
+  album?: { id: string; title: string; cover?: string }
 }
 
 export interface WsProgressPayload {

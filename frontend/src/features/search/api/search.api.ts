@@ -1,4 +1,4 @@
-import { mapAlbumDTO, mapTrackDTO } from '@/shared/api/mappers'
+import { coverIdToUrl, mapAlbumDTO, mapTrackDTO } from '@/shared/api/mappers'
 import client from '@/shared/api/client'
 import type { Album, Artist, PaginatedList, Playlist, ResolveUrlResult, SearchResults, Track } from '@/entities'
 import type { AlbumDTO, ResolveUrlResponseDTO, SearchResponseDTO, TrackDTO } from '@/shared/types/api.types'
@@ -34,7 +34,11 @@ export const searchApi = {
     const tracks: PaginatedList<Track> = {
       items: data.tracks.items.map((dto) => {
         const albumCtx = dto.album
-          ? { id: dto.album.id, title: dto.album.title, coverUrl: '' }
+          ? {
+              id: dto.album.id,
+              title: dto.album.title,
+              coverUrl: dto.album.cover ? coverIdToUrl(dto.album.cover) : '',
+            }
           : { id: '', title: '', coverUrl: '' }
         return mapTrackDTO(dto, albumCtx)
       }),
@@ -72,7 +76,7 @@ export const searchApi = {
         data: mapTrackDTO(trackDto, {
           id: trackDto.album?.id ?? '',
           title: trackDto.album?.title ?? '',
-          coverUrl: '',
+          coverUrl: trackDto.album?.cover ? coverIdToUrl(trackDto.album.cover) : '',
         }),
       }
     }

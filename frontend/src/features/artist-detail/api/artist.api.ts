@@ -1,5 +1,5 @@
 import client from '@/shared/api/client'
-import { mapAlbumDTO, mapTrackDTO } from '@/shared/api/mappers'
+import { coverIdToUrl, mapAlbumDTO, mapTrackDTO } from '@/shared/api/mappers'
 import type { ArtistDetailResponseDTO } from '@/shared/types/api.types'
 import type { Album, Track } from '@/entities'
 
@@ -19,13 +19,13 @@ export const artistApi = {
   async getDetail(artistId: string): Promise<ArtistDetailData> {
     const { data } = await client.get<ArtistDetailResponseDTO>(`/artists/${artistId}`)
     const albums = data.albums.map(mapAlbumDTO)
-    // Top tracks span multiple albums; each carries its own {id,title} album ref,
-    // but the search DTO has no per-track cover, so coverUrl is left empty.
+    // Top tracks span multiple albums; each carries its own {id,title,cover} album
+    // ref, so cada pista muestra la portada de su propio álbum.
     const topTracks = data.top_tracks.map((dto) =>
       mapTrackDTO(dto, {
         id: dto.album?.id ?? '',
         title: dto.album?.title ?? '',
-        coverUrl: '',
+        coverUrl: dto.album?.cover ? coverIdToUrl(dto.album.cover) : '',
       }),
     )
     return {
