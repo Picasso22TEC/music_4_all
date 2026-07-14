@@ -76,7 +76,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
       {/* ── Loading ───────────────────────────────────────────────────── */}
       {query.isFetching && !data && (
         <div className="flex items-center justify-center py-24">
-          <p className="animate-pulse font-sans text-sm text-secondary">Cargando artista…</p>
+          <p className="animate-pulse font-sans text-sm text-secondary">Loading artist…</p>
         </div>
       )}
 
@@ -84,10 +84,10 @@ export function ArtistClient({ artistId }: { artistId: string }) {
       {query.isError && !data && (
         <div className="flex flex-col items-center justify-center gap-3 py-24">
           <p className="font-sans text-sm text-semantic-error">
-            No se pudo cargar el artista. Inténtalo de nuevo.
+            Couldn&apos;t load the artist. Please try again.
           </p>
           <Button type="button" variant="secondary" size="sm" onClick={() => void query.refetch()}>
-            Reintentar
+            Retry
           </Button>
         </div>
       )}
@@ -123,10 +123,10 @@ export function ArtistClient({ artistId }: { artistId: string }) {
                   size="sm"
                   className="w-fit"
                   onClick={() => playTopTracks(0)}
-                  aria-label={`Reproducir lo mejor de ${data.artist.name}`}
+                  aria-label={`Play ${data.artist.name}'s top tracks`}
                 >
                   <Play aria-hidden="true" className="h-4 w-4" />
-                  Reproducir
+                  Play
                 </Button>
               )}
             </div>
@@ -136,7 +136,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
           {data.topTracks.length > 0 && (
             <section aria-label="Top tracks" className="flex flex-col gap-2">
               <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
-                Populares
+                Popular
               </h2>
               <ol className="flex flex-col">
                 {data.topTracks.map((track, index) => (
@@ -150,7 +150,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
                       <button
                         type="button"
                         onClick={() => playTopTracks(index)}
-                        aria-label={`Reproducir: ${track.title}`}
+                        aria-label={`Play: ${track.title}`}
                         className={cn(
                           'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
                           'text-secondary transition-transform duration-150 ease-out active:scale-90',
@@ -177,9 +177,9 @@ export function ArtistClient({ artistId }: { artistId: string }) {
 
           {/* ── Albums ─────────────────────────────────────────────────── */}
           {data.albums.length > 0 && (
-            <section aria-label="Álbumes" className="flex flex-col gap-3">
+            <section aria-label="Albums" className="flex flex-col gap-3">
               <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
-                Álbumes
+                Albums
               </h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {data.albums.map((album) => (

@@ -125,7 +125,7 @@ export function PlayerBar() {
         type="button"
         onClick={() => setExpanded(true)}
         disabled={!hasTrack}
-        aria-label="Abrir reproductor Now Playing"
+        aria-label="Open Now Playing player"
         aria-haspopup="dialog"
         className={cn(
           'group relative shrink-0 h-12 w-12 overflow-hidden rounded-sm bg-surface-rack',

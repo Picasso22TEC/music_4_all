@@ -143,11 +143,11 @@ test.describe('Accessibility (axe) — no Critical/Serious violations', () => {
 
     await page.goto(`/artist/${ARTIST_DETAIL.artist.id}`)
     await page
-      .getByRole('button', { name: `Reproducir lo mejor de ${ARTIST_DETAIL.artist.name}` })
+      .getByRole('button', { name: `Play ${ARTIST_DETAIL.artist.name}'s top tracks` })
       .click()
-    await page.getByRole('button', { name: 'Abrir reproductor Now Playing' }).click()
+    await page.getByRole('button', { name: 'Open Now Playing player' }).click()
 
-    await expect(page.getByRole('dialog', { name: 'Reproductor Now Playing' })).toBeVisible()
+    await expect(page.getByRole('dialog', { name: 'Now Playing player' })).toBeVisible()
     await expectNoBlockingViolations(page, 'now playing overlay')
   })
 })

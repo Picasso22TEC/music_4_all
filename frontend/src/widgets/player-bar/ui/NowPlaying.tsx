@@ -118,7 +118,7 @@ export function NowPlaying({ open, onClose }: NowPlayingProps) {
     <Modal
       isOpen={open && current !== null}
       onClose={onClose}
-      aria-label="Reproductor Now Playing"
+      aria-label="Now Playing player"
       size="full"
       className="max-w-[460px]"
     >
@@ -135,7 +135,7 @@ export function NowPlaying({ open, onClose }: NowPlayingProps) {
             <button
               type="button"
               onClick={onClose}
-              aria-label="Minimizar reproductor"
+              aria-label="Minimize player"
               className={cn(
                 'inline-flex h-7 w-7 items-center justify-center rounded-sm text-secondary',
                 'transition-colors duration-100 hover:text-primary',

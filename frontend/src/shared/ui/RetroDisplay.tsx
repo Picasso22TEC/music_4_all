@@ -54,7 +54,7 @@ export function RetroDisplay({
   return (
     <span
       role="img"
-      aria-label={`Código de verificación: ${value}`}
+      aria-label={`Verification code: ${value}`}
       title={title}
       className={cn('inline-flex items-center gap-1', className)}
     >

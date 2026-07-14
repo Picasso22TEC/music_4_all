@@ -325,13 +325,13 @@ export default function DashboardClient() {
       <Modal
         isOpen={detailAlbumId !== null}
         onClose={handleCloseAlbumDetail}
-        title={detailAlbum?.title ?? 'Detalle del álbum'}
+        title={detailAlbum?.title ?? 'Album details'}
         size="lg"
       >
         {/* Loading */}
         {albumDetailQuery.isFetching && !detailAlbum && (
           <div className="flex items-center justify-center py-12">
-            <p className="animate-pulse font-sans text-sm text-secondary">Cargando...</p>
+            <p className="animate-pulse font-sans text-sm text-secondary">Loading...</p>
           </div>
         )}
 
@@ -339,7 +339,7 @@ export default function DashboardClient() {
         {albumDetailQuery.isError && !detailAlbum && (
           <div className="flex items-center justify-center py-12">
             <p className="font-sans text-sm text-semantic-error">
-              No se pudo cargar el álbum. Inténtalo de nuevo.
+              Couldn&apos;t load the album. Please try again.
             </p>
           </div>
         )}
@@ -353,7 +353,7 @@ export default function DashboardClient() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={detailAlbum.coverUrl}
-                  alt={`Portada de ${detailAlbum.title}`}
+                  alt={`${detailAlbum.title} cover`}
                   width={96}
                   height={96}
                   className="h-24 w-24 flex-shrink-0 rounded-md object-cover"
@@ -369,7 +369,7 @@ export default function DashboardClient() {
                   </p>
                 )}
                 <p className="font-sans text-xs text-secondary">
-                  {detailTracks.length} {detailTracks.length === 1 ? 'pista' : 'pistas'}
+                  {detailTracks.length} {detailTracks.length === 1 ? 'track' : 'tracks'}
                 </p>
                 {detailTracks.length > 0 && (
                   <Button
@@ -380,10 +380,10 @@ export default function DashboardClient() {
                     onClick={() =>
                       usePlayerStore.getState().playQueue(detailTracks.map(toPlayerTrack), 0)
                     }
-                    aria-label={`Reproducir ${detailAlbum.title}`}
+                    aria-label={`Play ${detailAlbum.title}`}
                   >
                     <Play aria-hidden="true" className="h-4 w-4" />
-                    Reproducir
+                    Play
                   </Button>
                 )}
               </div>
@@ -400,12 +400,12 @@ export default function DashboardClient() {
                   }
                   onChange={toggleAllTracks}
                   className="h-4 w-4 accent-teal-500"
-                  aria-label="Seleccionar todas las pistas"
+                  aria-label="Select all tracks"
                 />
-                <span className="font-sans text-sm text-secondary">Seleccionar todas</span>
+                <span className="font-sans text-sm text-secondary">Select all</span>
               </label>
               <span className="font-sans text-xs text-secondary">
-                {selectedTrackIds.size} de {detailTracks.length} seleccionadas
+                {selectedTrackIds.size} of {detailTracks.length} selected
               </span>
             </div>
 
@@ -413,7 +413,7 @@ export default function DashboardClient() {
             <div
               className="max-h-64 overflow-y-auto"
               role="list"
-              aria-label="Lista de pistas"
+              aria-label="Track list"
             >
               {detailTracks.map((track, index) => (
                 <label
@@ -429,7 +429,7 @@ export default function DashboardClient() {
                     checked={selectedTrackIds.has(track.id)}
                     onChange={() => toggleTrack(track.id)}
                     className="h-4 w-4 flex-shrink-0 accent-teal-500"
-                    aria-label={`Seleccionar pista: ${track.title}`}
+                    aria-label={`Select track: ${track.title}`}
                   />
                   {/* Play this track (and continue through the album). preventDefault
                       stops the surrounding <label> from also toggling the checkbox. */}
@@ -441,7 +441,7 @@ export default function DashboardClient() {
                         .getState()
                         .playQueue(detailTracks.map(toPlayerTrack), index)
                     }}
-                    aria-label={`Reproducir pista: ${track.title}`}
+                    aria-label={`Play track: ${track.title}`}
                     className={cn(
                       'inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full',
                       'text-secondary transition-transform duration-150 ease-out active:scale-90',
@@ -471,7 +471,7 @@ export default function DashboardClient() {
                 size="sm"
                 onClick={handleCloseAlbumDetail}
               >
-                Cancelar
+                Cancel
               </Button>
               <Button
                 type="button"
@@ -482,7 +482,7 @@ export default function DashboardClient() {
                   handleCloseAlbumDetail()
                 }}
               >
-                Descargar álbum completo
+                Download full album
               </Button>
               <Button
                 type="button"
@@ -491,7 +491,7 @@ export default function DashboardClient() {
                 disabled={selectedTrackIds.size === 0 || downloadMutation.isPending}
                 onClick={handleDownloadSelected}
               >
-                Descargar seleccionadas ({selectedTrackIds.size})
+                Download selected ({selectedTrackIds.size})
               </Button>
             </div>
           </div>

@@ -13,9 +13,9 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div>
-        <h1 className="font-sans text-2xl font-bold text-primary">Ajustes</h1>
+        <h1 className="font-sans text-2xl font-bold text-primary">Settings</h1>
         <p className="mt-1 font-sans text-sm text-secondary">
-          Configura tus preferencias de descarga
+          Configure your download preferences
         </p>
       </div>
 
@@ -24,10 +24,10 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-4">
           <div>
             <h2 className="font-sans text-base font-semibold text-primary">
-              Calidad de descarga
+              Download quality
             </h2>
             <p className="mt-1 font-sans text-sm text-secondary">
-              Selecciona la calidad de audio preferida para tus descargas.
+              Choose your preferred audio quality for downloads.
             </p>
           </div>
           <QualitySelector value={audioQuality} onChange={setAudioQuality} />
@@ -39,15 +39,15 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-4">
           <div>
             <h2 className="font-sans text-base font-semibold text-primary">
-              Descargas simultáneas
+              Concurrent downloads
             </h2>
             <p className="mt-1 font-sans text-sm text-secondary">
-              Número máximo de álbumes descargando al mismo tiempo.
+              Maximum number of albums downloading at the same time.
             </p>
           </div>
           <div
             role="group"
-            aria-label="Número de descargas simultáneas"
+            aria-label="Number of concurrent downloads"
             className="flex gap-2"
           >
             {([1, 2, 3, 4, 5] as const).map((n) => (

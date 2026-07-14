@@ -121,7 +121,7 @@ export function AlbumCard({ album, onOpen, onDownload, onPlay }: AlbumCardProps)
           <button
             type="button"
             onClick={() => onPlay(album.id)}
-            aria-label={`Reproducir ${album.title}`}
+            aria-label={`Play ${album.title}`}
             className={cn(
               'absolute bottom-[6%] right-[6%] z-raised inline-flex h-9 w-9 items-center justify-center rounded-full',
               'bg-teal-500 text-surface-void shadow-md',
@@ -170,7 +170,7 @@ export function AlbumCard({ album, onOpen, onDownload, onPlay }: AlbumCardProps)
             aria-label={`Download ${album.title} by ${album.artist.name}`}
             className="mt-2 w-full"
           >
-            DESCARGAR
+            DOWNLOAD
           </Button>
         )}
       </div>
