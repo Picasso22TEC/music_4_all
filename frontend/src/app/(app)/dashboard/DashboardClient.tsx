@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Play } from 'lucide-react'
 
-import type { Album, AudioQuality } from '@/entities'
+import type { Album, AudioQuality, Track } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
+import { usePlayerStore, type PlayerTrack } from '@/features/player'
 import {
   AudioWaves,
   Button,
@@ -34,6 +36,18 @@ function formatSeconds(total: number): string {
   const m = Math.floor(total / 60)
   const s = total % 60
   return `${m}:${String(s).padStart(2, '0')}`
+}
+
+/** Map a domain Track to a PlayerTrack that streams from Tidal (no download). */
+function toPlayerTrack(t: Track): PlayerTrack {
+  return {
+    id: t.id,
+    title: t.title,
+    artist: t.artist.name,
+    album: t.albumTitle,
+    coverUrl: t.coverUrl,
+    src: `/api/download/stream/${t.id}`,
+  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -369,6 +383,21 @@ export default function DashboardClient() {
                 <p className="font-sans text-xs text-secondary">
                   {detailTracks.length} {detailTracks.length === 1 ? 'pista' : 'pistas'}
                 </p>
+                {detailTracks.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    className="mt-1 w-fit"
+                    onClick={() =>
+                      usePlayerStore.getState().playQueue(detailTracks.map(toPlayerTrack), 0)
+                    }
+                    aria-label={`Reproducir ${detailAlbum.title}`}
+                  >
+                    <Play aria-hidden="true" className="h-4 w-4" />
+                    Reproducir
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -398,7 +427,7 @@ export default function DashboardClient() {
               role="list"
               aria-label="Lista de pistas"
             >
-              {detailTracks.map((track) => (
+              {detailTracks.map((track, index) => (
                 <label
                   key={track.id}
                   role="listitem"
@@ -414,6 +443,25 @@ export default function DashboardClient() {
                     className="h-4 w-4 flex-shrink-0 accent-teal-500"
                     aria-label={`Seleccionar pista: ${track.title}`}
                   />
+                  {/* Play this track (and continue through the album). preventDefault
+                      stops the surrounding <label> from also toggling the checkbox. */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      usePlayerStore
+                        .getState()
+                        .playQueue(detailTracks.map(toPlayerTrack), index)
+                    }}
+                    aria-label={`Reproducir pista: ${track.title}`}
+                    className={cn(
+                      'inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full',
+                      'text-secondary transition-transform duration-150 ease-out active:scale-90',
+                      'hover:text-teal-400 focus-visible:outline-none focus-visible:shadow-glow-focus',
+                    )}
+                  >
+                    <Play aria-hidden="true" className="h-3.5 w-3.5" />
+                  </button>
                   <span className="w-6 flex-shrink-0 font-mono text-xs text-secondary">
                     {String(track.trackNumber).padStart(2, '0')}
                   </span>
