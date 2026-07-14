@@ -42,10 +42,10 @@ const CHOP_SUEY_TRACK = {
 
 const ARTIST_DETAIL = {
   artist: { id: TOXICITY_ALBUM_DTO.artist.id, name: TOXICITY_ALBUM_DTO.artist.name, picture: null },
-  bio: 'A short artist biography for accessibility coverage.',
   top_tracks: [CHOP_SUEY_TRACK],
   albums: [TOXICITY_ALBUM_DTO],
   ep_singles: [{ ...TOXICITY_ALBUM_DTO, id: '999', title: 'A Single', type: 'SINGLE' }],
+  other: [{ ...TOXICITY_ALBUM_DTO, id: '998', title: 'A Compilation', type: 'COMPILATION' }],
   similar: [{ id: '424242', name: 'Similar Artist', picture: null }],
 }
 

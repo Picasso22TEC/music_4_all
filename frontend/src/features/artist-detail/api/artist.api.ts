@@ -11,10 +11,10 @@ export interface ArtistDetail {
 
 export interface ArtistDetailData {
   artist: ArtistDetail
-  bio: string | null
   topTracks: Track[]
   albums: Album[]
   epSingles: Album[]
+  other: Album[]
   similar: ArtistResult[]
 }
 
@@ -23,6 +23,7 @@ export const artistApi = {
     const { data } = await client.get<ArtistDetailResponseDTO>(`/artists/${artistId}`)
     const albums = data.albums.map(mapAlbumDTO)
     const epSingles = (data.ep_singles ?? []).map(mapAlbumDTO)
+    const other = (data.other ?? []).map(mapAlbumDTO)
     // Top tracks span multiple albums; each carries its own {id,title,cover} album
     // ref, so cada pista muestra la portada de su propio álbum.
     const topTracks = data.top_tracks.map((dto) =>
@@ -44,10 +45,10 @@ export const artistApi = {
         name: data.artist.name,
         picture: data.artist.picture,
       },
-      bio: data.bio ?? null,
       topTracks,
       albums,
       epSingles,
+      other,
       similar,
     }
   },

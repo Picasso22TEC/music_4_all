@@ -31,6 +31,8 @@ def _mock_artist() -> SimpleNamespace:
             num_tracks=10,
             duration=2400,
             audio_quality="LOSSLESS",
+            # Hi-Res disponible via mediaMetadata → el badge debe mostrar HIRES.
+            media_metadata_tags=["LOSSLESS", "HIRES_LOSSLESS"],
             audio_modes=[],
             upc=None,
             label=None,
@@ -46,8 +48,8 @@ def _mock_artist() -> SimpleNamespace:
         get_top_tracks=lambda limit=15: [track],
         get_albums=lambda: [_release("Test Album", "ALBUM")],
         get_ep_singles=lambda limit=20: [_release("Test Single", "SINGLE")],
+        get_other=lambda limit=20: [_release("Test Compilation", "COMPILATION")],
         get_similar=lambda: [similar_ref],
-        get_bio=lambda: "A [wimpLink artistId=1]great[/wimpLink] band.",
     )
 
 
@@ -70,15 +72,18 @@ def test_artist_detail_returns_artist_top_tracks_and_albums(api_client_with_stat
     assert len(body["albums"]) == 1
     assert body["albums"][0]["title"] == "Test Album"
     assert body["albums"][0]["type"] == "ALBUM"
+    # La calidad se deriva de mediaMetadata (Hi-Res disponible) para el badge.
+    assert body["albums"][0]["audio_quality"] == "HIRES"
     # EPs & singles separados de los álbumes completos.
     assert len(body["ep_singles"]) == 1
     assert body["ep_singles"][0]["type"] == "SINGLE"
+    # Compilaciones / apariciones como invitado.
+    assert len(body["other"]) == 1
+    assert body["other"][0]["type"] == "COMPILATION"
     # Artistas similares con foto.
     assert len(body["similar"]) == 1
     assert body["similar"][0]["name"] == "Similar Artist"
     assert body["similar"][0]["picture"].startswith("https://resources.tidal.com/images/")
-    # Bio con los tags [wimpLink] limpiados.
-    assert body["bio"] == "A great band."
 
 
 def test_artist_detail_survives_partial_tidal_failures(api_client_with_state):

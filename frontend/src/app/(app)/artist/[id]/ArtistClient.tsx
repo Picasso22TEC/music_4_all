@@ -11,9 +11,11 @@ import { Button } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
 import { useArtistDetailQuery } from '@/features/artist-detail'
 import { albumApi } from '@/features/album-detail'
-import { AlbumCard, ArtistCard } from '@/features/search'
+import { ArtistCard } from '@/features/search'
 import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
 import { useDownloadsStore, useStartDownloadMutation } from '@/features/downloads'
+
+import { ReleaseSection } from './ReleaseSection'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -59,9 +61,11 @@ export function ArtistClient({ artistId }: { artistId: string }) {
   }
 
   function handleDownloadAlbum(albumId: string) {
-    const album = [...(data?.albums ?? []), ...(data?.epSingles ?? [])].find(
-      (a) => a.id === albumId,
-    )
+    const album = [
+      ...(data?.albums ?? []),
+      ...(data?.epSingles ?? []),
+      ...(data?.other ?? []),
+    ].find((a) => a.id === albumId)
     downloadMutation.mutate(
       { albumId, quality: 'MASTER' },
       {
@@ -234,43 +238,25 @@ export function ArtistClient({ artistId }: { artistId: string }) {
             </section>
           )}
 
-          {/* ── Albums ─────────────────────────────────────────────────── */}
-          {data.albums.length > 0 && (
-            <section aria-label="Albums" className="flex flex-col gap-3">
-              <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
-                Albums
-              </h2>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {data.albums.map((album) => (
-                  <AlbumCard
-                    key={album.id}
-                    album={album}
-                    onPlay={handlePlayAlbum}
-                    onDownload={handleDownloadAlbum}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* ── Singles & EPs ──────────────────────────────────────────── */}
-          {data.epSingles.length > 0 && (
-            <section aria-label="Singles and EPs" className="flex flex-col gap-3">
-              <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
-                Singles &amp; EPs
-              </h2>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {data.epSingles.map((album) => (
-                  <AlbumCard
-                    key={album.id}
-                    album={album}
-                    onPlay={handlePlayAlbum}
-                    onDownload={handleDownloadAlbum}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+          {/* ── Releases — carruseles con flechas + View all ───────────── */}
+          <ReleaseSection
+            title="Albums"
+            albums={data.albums}
+            onPlay={handlePlayAlbum}
+            onDownload={handleDownloadAlbum}
+          />
+          <ReleaseSection
+            title="Singles & EPs"
+            albums={data.epSingles}
+            onPlay={handlePlayAlbum}
+            onDownload={handleDownloadAlbum}
+          />
+          <ReleaseSection
+            title="Compilations"
+            albums={data.other}
+            onPlay={handlePlayAlbum}
+            onDownload={handleDownloadAlbum}
+          />
 
           {/* ── Fans also like ─────────────────────────────────────────── */}
           {data.similar.length > 0 && (
@@ -283,18 +269,6 @@ export function ArtistClient({ artistId }: { artistId: string }) {
                   <ArtistCard key={similarArtist.id} artist={similarArtist} />
                 ))}
               </div>
-            </section>
-          )}
-
-          {/* ── About ──────────────────────────────────────────────────── */}
-          {data.bio && (
-            <section aria-label="About" className="flex flex-col gap-3">
-              <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
-                About
-              </h2>
-              <p className="max-w-prose whitespace-pre-line font-sans text-sm leading-relaxed text-secondary">
-                {data.bio}
-              </p>
             </section>
           )}
           </div>

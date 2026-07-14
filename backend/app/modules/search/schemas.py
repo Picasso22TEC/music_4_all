@@ -118,8 +118,8 @@ class ArtistDetailOut(BaseModel):
 
 class ArtistDetailResponse(BaseModel):
     artist: ArtistDetailOut
-    bio: str | None = None
     top_tracks: list[TrackOut]
     albums: list[AlbumOut]
     ep_singles: list[AlbumOut] = []
+    other: list[AlbumOut] = []  # compilaciones / apariciones como invitado
     similar: list[ArtistSearchOut] = []

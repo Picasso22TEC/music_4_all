@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Iterable
 from datetime import date
 from typing import Any
@@ -44,6 +43,19 @@ def _map_audio_quality(q: object) -> str:
     return "NORMAL"
 
 
+def _album_audio_quality(album: object) -> str:
+    """Calidad real disponible del álbum, priorizando los mediaMetadata tags
+    (que sí distinguen Hi-Res) sobre `audio_quality` (suele venir LOSSLESS para
+    todos). Así el badge del álbum refleja la calidad máxima descargable."""
+    tags = getattr(album, "media_metadata_tags", None) or []
+    tags_up = [str(t).upper() for t in tags]
+    if any("HIRES" in t for t in tags_up):
+        return "HIRES"
+    if any("LOSSLESS" in t for t in tags_up):
+        return "HIGH"
+    return _map_audio_quality(getattr(album, "audio_quality", None))
+
+
 def _map_audio_modes(modes: Iterable[object] | None) -> list[str]:
     """Convierte audio modes de tidalapi al formato del spec."""
     if not modes:
@@ -85,18 +97,6 @@ def _artist_search_out(artist: object) -> ArtistSearchOut:
     )
 
 
-# La bio de Tidal viene con tags [wimpLink ...]Texto[/wimpLink] (enlaces internos).
-# Quitamos los tags dejando el texto plano legible.
-_WIMP_TAG_RE = re.compile(r"\[/?wimpLink[^\]]*\]")
-
-
-def _clean_bio(bio: str | None) -> str | None:
-    if not bio:
-        return None
-    cleaned = _WIMP_TAG_RE.sub("", bio).strip()
-    return cleaned or None
-
-
 def _release_date_str(d: object) -> str:
     if d is None:
         return ""
@@ -128,7 +128,7 @@ def _album_to_out(album: object) -> AlbumOut:
         release_date=_release_date_str(release_date),
         number_of_tracks=int(getattr(album, "num_tracks", 0) or 0),
         duration=int(getattr(album, "duration", 0) or 0),
-        audio_quality=_map_audio_quality(getattr(album, "audio_quality", None)),
+        audio_quality=_album_audio_quality(album),
         audio_modes=_map_audio_modes(getattr(album, "audio_modes", [])),
         upc=getattr(album, "upc", None),
         label=label,
@@ -274,22 +274,22 @@ class SearchV2Repository:
         except Exception:
             ep_singles = []
         try:
+            other = list(artist.get_other(limit=20))
+        except Exception:
+            other = []
+        try:
             similar = list(artist.get_similar())
         except Exception:
             similar = []
-        try:
-            bio = _clean_bio(artist.get_bio())
-        except Exception:
-            bio = None
         return ArtistDetailResponse(
             artist=ArtistDetailOut(
                 id=str(getattr(artist, "id", artist_id)),
                 name=str(getattr(artist, "name", "") or ""),
                 picture=_artist_picture_url(artist),
             ),
-            bio=bio,
             top_tracks=[_track_to_out(t) for t in top],
             albums=[_album_to_out(a) for a in albums],
             ep_singles=[_album_to_out(a) for a in ep_singles],
+            other=[_album_to_out(a) for a in other],
             similar=[_artist_search_out(a) for a in similar],
         )

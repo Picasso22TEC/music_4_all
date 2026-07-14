@@ -64,10 +64,10 @@ export interface ArtistDetailDTO {
 
 export interface ArtistDetailResponseDTO {
   artist: ArtistDetailDTO
-  bio: string | null
   top_tracks: TrackDTO[]
   albums: AlbumDTO[]
   ep_singles: AlbumDTO[]
+  other: AlbumDTO[]
   similar: ArtistSearchDTO[]
 }
 
