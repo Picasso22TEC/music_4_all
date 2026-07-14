@@ -7,6 +7,7 @@ class DownloadRecordSchema(BaseModel):
     id: str
     title: str
     artist: str
+    album: str | None = None
     quality: str
     cover_url: str | None = None
     job_id: str | None = None

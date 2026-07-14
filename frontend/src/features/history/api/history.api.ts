@@ -9,6 +9,7 @@ interface HistoryRecordDTO {
   id: string
   title: string
   artist: string
+  album: string | null
   quality: string
   cover_url: string | null
   job_id: string | null
@@ -22,6 +23,7 @@ function mapRecord(dto: HistoryRecordDTO): HistoryRecord {
     id:           dto.id,
     title:        dto.title,
     artist:       dto.artist,
+    album:        dto.album ?? null,
     quality:      dto.quality,
     coverUrl:     dto.cover_url,
     jobId:        dto.job_id,

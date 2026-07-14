@@ -16,11 +16,13 @@ class HistoryRepository:
         quality: str,
         cover_url: str | None,
         job_id: str | None = None,
+        album: str | None = None,
     ) -> DownloadRecord:
         record = DownloadRecord(
             id=str(uuid.uuid4()),
             title=title,
             artist=artist,
+            album=album,
             quality=quality,
             cover_url=cover_url,
             job_id=job_id,

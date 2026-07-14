@@ -44,9 +44,16 @@ export function AlbumTile({ album, priority = false }: { album: LibraryAlbum; pr
   const dateLabel = formatDate(album.downloadedAt)
   const tracks = `${album.trackCount} track${album.trackCount !== 1 ? 's' : ''}`
 
+  // El título del álbum lidera; si el registro es previo a la columna `album`
+  // (null), caemos al artista como principal para no dejar la tarjeta sin nombre.
+  const primary = album.albumTitle || album.artist
+  const ariaLabel = album.albumTitle
+    ? `${album.albumTitle} by ${album.artist} — ${tracks}, ${album.quality}, downloaded ${dateLabel}`
+    : `${album.artist} — ${tracks}, ${album.quality}, downloaded ${dateLabel}`
+
   return (
     <article
-      aria-label={`${album.artist} — ${tracks}, ${album.quality}, downloaded ${dateLabel}`}
+      aria-label={ariaLabel}
       className="group flex flex-col gap-2"
     >
       <div className="relative">
@@ -83,11 +90,14 @@ export function AlbumTile({ album, priority = false }: { album: LibraryAlbum; pr
         </div>
       </div>
 
-      {/* Meta — lidera el artista (sin título de álbum en los datos) */}
+      {/* Meta — título del álbum lidera; artista debajo cuando lo hay */}
       <div className="flex flex-col gap-0.5">
         <h3 className="truncate font-sans text-sm font-semibold text-primary">
-          {album.artist}
+          {primary}
         </h3>
+        {album.albumTitle && (
+          <p className="truncate font-sans text-xs text-secondary">{album.artist}</p>
+        )}
         <p className="truncate font-mono text-2xs text-secondary">
           {tracks} · {dateLabel}
         </p>

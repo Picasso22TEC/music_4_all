@@ -15,6 +15,9 @@ class DownloadRecord(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title: Mapped[str] = mapped_column(String(500))
     artist: Mapped[str] = mapped_column(String(500))
+    # Título del álbum al que pertenece el track. Nullable: los registros
+    # previos a esta columna (y descargas sueltas) no lo tienen.
+    album: Mapped[str | None] = mapped_column(String(500), nullable=True)
     quality: Mapped[str] = mapped_column(String(100))
     cover_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     job_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)

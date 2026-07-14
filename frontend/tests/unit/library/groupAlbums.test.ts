@@ -12,6 +12,7 @@ function rec(over: Partial<HistoryRecord> = {}): HistoryRecord {
     id: `id-${seq}`,
     title: `Track ${seq}`,
     artist: 'Radiohead',
+    album: 'OK Computer',
     quality: 'FLAC',
     coverUrl: 'https://cover/ok-computer.jpg',
     jobId: 'job-1',
@@ -78,6 +79,22 @@ describe('groupIntoAlbums', () => {
       rec({ coverUrl: null, jobId: null }),
     ])
     expect(albums).toHaveLength(2)
+  })
+
+  it('carries the album title, falling back to null for legacy records', () => {
+    const [titled] = groupIntoAlbums([rec({ album: 'Kid A' })])
+    expect(titled.albumTitle).toBe('Kid A')
+
+    const [legacy] = groupIntoAlbums([rec({ album: null, coverUrl: null, jobId: null })])
+    expect(legacy.albumTitle).toBeNull()
+  })
+
+  it('adopts a non-null album title from a later track of the same job', () => {
+    const [album] = groupIntoAlbums([
+      rec({ album: null, jobId: 'job-t' }),
+      rec({ album: 'In Rainbows', jobId: 'job-t' }),
+    ])
+    expect(album.albumTitle).toBe('In Rainbows')
   })
 
   it('labels the album with its dominant artist (feats do not win)', () => {

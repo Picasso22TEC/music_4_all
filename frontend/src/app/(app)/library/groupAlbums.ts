@@ -9,6 +9,8 @@ export interface LibraryAlbum {
   /** Clave de agrupación (coverUrl || jobId || id del primer track) */
   key: string
   coverUrl: string | null
+  /** Título del álbum, o null en registros previos a la columna `album` */
+  albumTitle: string | null
   artist: string
   trackCount: number
   /** Cadena libre de calidad que escribió el worker (p. ej. "96kHz / 24bit") */
@@ -30,6 +32,7 @@ export interface LibraryAlbum {
 interface AlbumAcc {
   key: string
   coverUrl: string | null
+  albumTitle: string | null
   quality: string
   trackCount: number
   latest: string
@@ -40,6 +43,7 @@ interface AlbumAcc {
 function absorb(dst: AlbumAcc, src: AlbumAcc): void {
   dst.trackCount += src.trackCount
   if (src.coverUrl && !dst.coverUrl) dst.coverUrl = src.coverUrl
+  if (src.albumTitle && !dst.albumTitle) dst.albumTitle = src.albumTitle
   if (src.latest > dst.latest) dst.latest = src.latest
   for (const [name, count] of src.artistCounts) {
     dst.artistCounts.set(name, (dst.artistCounts.get(name) ?? 0) + count)
@@ -56,6 +60,7 @@ export function groupIntoAlbums(records: HistoryRecord[]): LibraryAlbum[] {
       byKey.set(key, {
         key,
         coverUrl: r.coverUrl,
+        albumTitle: r.album,
         quality: r.quality,
         trackCount: 1,
         latest: r.downloadedAt,
@@ -65,6 +70,7 @@ export function groupIntoAlbums(records: HistoryRecord[]): LibraryAlbum[] {
       absorb(acc, {
         key,
         coverUrl: r.coverUrl,
+        albumTitle: r.album,
         quality: r.quality,
         trackCount: 1,
         latest: r.downloadedAt,
@@ -102,6 +108,7 @@ export function groupIntoAlbums(records: HistoryRecord[]): LibraryAlbum[] {
     return {
       key: acc.key,
       coverUrl: acc.coverUrl,
+      albumTitle: acc.albumTitle,
       artist,
       trackCount: acc.trackCount,
       quality: acc.quality,

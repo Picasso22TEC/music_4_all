@@ -215,11 +215,13 @@ async def _process_job(
 
                 artist = getattr(getattr(track, "artist", None), "name", "")
                 cover = _cover_url(track)
+                album_title = _album_title(track)
                 async with session_factory() as session:
                     await _history_repo.save_download(
                         session,
                         title=track.name,
                         artist=artist,
+                        album=album_title,
                         quality=quality,
                         cover_url=cover,
                         job_id=job_id,
@@ -314,3 +316,9 @@ def _cover_url(track) -> str | None:
     if not cover:
         return None
     return f"https://resources.tidal.com/images/{cover.replace('-', '/')}/320x320.jpg"
+
+
+def _album_title(track) -> str | None:
+    album = getattr(track, "album", None)
+    name = getattr(album, "name", None) if album else None
+    return str(name) if name else None

@@ -7,6 +7,8 @@ export interface HistoryRecord {
   id: string
   title: string
   artist: string
+  /** Album title, or null for records saved before the column existed */
+  album: string | null
   /** Free-form quality description from the download worker */
   quality: string
   /** Tidal cover URL or null if unavailable */
