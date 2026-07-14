@@ -39,7 +39,7 @@ function formatDate(iso: string): string {
 
 // ─── Component (presentacional) ───────────────────────────────────────────────
 
-export function AlbumTile({ album }: { album: LibraryAlbum }) {
+export function AlbumTile({ album, priority = false }: { album: LibraryAlbum; priority?: boolean }) {
   const badge = resolveQuality(album.quality)
   const dateLabel = formatDate(album.downloadedAt)
   const tracks = `${album.trackCount} track${album.trackCount !== 1 ? 's' : ''}`
@@ -63,6 +63,7 @@ export function AlbumTile({ album }: { album: LibraryAlbum }) {
               src={album.coverUrl}
               alt=""
               fill
+              priority={priority}
               sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
               className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
             />

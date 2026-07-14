@@ -96,8 +96,10 @@ export function LibraryClient() {
         {/* Data — collection grid */}
         {!isLoading && !isError && albums.length > 0 && (
           <div className={GRID}>
-            {albums.map((album) => (
-              <AlbumTile key={album.key} album={album} />
+            {albums.map((album, index) => (
+              // La primera fila (hasta 5 en xl) es la que suele contener el LCP:
+              // priority evita el warning de next/image y precarga la carátula.
+              <AlbumTile key={album.key} album={album} priority={index < 5} />
             ))}
           </div>
         )}
