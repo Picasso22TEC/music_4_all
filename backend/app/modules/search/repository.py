@@ -14,8 +14,10 @@ from .schemas import (
     ArtistDetailOut,
     ArtistDetailResponse,
     ArtistOut,
+    ArtistSearchOut,
     LabelOut,
     PaginatedAlbums,
+    PaginatedArtists,
     PaginatedPlaylists,
     PaginatedTracks,
     PlaylistOut,
@@ -72,6 +74,14 @@ def _artist_picture_url(artist: object) -> str | None:
     if not pic:
         return None
     return f"https://resources.tidal.com/images/{str(pic).replace('-', '/')}/750x750.jpg"
+
+
+def _artist_search_out(artist: object) -> ArtistSearchOut:
+    return ArtistSearchOut(
+        id=str(getattr(artist, "id", "") or ""),
+        name=str(getattr(artist, "name", "") or ""),
+        picture=_artist_picture_url(artist),
+    )
 
 
 def _release_date_str(d: object) -> str:
@@ -156,12 +166,12 @@ class SearchV2Repository:
         try:
             raw: Any = engine.session.search(  # tidalapi stubs type this as object; cast to Any for attribute access
                 query,
-                models=[tidalapi.Album, tidalapi.Track, tidalapi.Playlist],
+                models=[tidalapi.Artist, tidalapi.Album, tidalapi.Track, tidalapi.Playlist],
                 limit=limit,
             )
         except Exception:
-            _empty = lambda: {"items": [], "total": 0}  # noqa: E731
             return SearchResultsResponse(
+                artists=PaginatedArtists(items=[], total_number_of_items=0, limit=limit, offset=0),
                 albums=PaginatedAlbums(items=[], total_number_of_items=0, limit=limit, offset=0),
                 tracks=PaginatedTracks(items=[], total_number_of_items=0, limit=limit, offset=0),
                 playlists=PaginatedPlaylists(
@@ -175,11 +185,18 @@ class SearchV2Repository:
             items: Any = getattr(raw, key, None) or []
             return list(items)
 
+        artist_items = [_artist_search_out(a) for a in _list("artists")]
         album_items = [_album_to_out(a) for a in _list("albums")]
         track_items = [_track_to_out(t) for t in _list("tracks")]
         playlist_items = [_playlist_to_out(p) for p in _list("playlists")]
 
         return SearchResultsResponse(
+            artists=PaginatedArtists(
+                items=artist_items,
+                total_number_of_items=len(artist_items),
+                limit=limit,
+                offset=0,
+            ),
             albums=PaginatedAlbums(
                 items=album_items,
                 total_number_of_items=len(album_items),

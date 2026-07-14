@@ -10,6 +10,14 @@ class ArtistOut(BaseModel):
     name: str
 
 
+class ArtistSearchOut(BaseModel):
+    """Artista como resultado de búsqueda — incluye foto para pintar la tarjeta."""
+
+    id: str
+    name: str
+    picture: str | None = None  # URL completa (o None si no tiene imagen)
+
+
 class LabelOut(BaseModel):
     id: str
     name: str
@@ -52,6 +60,13 @@ class PlaylistOut(BaseModel):
 # ─── Paginación ───────────────────────────────────────────────────────────────
 
 
+class PaginatedArtists(BaseModel):
+    items: list[ArtistSearchOut]
+    total_number_of_items: int
+    limit: int
+    offset: int
+
+
 class PaginatedAlbums(BaseModel):
     items: list[AlbumOut]
     total_number_of_items: int
@@ -77,6 +92,7 @@ class PaginatedPlaylists(BaseModel):
 
 
 class SearchResultsResponse(BaseModel):
+    artists: PaginatedArtists
     albums: PaginatedAlbums
     tracks: PaginatedTracks
     playlists: PaginatedPlaylists
