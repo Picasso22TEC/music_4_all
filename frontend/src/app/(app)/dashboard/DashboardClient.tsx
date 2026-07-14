@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Play } from 'lucide-react'
 
-import type { Album, AudioQuality, Track } from '@/entities'
+import type { Album, AudioQuality } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
-import { usePlayerStore, type PlayerTrack } from '@/features/player'
+import { usePlayerStore, trackToPlayerTrack as toPlayerTrack } from '@/features/player'
 import {
   AudioWaves,
   Button,
@@ -36,18 +36,6 @@ function formatSeconds(total: number): string {
   const m = Math.floor(total / 60)
   const s = total % 60
   return `${m}:${String(s).padStart(2, '0')}`
-}
-
-/** Map a domain Track to a PlayerTrack that streams from Tidal (no download). */
-function toPlayerTrack(t: Track): PlayerTrack {
-  return {
-    id: t.id,
-    title: t.title,
-    artist: t.artist.name,
-    album: t.albumTitle,
-    coverUrl: t.coverUrl,
-    src: `/api/download/stream/${t.id}`,
-  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

@@ -6,7 +6,12 @@ from app.core.rate_limiter import limiter
 from app.core.tidal import TidalDownloader
 from app.dependencies import get_authenticated_engine
 
-from .schemas import AlbumDetailResponse, ResolveUrlResponse, SearchResultsResponse
+from .schemas import (
+    AlbumDetailResponse,
+    ArtistDetailResponse,
+    ResolveUrlResponse,
+    SearchResultsResponse,
+)
 from .service import SearchV2Service
 
 router = APIRouter(tags=["search-v2"])
@@ -74,6 +79,32 @@ async def get_album_detail(
     except tidal_exc.ObjectNotFound as exc:
         raise ApiException(
             "NOT_FOUND", f"Álbum {album_id} no encontrado en Tidal", 404, retriable=False
+        ) from exc
+    except (tidal_exc.AuthenticationError, AttributeError) as exc:
+        raise ApiException(
+            "SESSION_EXPIRED", "Sesión de Tidal expirada", 403, retriable=False
+        ) from exc
+    except Exception as exc:
+        raise ApiException("SERVER_ERROR", str(exc), 500, retriable=True) from exc
+
+
+@router.get("/artists/{artist_id}", response_model=ArtistDetailResponse)
+@limiter.limit("30/minute")
+async def get_artist_detail(
+    request: Request,
+    artist_id: str,
+    engine: TidalDownloader = Depends(get_authenticated_engine),
+):
+    """Detalle de un artista: sus datos, top tracks y álbumes."""
+    if not artist_id.isdigit():
+        raise ApiException(
+            "INVALID_URL", f"artist_id debe ser numérico: {artist_id}", 400, retriable=False
+        )
+    try:
+        return await _service.get_artist_detail(artist_id, engine)
+    except tidal_exc.ObjectNotFound as exc:
+        raise ApiException(
+            "NOT_FOUND", f"Artista {artist_id} no encontrado en Tidal", 404, retriable=False
         ) from exc
     except (tidal_exc.AuthenticationError, AttributeError) as exc:
         raise ApiException(

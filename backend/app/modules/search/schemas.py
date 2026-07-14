@@ -91,3 +91,15 @@ class ResolveUrlResponse(BaseModel):
 class AlbumDetailResponse(BaseModel):
     album: AlbumOut
     tracks: list[TrackOut]
+
+
+class ArtistDetailOut(BaseModel):
+    id: str
+    name: str
+    picture: str | None = None  # URL completa (o None si el artista no tiene imagen)
+
+
+class ArtistDetailResponse(BaseModel):
+    artist: ArtistDetailOut
+    top_tracks: list[TrackOut]
+    albums: list[AlbumOut]

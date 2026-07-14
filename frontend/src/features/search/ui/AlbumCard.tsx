@@ -1,8 +1,9 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Music } from 'lucide-react'
+import { Music, Play } from 'lucide-react'
 
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { cn } from '@/shared/lib/cn'
@@ -37,6 +38,8 @@ export interface AlbumCardProps {
   onOpen?: (albumId: string) => void
   /** Starts download with quality override — opens QualitySelector */
   onDownload?: (albumId: string) => void
+  /** Streams the whole album (play button overlaid on the vinyl). */
+  onPlay?: (albumId: string) => void
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -49,7 +52,7 @@ export interface AlbumCardProps {
  *
  * Accessibility: article + labelled buttons, no div-click anti-patterns.
  */
-export function AlbumCard({ album, onOpen, onDownload }: AlbumCardProps) {
+export function AlbumCard({ album, onOpen, onDownload, onPlay }: AlbumCardProps) {
   const badge = resolveQualityBadge(album)
   const reducedMotion = useReducedMotion()
 
@@ -112,6 +115,23 @@ export function AlbumCard({ album, onOpen, onDownload }: AlbumCardProps) {
         <div className="pointer-events-none absolute bottom-[6%] left-[6%] z-raised -rotate-[10deg]">
           <Badge variant={badge.variant}>{badge.label}</Badge>
         </div>
+
+        {/* Play button — reproduce el álbum en streaming (esquina opuesta al sello) */}
+        {onPlay && (
+          <button
+            type="button"
+            onClick={() => onPlay(album.id)}
+            aria-label={`Reproducir ${album.title}`}
+            className={cn(
+              'absolute bottom-[6%] right-[6%] z-raised inline-flex h-9 w-9 items-center justify-center rounded-full',
+              'bg-teal-500 text-surface-void shadow-md',
+              'transition-transform duration-150 ease-out hover:bg-teal-400 active:scale-95',
+              'focus-visible:outline-none focus-visible:shadow-glow-focus',
+            )}
+          >
+            <Play aria-hidden="true" className="h-4 w-4 translate-x-px" />
+          </button>
+        )}
       </div>
 
       {/* ── Info + Download ─────────────────────────────────────────── */}
@@ -121,9 +141,18 @@ export function AlbumCard({ album, onOpen, onDownload }: AlbumCardProps) {
           {album.title}
         </h3>
 
-        {/* Artist */}
+        {/* Artist — enlaza a su página cuando hay id */}
         <p className="w-full truncate font-sans text-xs text-secondary">
-          {album.artist.name}
+          {album.artist.id ? (
+            <Link
+              href={`/artist/${album.artist.id}`}
+              className="rounded-sm transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:shadow-glow-focus"
+            >
+              {album.artist.name}
+            </Link>
+          ) : (
+            album.artist.name
+          )}
         </p>
 
         {/* Year */}

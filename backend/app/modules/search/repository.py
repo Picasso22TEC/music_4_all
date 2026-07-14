@@ -11,6 +11,8 @@ from app.core.tidal import TidalDownloader
 from .schemas import (
     AlbumDetailResponse,
     AlbumOut,
+    ArtistDetailOut,
+    ArtistDetailResponse,
     ArtistOut,
     LabelOut,
     PaginatedAlbums,
@@ -62,6 +64,14 @@ def _artist_out(artist: object) -> ArtistOut:
         id=str(getattr(artist, "id", "") or ""),
         name=str(getattr(artist, "name", "") or ""),
     )
+
+
+def _artist_picture_url(artist: object) -> str | None:
+    """URL de la imagen del artista a partir de su UUID (formato resources.tidal)."""
+    pic = getattr(artist, "picture", None)
+    if not pic:
+        return None
+    return f"https://resources.tidal.com/images/{str(pic).replace('-', '/')}/750x750.jpg"
 
 
 def _release_date_str(d: object) -> str:
@@ -212,3 +222,25 @@ class SearchV2Repository:
         album_out = _album_to_out(album)
         track_items = [_track_to_out(t, include_album=False) for t in tracks]
         return AlbumDetailResponse(album=album_out, tracks=track_items)
+
+    def get_artist_detail(self, artist_id: str, engine: TidalDownloader) -> ArtistDetailResponse:
+        artist: Any = engine.session.artist(int(artist_id))  # type: ignore[arg-type]  # stubs declare str, acepta int
+        # Cada listado es defensivo: si una llamada de tidalapi falla, la vista
+        # del artista sigue siendo útil con lo que sí se pudo obtener.
+        try:
+            top = list(artist.get_top_tracks(limit=15))
+        except Exception:
+            top = []
+        try:
+            albums = list(artist.get_albums())
+        except Exception:
+            albums = []
+        return ArtistDetailResponse(
+            artist=ArtistDetailOut(
+                id=str(getattr(artist, "id", artist_id)),
+                name=str(getattr(artist, "name", "") or ""),
+                picture=_artist_picture_url(artist),
+            ),
+            top_tracks=[_track_to_out(t) for t in top],
+            albums=[_album_to_out(a) for a in albums],
+        )

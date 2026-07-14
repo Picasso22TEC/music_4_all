@@ -55,6 +55,18 @@ export interface AlbumDetailResponseDTO {
   tracks: TrackDTO[]
 }
 
+export interface ArtistDetailDTO {
+  id: string
+  name: string
+  picture: string | null
+}
+
+export interface ArtistDetailResponseDTO {
+  artist: ArtistDetailDTO
+  top_tracks: TrackDTO[]
+  albums: AlbumDTO[]
+}
+
 export interface ResolveUrlResponseDTO {
   type: 'album' | 'track' | 'playlist'
   id: string

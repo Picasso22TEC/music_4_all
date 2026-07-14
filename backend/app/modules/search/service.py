@@ -3,7 +3,12 @@ import asyncio
 from app.core.tidal import TidalDownloader
 
 from .repository import SearchV2Repository
-from .schemas import AlbumDetailResponse, ResolveUrlResponse, SearchResultsResponse
+from .schemas import (
+    AlbumDetailResponse,
+    ArtistDetailResponse,
+    ResolveUrlResponse,
+    SearchResultsResponse,
+)
 
 
 class SearchV2Service:
@@ -20,3 +25,8 @@ class SearchV2Service:
 
     async def get_album_detail(self, album_id: str, engine: TidalDownloader) -> AlbumDetailResponse:
         return await asyncio.to_thread(self._repo.get_album_detail, album_id, engine)
+
+    async def get_artist_detail(
+        self, artist_id: str, engine: TidalDownloader
+    ) -> ArtistDetailResponse:
+        return await asyncio.to_thread(self._repo.get_artist_detail, artist_id, engine)

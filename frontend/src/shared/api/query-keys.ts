@@ -11,6 +11,10 @@ export const queryKeys = {
     all: () => ['album'] as const,
     detail: (albumId: string) => ['album', 'detail', albumId] as const,
   },
+  artist: {
+    all: () => ['artist'] as const,
+    detail: (artistId: string) => ['artist', 'detail', artistId] as const,
+  },
   session: {
     all: () => ['session'] as const,
     status: () => ['session', 'status'] as const,
@@ -22,6 +26,7 @@ export type QueryKey = ReturnType<
   | typeof queryKeys.search.results
   | typeof queryKeys.url.resolve
   | typeof queryKeys.album.detail
+  | typeof queryKeys.artist.detail
   | typeof queryKeys.session.status
   | typeof queryKeys.session.deviceAuth
 >
