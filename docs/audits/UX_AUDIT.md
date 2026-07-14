@@ -205,3 +205,34 @@ Adicionalmente, `PlayerBar` es **puramente decorativo** (sin elemento `<audio>`,
 3. Decidir el alcance de `PlayerBar` (UX-05) con el equipo de producto — determina si Fase 4 es "ocultar" (XS) o se convierte en un nuevo proyecto.
 4. Planificar Fase 2 (shell móvil) como bloque de trabajo independiente, coordinable con `IMPLEMENTATION_PLAN.md` pero no bloqueado por él.
 5. Revisar este documento tras cualquier avance en `IMPLEMENTATION_PLAN.md` Fase 0 (prefers-reduced-motion), ya que UX-04 pasaría de Medium a resuelto.
+
+---
+
+# Anexo — User-walkthrough findings (2026-07-14)
+
+Findings from a fresh user-style walkthrough (real Tidal data) + code review of the streaming/artist/player work. Ordered most-critical → lowest. Drives the next UX iteration.
+
+## A. Navigation & orientation
+- **A1 — No "back" affordance** on `/artist/[id]` or the album detail modal. The pattern already exists (`history/page.tsx` has `← Dashboard`); it must be unified. *(High)*
+- **A2 — Search bar is lost when entering an artist.** Search lives only in `/dashboard` (`DashboardClient`); navigating to `/artist` leaves the user with no way to search. Search should persist app-wide. *(High)*
+- **A3 — Album = modal, Artist = page (inconsistent).** The album has no own URL (not shareable, no browser-back). *(Medium)*
+- **A4 — No global search** entry (no "Search" nav item nor header search bar). *(Medium)*
+
+## B. Artist search (root gap behind "search an artist")
+- **B1 — Search never returns artists.** Backend `session.search(models=[Album, Track, Playlist])` omits `Artist`; you only reach an artist by clicking the artist name on an album card. *(High)*
+- **B2 — Results render albums only.** `SearchResults` ignores the `tracks`/artist data in the response. *(High)*
+- **B3 — Artist photo missing from the search DTO** (`ArtistOut` has only `id`/`name`). *(High)*
+
+## C. Rich artist page (Spotify/Tidal-style)
+- **C1 — Artist image is small & circular (112px);** wanted: large hero/background image. *(High)*
+- **C2 — Albums are lumped together** — no Albums / EPs / Singles split (needs tidalapi album-type check). *(Medium)*
+- **C3 — Top tracks capped at 15,** no "see all", no play counts. *(Medium)*
+- **C4 — No similar artists nor bio** (`artist.get_similar()`/`get_bio()` available). *(Medium)*
+
+## D. Other gaps
+- **D1 — Library is a stub** (hardcoded empty state; does not list downloads). *(Medium)*
+- **D2 — Mixed ES/EN copy** across pages → app to be fully English. *(Low, requested)*
+- **D3 — Mobile:** sidebar is `lg:`-hidden. Critical for the "Walkman in the left column" idea — on mobile the player would vanish; needs a mobile fallback. *(High for the player relocation)*
+- **D4 — `text-disabled` contrast** — tracked a11y debt (see `roadmap.md` 2.8). *(Low)*
+
+**Execution order agreed:** most-critical → lowest, plus a full English pass first (so new artist UI is born in English, no re-translation).
