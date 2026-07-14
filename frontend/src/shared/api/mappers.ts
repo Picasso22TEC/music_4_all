@@ -27,6 +27,7 @@ export function mapAlbumDTO(dto: AlbumDTO): Album {
     upc: dto.upc ?? '',
     label: dto.label ?? { id: '', name: '' },
     genre: dto.genre ?? null,
+    type: dto.type ?? null,
   }
 }
 

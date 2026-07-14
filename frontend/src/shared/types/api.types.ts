@@ -26,6 +26,7 @@ export interface AlbumDTO {
   upc?: string
   label?: LabelDTO
   genre?: string
+  type?: string | null
 }
 
 export interface TrackDTO {
@@ -63,8 +64,11 @@ export interface ArtistDetailDTO {
 
 export interface ArtistDetailResponseDTO {
   artist: ArtistDetailDTO
+  bio: string | null
   top_tracks: TrackDTO[]
   albums: AlbumDTO[]
+  ep_singles: AlbumDTO[]
+  similar: ArtistSearchDTO[]
 }
 
 export interface ResolveUrlResponseDTO {

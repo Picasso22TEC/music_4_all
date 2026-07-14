@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from datetime import date
 from typing import Any
@@ -84,6 +85,18 @@ def _artist_search_out(artist: object) -> ArtistSearchOut:
     )
 
 
+# La bio de Tidal viene con tags [wimpLink ...]Texto[/wimpLink] (enlaces internos).
+# Quitamos los tags dejando el texto plano legible.
+_WIMP_TAG_RE = re.compile(r"\[/?wimpLink[^\]]*\]")
+
+
+def _clean_bio(bio: str | None) -> str | None:
+    if not bio:
+        return None
+    cleaned = _WIMP_TAG_RE.sub("", bio).strip()
+    return cleaned or None
+
+
 def _release_date_str(d: object) -> str:
     if d is None:
         return ""
@@ -120,6 +133,7 @@ def _album_to_out(album: object) -> AlbumOut:
         upc=getattr(album, "upc", None),
         label=label,
         genre=None,
+        type=str(getattr(album, "type", "") or "") or None,
     )
 
 
@@ -255,12 +269,27 @@ class SearchV2Repository:
             albums = list(artist.get_albums())
         except Exception:
             albums = []
+        try:
+            ep_singles = list(artist.get_ep_singles(limit=20))
+        except Exception:
+            ep_singles = []
+        try:
+            similar = list(artist.get_similar())
+        except Exception:
+            similar = []
+        try:
+            bio = _clean_bio(artist.get_bio())
+        except Exception:
+            bio = None
         return ArtistDetailResponse(
             artist=ArtistDetailOut(
                 id=str(getattr(artist, "id", artist_id)),
                 name=str(getattr(artist, "name", "") or ""),
                 picture=_artist_picture_url(artist),
             ),
+            bio=bio,
             top_tracks=[_track_to_out(t) for t in top],
             albums=[_album_to_out(a) for a in albums],
+            ep_singles=[_album_to_out(a) for a in ep_singles],
+            similar=[_artist_search_out(a) for a in similar],
         )

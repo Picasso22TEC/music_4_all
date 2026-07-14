@@ -36,6 +36,7 @@ class AlbumOut(BaseModel):
     upc: str | None = None
     label: LabelOut | None = None
     genre: str | None = None
+    type: str | None = None  # "ALBUM" | "EP" | "SINGLE" | "COMPILATION"
 
 
 class TrackOut(BaseModel):
@@ -117,5 +118,8 @@ class ArtistDetailOut(BaseModel):
 
 class ArtistDetailResponse(BaseModel):
     artist: ArtistDetailOut
+    bio: str | None = None
     top_tracks: list[TrackOut]
     albums: list[AlbumOut]
+    ep_singles: list[AlbumOut] = []
+    similar: list[ArtistSearchOut] = []

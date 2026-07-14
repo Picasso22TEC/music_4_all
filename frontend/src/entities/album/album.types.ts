@@ -25,4 +25,6 @@ export interface Album {
   readonly upc: string
   readonly label: Label
   readonly genre: string | null
+  /** "ALBUM" | "EP" | "SINGLE" | "COMPILATION" (Tidal release type) */
+  readonly type: string | null
 }

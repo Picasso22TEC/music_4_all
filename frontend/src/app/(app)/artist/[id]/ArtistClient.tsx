@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Play, Shuffle, User } from 'lucide-react'
@@ -11,7 +11,7 @@ import { Button } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
 import { useArtistDetailQuery } from '@/features/artist-detail'
 import { albumApi } from '@/features/album-detail'
-import { AlbumCard } from '@/features/search'
+import { AlbumCard, ArtistCard } from '@/features/search'
 import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
 import { useDownloadsStore, useStartDownloadMutation } from '@/features/downloads'
 
@@ -35,6 +35,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
   const query = useArtistDetailQuery(artistId, status === 'authenticated')
   const data = query.data
   const downloadMutation = useStartDownloadMutation()
+  const [showAllTracks, setShowAllTracks] = useState(false)
 
   // ── Playback ──────────────────────────────────────────────────────────────
   function playTopTracks(startIndex: number) {
@@ -58,7 +59,9 @@ export function ArtistClient({ artistId }: { artistId: string }) {
   }
 
   function handleDownloadAlbum(albumId: string) {
-    const album = data?.albums.find((a) => a.id === albumId)
+    const album = [...(data?.albums ?? []), ...(data?.epSingles ?? [])].find(
+      (a) => a.id === albumId,
+    )
     downloadMutation.mutate(
       { albumId, quality: 'MASTER' },
       {
@@ -182,7 +185,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
                 Popular
               </h2>
               <ol className="flex flex-col">
-                {data.topTracks.map((track, index) => (
+                {(showAllTracks ? data.topTracks : data.topTracks.slice(0, 5)).map((track, index) => (
                   <li key={track.id}>
                     <div
                       className={cn(
@@ -215,6 +218,19 @@ export function ArtistClient({ artistId }: { artistId: string }) {
                   </li>
                 ))}
               </ol>
+              {data.topTracks.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllTracks((v) => !v)}
+                  className={cn(
+                    'w-fit rounded-sm px-2 py-1 font-mono text-xs font-semibold uppercase tracking-wider',
+                    'text-secondary transition-colors hover:text-primary',
+                    'focus-visible:outline-none focus-visible:shadow-glow-focus',
+                  )}
+                >
+                  {showAllTracks ? 'Show less' : 'See all'}
+                </button>
+              )}
             </section>
           )}
 
@@ -234,6 +250,51 @@ export function ArtistClient({ artistId }: { artistId: string }) {
                   />
                 ))}
               </div>
+            </section>
+          )}
+
+          {/* ── Singles & EPs ──────────────────────────────────────────── */}
+          {data.epSingles.length > 0 && (
+            <section aria-label="Singles and EPs" className="flex flex-col gap-3">
+              <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
+                Singles &amp; EPs
+              </h2>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {data.epSingles.map((album) => (
+                  <AlbumCard
+                    key={album.id}
+                    album={album}
+                    onPlay={handlePlayAlbum}
+                    onDownload={handleDownloadAlbum}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Fans also like ─────────────────────────────────────────── */}
+          {data.similar.length > 0 && (
+            <section aria-label="Fans also like" className="flex flex-col gap-3">
+              <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
+                Fans also like
+              </h2>
+              <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+                {data.similar.map((similarArtist) => (
+                  <ArtistCard key={similarArtist.id} artist={similarArtist} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── About ──────────────────────────────────────────────────── */}
+          {data.bio && (
+            <section aria-label="About" className="flex flex-col gap-3">
+              <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
+                About
+              </h2>
+              <p className="max-w-prose whitespace-pre-line font-sans text-sm leading-relaxed text-secondary">
+                {data.bio}
+              </p>
             </section>
           )}
           </div>

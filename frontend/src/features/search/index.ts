@@ -10,6 +10,8 @@ export { searchApi } from './api/search.api'
 export { AlbumCard } from './ui/AlbumCard'
 export type { AlbumCardProps } from './ui/AlbumCard'
 
+export { ArtistCard } from './ui/ArtistCard'
+
 export { SearchInput } from './ui/SearchInput'
 export type { SearchInputProps } from './ui/SearchInput'
 
