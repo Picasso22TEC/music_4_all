@@ -1,3 +1,8 @@
-export { usePlayerStore, selectIsPlayerActive } from './model/player.store'
-export type { PlayerTrack } from './model/player.store'
+export {
+  usePlayerStore,
+  selectIsPlayerActive,
+  selectHasNext,
+  selectHasPrevious,
+} from './model/player.store'
+export type { PlayerTrack, RepeatMode } from './model/player.store'
 export { AudioController } from './ui/AudioController'

@@ -1,12 +1,61 @@
 'use client'
 
 import Image from 'next/image'
-import { CircleSlash, Music, Pause, Play, Volume2 } from 'lucide-react'
+import {
+  CircleSlash,
+  Music,
+  Pause,
+  Play,
+  Repeat,
+  Repeat1,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  Volume2,
+} from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { formatDuration } from '@/shared/lib/format'
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
-import { usePlayerStore } from '@/features/player'
+import { usePlayerStore, selectHasNext, selectHasPrevious } from '@/features/player'
+
+// ─── Transport button (secondary controls) ───────────────────────────────────
+
+function TransportButton({
+  onClick,
+  disabled,
+  active,
+  label,
+  className,
+  children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  active?: boolean
+  label: string
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+        'transition-transform duration-150 ease-out active:scale-90',
+        'focus-visible:outline-none focus-visible:shadow-glow-focus',
+        active ? 'text-teal-400' : 'text-secondary hover:text-primary',
+        'disabled:cursor-not-allowed disabled:text-ghost disabled:hover:text-ghost',
+        className,
+      )}
+    >
+      {children}
+    </button>
+  )
+}
 
 // ─── Component (wireframes §16) ───────────────────────────────────────────────
 
@@ -16,14 +65,23 @@ export function PlayerBar() {
   const progressSec   = usePlayerStore((s) => s.progressSeconds)
   const durationSec   = usePlayerStore((s) => s.durationSeconds)
   const volume        = usePlayerStore((s) => s.volume)
+  const shuffle       = usePlayerStore((s) => s.shuffle)
+  const repeat        = usePlayerStore((s) => s.repeat)
   const toggle        = usePlayerStore((s) => s.toggle)
   const seek          = usePlayerStore((s) => s.seek)
   const setVolume     = usePlayerStore((s) => s.setVolume)
+  const next          = usePlayerStore((s) => s.next)
+  const previous      = usePlayerStore((s) => s.previous)
+  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
+  const cycleRepeat   = usePlayerStore((s) => s.cycleRepeat)
+  const hasNext       = usePlayerStore(selectHasNext)
+  const hasPrevious   = usePlayerStore(selectHasPrevious)
   const reducedMotion = useReducedMotion()
 
   const hasTrack = current !== null
   const max = durationSec > 0 ? durationSec : 0
   const progressPercent = max > 0 ? Math.min(100, Math.max(0, (progressSec / max) * 100)) : 0
+  const repeatLabel = repeat === 'one' ? 'Repeat one' : repeat === 'all' ? 'Repeat all' : 'Repeat off'
 
   return (
     <div
@@ -116,26 +174,65 @@ export function PlayerBar() {
         )}
       </div>
 
-      {/* ── Play / pause ────────────────────────────────────────────── */}
-      <button
-        type="button"
-        onClick={toggle}
-        disabled={!hasTrack}
-        aria-label={isPlaying ? 'Pause' : 'Play'}
-        className={cn(
-          'shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full',
-          'bg-teal-500 text-surface-void',
-          'transition-transform duration-150 ease-out active:scale-95',
-          'hover:bg-teal-400 focus-visible:outline-none focus-visible:shadow-glow-focus',
-          'disabled:cursor-not-allowed disabled:bg-surface-rack disabled:text-disabled',
-        )}
-      >
-        {isPlaying ? (
-          <Pause aria-hidden="true" className="h-4 w-4" />
-        ) : (
-          <Play aria-hidden="true" className="h-4 w-4 translate-x-px" />
-        )}
-      </button>
+      {/* ── Transport controls ──────────────────────────────────────── */}
+      <div className="flex shrink-0 items-center gap-1">
+        {/* Shuffle (sm+) */}
+        <TransportButton
+          onClick={toggleShuffle}
+          disabled={!hasTrack}
+          active={shuffle}
+          label={shuffle ? 'Shuffle on' : 'Shuffle off'}
+          className="hidden sm:inline-flex"
+        >
+          <Shuffle aria-hidden="true" className="h-4 w-4" />
+        </TransportButton>
+
+        {/* Previous */}
+        <TransportButton onClick={previous} disabled={!hasPrevious} label="Previous track">
+          <SkipBack aria-hidden="true" className="h-4 w-4" />
+        </TransportButton>
+
+        {/* Play / pause — primary */}
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={!hasTrack}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+          className={cn(
+            'mx-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+            'bg-teal-500 text-surface-void',
+            'transition-transform duration-150 ease-out active:scale-95',
+            'hover:bg-teal-400 focus-visible:outline-none focus-visible:shadow-glow-focus',
+            'disabled:cursor-not-allowed disabled:bg-surface-rack disabled:text-disabled',
+          )}
+        >
+          {isPlaying ? (
+            <Pause aria-hidden="true" className="h-4 w-4" />
+          ) : (
+            <Play aria-hidden="true" className="h-4 w-4 translate-x-px" />
+          )}
+        </button>
+
+        {/* Next */}
+        <TransportButton onClick={next} disabled={!hasNext} label="Next track">
+          <SkipForward aria-hidden="true" className="h-4 w-4" />
+        </TransportButton>
+
+        {/* Repeat (sm+) */}
+        <TransportButton
+          onClick={cycleRepeat}
+          disabled={!hasTrack}
+          active={repeat !== 'off'}
+          label={repeatLabel}
+          className="hidden sm:inline-flex"
+        >
+          {repeat === 'one' ? (
+            <Repeat1 aria-hidden="true" className="h-4 w-4" />
+          ) : (
+            <Repeat aria-hidden="true" className="h-4 w-4" />
+          )}
+        </TransportButton>
+      </div>
 
       {/* ── Seek bar + times (md+) ──────────────────────────────────── */}
       <div className="hidden md:flex w-56 shrink-0 items-center gap-2">

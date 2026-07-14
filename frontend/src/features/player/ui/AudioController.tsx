@@ -75,7 +75,18 @@ export function AudioController() {
       aria-hidden="true"
       onTimeUpdate={(e) => usePlayerStore.getState().setProgress(e.currentTarget.currentTime)}
       onLoadedMetadata={(e) => usePlayerStore.getState().setDuration(e.currentTarget.duration)}
-      onEnded={() => usePlayerStore.getState().stop()}
+      onEnded={(e) => {
+        const st = usePlayerStore.getState()
+        if (st.repeat === 'one') {
+          // Replay the same track; the store's isPlaying stays true so the
+          // play/pause effect won't re-fire — restart the element directly.
+          e.currentTarget.currentTime = 0
+          void e.currentTarget.play()
+          return
+        }
+        // Advance; next() handles repeat 'all' (wrap) and end-of-queue (stop).
+        st.next()
+      }}
     />
   )
 }
