@@ -11,7 +11,6 @@ export interface SearchResultsProps {
   albums: Album[]
   artists?: ArtistResult[]
   loading?: boolean
-  onOpenAlbum?: (id: string) => void
   onDownloadAlbum?: (id: string) => void
 }
 
@@ -35,7 +34,6 @@ export function SearchResults({
   albums,
   artists = [],
   loading = false,
-  onOpenAlbum,
   onDownloadAlbum,
 }: SearchResultsProps) {
   // ── Loading skeleton ────────────────────────────────────────────────────────
@@ -81,7 +79,7 @@ export function SearchResults({
 
       {/* ── Album grid ─────────────────────────────────────────────────────── */}
       {albums.length > 0 && (
-        <AlbumGrid albums={albums} onOpenAlbum={onOpenAlbum} onDownloadAlbum={onDownloadAlbum} />
+        <AlbumGrid albums={albums} onDownloadAlbum={onDownloadAlbum} />
       )}
     </div>
   )
@@ -91,9 +89,8 @@ export function SearchResults({
 
 function AlbumGrid({
   albums,
-  onOpenAlbum,
   onDownloadAlbum,
-}: Pick<SearchResultsProps, 'albums' | 'onOpenAlbum' | 'onDownloadAlbum'>) {
+}: Pick<SearchResultsProps, 'albums' | 'onDownloadAlbum'>) {
   return (
     <section
       aria-label={`${albums.length} album${albums.length !== 1 ? 's' : ''} found`}
@@ -113,12 +110,7 @@ function AlbumGrid({
       />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {albums.map((album) => (
-          <AlbumCard
-            key={album.id}
-            album={album}
-            onOpen={onOpenAlbum}
-            onDownload={onDownloadAlbum}
-          />
+          <AlbumCard key={album.id} album={album} onDownload={onDownloadAlbum} />
         ))}
       </div>
     </section>

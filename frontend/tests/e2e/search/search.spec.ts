@@ -56,12 +56,12 @@ test.describe('Dashboard search', () => {
     await expect(page.getByRole('heading', { name: 'No results found' })).toBeVisible()
   })
 
-  test('clicking an album opens the detail modal', async ({ page }) => {
+  test('clicking an album navigates to the album page', async ({ page }) => {
     await page.route('**/api/search**', async (route) => {
       await route.fulfill({ json: buildSearchResponse() })
     })
 
-    // Mock album detail endpoint
+    // Mock album detail endpoint (album page fetches it on navigation)
     await page.route('**/api/albums/**', async (route) => {
       await route.fulfill({
         json: {
@@ -95,11 +95,10 @@ test.describe('Dashboard search', () => {
     })
     await expect(albumCard).toBeVisible()
 
-    await albumCard.getByRole('button', { name: `Open details for ${TOXICITY_ALBUM_DTO.title}` }).click()
+    // The vinyl cover links to the dedicated album page (A3 — no more modal).
+    await albumCard.getByRole('link', { name: `Open ${TOXICITY_ALBUM_DTO.title}` }).click()
 
-    // Modal should open — dialog role + album title in header
-    const modal = page.getByRole('dialog')
-    await expect(modal).toBeVisible()
-    await expect(modal.getByText(TOXICITY_ALBUM_DTO.title)).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/album/${TOXICITY_ALBUM_DTO.id}$`))
+    await expect(page.getByRole('heading', { name: TOXICITY_ALBUM_DTO.title })).toBeVisible()
   })
 })

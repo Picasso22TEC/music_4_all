@@ -100,26 +100,18 @@ test.describe('Accessibility (axe) — no Critical/Serious violations', () => {
     await expectNoBlockingViolations(page, 'dashboard')
   })
 
-  test('album detail modal', async ({ page }) => {
+  test('album page', async ({ page }) => {
     await mockAuthenticatedSession(page)
     await page.routeWebSocket('**/ws/downloads', () => {})
-    await page.route('**/api/search**', (route) => route.fulfill({ json: buildSearchResponse() }))
     await page.route('**/api/albums/**', (route) =>
       route.fulfill({
         json: { album: TOXICITY_ALBUM_DTO, tracks: [CHOP_SUEY_TRACK] },
       }),
     )
 
-    await page.goto('/dashboard')
-    await page
-      .getByRole('textbox', { name: 'Search albums, tracks, or paste a Tidal URL' })
-      .fill(TOXICITY_ALBUM_DTO.artist.name)
-    await page
-      .getByRole('button', { name: `Open details for ${TOXICITY_ALBUM_DTO.title}` })
-      .click()
-
-    await expect(page.getByRole('dialog')).toBeVisible()
-    await expectNoBlockingViolations(page, 'album detail modal')
+    await page.goto(`/album/${TOXICITY_ALBUM_DTO.id}`)
+    await expect(page.getByRole('heading', { name: TOXICITY_ALBUM_DTO.title })).toBeVisible()
+    await expectNoBlockingViolations(page, 'album page')
   })
 
   test('artist page', async ({ page }) => {
