@@ -9,7 +9,15 @@ export interface PaginatedList<T> {
   readonly offset: number
 }
 
+/** An artist as a search result — carries an image to render the card. */
+export interface ArtistResult {
+  readonly id: string
+  readonly name: string
+  readonly imageUrl: string | null
+}
+
 export interface SearchResults {
+  readonly artists: PaginatedList<ArtistResult>
   readonly albums: PaginatedList<Album>
   readonly tracks: PaginatedList<Track>
   readonly playlists: PaginatedList<Playlist>

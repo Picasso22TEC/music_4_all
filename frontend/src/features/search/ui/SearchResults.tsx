@@ -1,13 +1,15 @@
 import { Skeleton } from '@/shared/ui/Skeleton'
-import type { Album } from '@/entities'
+import type { Album, ArtistResult } from '@/entities'
 
 import { AlbumCard } from './AlbumCard'
+import { ArtistCard } from './ArtistCard'
 import { EmptyState } from './EmptyState'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface SearchResultsProps {
   albums: Album[]
+  artists?: ArtistResult[]
   loading?: boolean
   onOpenAlbum?: (id: string) => void
   onDownloadAlbum?: (id: string) => void
@@ -31,6 +33,7 @@ const SKELETON_COUNT = 10
  */
 export function SearchResults({
   albums,
+  artists = [],
   loading = false,
   onOpenAlbum,
   onDownloadAlbum,
@@ -56,11 +59,41 @@ export function SearchResults({
   }
 
   // ── Empty results ───────────────────────────────────────────────────────────
-  if (albums.length === 0) {
+  if (albums.length === 0 && artists.length === 0) {
     return <EmptyState variant="no-results" />
   }
 
-  // ── Album grid ──────────────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col gap-8">
+      {/* ── Artists row — circular results, first (Spotify/Tidal affordance) ── */}
+      {artists.length > 0 && (
+        <section aria-label={`${artists.length} artist${artists.length !== 1 ? 's' : ''} found`}>
+          <h2 className="mb-3 font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
+            Artists
+          </h2>
+          <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+            {artists.map((artist) => (
+              <ArtistCard key={artist.id} artist={artist} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Album grid ─────────────────────────────────────────────────────── */}
+      {albums.length > 0 && (
+        <AlbumGrid albums={albums} onOpenAlbum={onOpenAlbum} onDownloadAlbum={onDownloadAlbum} />
+      )}
+    </div>
+  )
+}
+
+// ─── Album grid (extracted so the artists row can sit above it) ───────────────
+
+function AlbumGrid({
+  albums,
+  onOpenAlbum,
+  onDownloadAlbum,
+}: Pick<SearchResultsProps, 'albums' | 'onOpenAlbum' | 'onDownloadAlbum'>) {
   return (
     <section
       aria-label={`${albums.length} album${albums.length !== 1 ? 's' : ''} found`}

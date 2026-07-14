@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Play } from 'lucide-react'
 
-import type { Album, AudioQuality } from '@/entities'
+import type { Album, ArtistResult, AudioQuality } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
 import { usePlayerStore, trackToPlayerTrack as toPlayerTrack } from '@/features/player'
 import {
@@ -107,6 +107,12 @@ export default function DashboardClient() {
     // .slice() converts readonly Album[] → Album[] (mutable copy required by SearchResults)
     return textQuery.data?.albums.items.slice() ?? []
   }, [hasQuery, isUrl, urlQuery.data, textQuery.data])
+
+  // Artists derived from a text search (URL resolve has no artist results).
+  const artists = useMemo<ArtistResult[]>(
+    () => (isUrl ? [] : (textQuery.data?.artists.items.slice() ?? [])),
+    [isUrl, textQuery.data],
+  )
 
   // ── Download ────────────────────────────────────────────────────────────────
 
@@ -304,7 +310,7 @@ export default function DashboardClient() {
         )}
 
         {/* State C — no results (wireframes §9) */}
-        {hasContent && albums.length === 0 && (
+        {hasContent && albums.length === 0 && artists.length === 0 && (
           <EmptyState
             variant="no-results"
             query={trimmed}
@@ -312,9 +318,10 @@ export default function DashboardClient() {
         )}
 
         {/* State D — results grid (wireframes §7) */}
-        {hasContent && albums.length > 0 && (
+        {hasContent && (albums.length > 0 || artists.length > 0) && (
           <SearchResults
             albums={albums}
+            artists={artists}
             onOpenAlbum={handleOpenAlbum}
             onDownloadAlbum={handleDownload}
           />

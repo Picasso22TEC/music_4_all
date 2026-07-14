@@ -25,6 +25,7 @@ export const TOXICITY_ALBUM_DTO: AlbumDTO = {
 
 export function buildSearchResponse(albums: AlbumDTO[] = [TOXICITY_ALBUM_DTO]): SearchResponseDTO {
   return {
+    artists: { items: [], total_number_of_items: 0, limit: 50, offset: 0 },
     albums: {
       items: albums,
       total_number_of_items: albums.length,

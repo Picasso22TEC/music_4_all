@@ -73,7 +73,19 @@ export interface ResolveUrlResponseDTO {
   data: AlbumDTO | TrackDTO
 }
 
+export interface ArtistSearchDTO {
+  id: string
+  name: string
+  picture?: string | null
+}
+
 export interface SearchResponseDTO {
+  artists: {
+    items: ArtistSearchDTO[]
+    total_number_of_items: number
+    limit: number
+    offset: number
+  }
   albums: {
     items: AlbumDTO[]
     total_number_of_items: number

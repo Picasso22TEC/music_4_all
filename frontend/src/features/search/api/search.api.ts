@@ -1,6 +1,6 @@
 import { coverIdToUrl, mapAlbumDTO, mapTrackDTO } from '@/shared/api/mappers'
 import client from '@/shared/api/client'
-import type { Album, Artist, PaginatedList, Playlist, ResolveUrlResult, SearchResults, Track } from '@/entities'
+import type { Album, Artist, ArtistResult, PaginatedList, Playlist, ResolveUrlResult, SearchResults, Track } from '@/entities'
 import type { AlbumDTO, ResolveUrlResponseDTO, SearchResponseDTO, TrackDTO } from '@/shared/types/api.types'
 
 function mapPlaylist(dto: Record<string, unknown>): Playlist {
@@ -23,6 +23,17 @@ export const searchApi = {
     const { data } = await client.get<SearchResponseDTO>('/search', {
       params: { q: query, limit },
     })
+
+    const artists: PaginatedList<ArtistResult> = {
+      items: (data.artists?.items ?? []).map((dto) => ({
+        id: dto.id,
+        name: dto.name,
+        imageUrl: dto.picture ?? null,
+      })),
+      totalNumberOfItems: data.artists?.total_number_of_items ?? 0,
+      limit: data.artists?.limit ?? 0,
+      offset: data.artists?.offset ?? 0,
+    }
 
     const albums: PaginatedList<Album> = {
       items: data.albums.items.map((dto) => mapAlbumDTO(dto)),
@@ -54,7 +65,7 @@ export const searchApi = {
       offset: data.playlists.offset,
     }
 
-    return { albums, tracks, playlists }
+    return { artists, albums, tracks, playlists }
   },
 
   async resolveUrl(url: string): Promise<ResolveUrlResult> {
