@@ -5,7 +5,7 @@ import { AudioController } from '@/features/player'
 import { AppHeader } from '@/widgets/app-header'
 import { DownloadPanel } from '@/widgets/download-panel'
 import { PlayerBar, SidebarWalkman } from '@/widgets/player-bar'
-import { MobileNav, Sidebar } from '@/widgets/sidebar'
+import { MobileNav, Sidebar, SidebarSession } from '@/widgets/sidebar'
 
 import { AnimatedMain } from './AnimatedMain'
 
@@ -45,8 +45,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
 
-      {/* ── Sidebar — fixed left panel + Walkman en la zona baja (desktop) ── */}
-      <Sidebar footer={<SidebarWalkman />} />
+      {/* ── Sidebar — nav + Walkman + sesión (en ese orden) en la zona baja ── */}
+      <Sidebar
+        footer={
+          <>
+            <SidebarWalkman />
+            <SidebarSession />
+          </>
+        }
+      />
 
       {/* ── Main column — offset by sidebar on lg+ ────────────────── */}
       {/*  lg:ml-60 = 240px = w-sidebar (16 × 15 = 240px in Tailwind) */}

@@ -12,6 +12,7 @@ import {
   SkipBack,
   SkipForward,
   Square,
+  Volume2,
 } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
@@ -48,17 +49,22 @@ function Key({
       aria-label={label}
       aria-pressed={active}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-md border',
-        'transition-transform duration-100 ease-out active:translate-y-0.5',
+        // Botón negro sólido con icono blanco (estilo tecla Walkman sobre el
+        // cuerpo amarillo)
+        'inline-flex shrink-0 items-center justify-center rounded-md border border-white/10',
+        'bg-surface-void text-primary',
+        // Sensación capacitiva (soft-touch): transición suave + hundido al
+        // presionar + glow interior teal, como si la tecla se iluminara al tacto
+        'transition-all duration-150 ease-out',
+        'active:translate-y-0.5 active:border-teal-500/40 active:shadow-[inset_0_0_12px_rgba(77,255,217,0.45)]',
+        'hover:border-white/25 hover:bg-surface-abyss',
         'focus-visible:outline-none focus-visible:shadow-glow-focus',
-        'disabled:cursor-not-allowed disabled:opacity-40 disabled:active:translate-y-0',
+        'disabled:cursor-not-allowed disabled:opacity-40 disabled:active:translate-y-0 disabled:active:shadow-none',
         size === 'sm' ? 'h-7 w-7' : 'h-9 w-9',
-        primary
-          ? 'border-teal-700 bg-teal-500 text-surface-void shadow-glow-active hover:bg-teal-400'
-          : cn(
-              'border-line bg-surface-rack shadow-sm',
-              active ? 'text-teal-400' : 'text-secondary hover:text-primary hover:border-teal-700',
-            ),
+        // Play/pausa (primary): glow teal permanente para distinguirlo
+        primary && 'shadow-glow-active',
+        // Shuffle/repeat activos: icono teal
+        active && 'text-teal-400',
       )}
     >
       {children}
@@ -84,6 +90,8 @@ export function SidebarWalkman() {
   const durationSec   = usePlayerStore((s) => s.durationSeconds)
   const shuffle       = usePlayerStore((s) => s.shuffle)
   const repeat        = usePlayerStore((s) => s.repeat)
+  const volume        = usePlayerStore((s) => s.volume)
+  const setVolume     = usePlayerStore((s) => s.setVolume)
   const toggle        = usePlayerStore((s) => s.toggle)
   const seek          = usePlayerStore((s) => s.seek)
   const next          = usePlayerStore((s) => s.next)
@@ -103,13 +111,13 @@ export function SidebarWalkman() {
   return (
     <section
       aria-label="Now playing"
-      className="shrink-0 border-t border-subtle bg-surface-console/60 px-3 py-3"
+      className="shrink-0 border-t-2 border-walkman-dark bg-walkman px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.4)]"
     >
-      {/* ── Cassette con carretes girando + título en plumón ──────────── */}
+      {/* ── Cassette (blanco) con carretes girando + título en plumón ──── */}
       <CassetteDeck
         spinning={isPlaying && !reducedMotion}
         title={current?.title}
-        className="w-full"
+        className="w-full drop-shadow-sm"
       />
 
       {/* ── Meta: artista + tiempo ───────────────────────────────────── */}
@@ -118,20 +126,20 @@ export function SidebarWalkman() {
           {isPlaying && hasTrack && (
             <span
               aria-hidden="true"
-              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500"
+              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-surface-void"
             />
           )}
           {hasTrack ? (
-            <p className="truncate font-sans text-xs text-secondary">{current.artist}</p>
+            <p className="truncate font-sans text-xs font-medium text-surface-void">{current.artist}</p>
           ) : (
-            <p className="flex items-center gap-1.5 font-sans text-xs text-disabled">
+            <p className="flex items-center gap-1.5 font-sans text-xs font-medium text-surface-void/60">
               <Music aria-hidden="true" className="h-3.5 w-3.5" />
               Nothing playing
             </p>
           )}
         </div>
         {hasTrack && (
-          <span className="shrink-0 font-mono text-2xs text-secondary tabular-nums">
+          <span className="shrink-0 font-mono text-2xs text-surface-void/70 tabular-nums">
             {formatDuration(progressSec)} / {formatDuration(max)}
           </span>
         )}
@@ -216,6 +224,23 @@ export function SidebarWalkman() {
             <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
           )}
         </Key>
+      </div>
+
+      {/* ── Volumen (el player vive en el sidebar; sin él no habría control
+             de volumen en desktop tras retirar la PlayerBar) ─────────────── */}
+      <div className="mt-3 flex items-center gap-2" role="group" aria-label="Volume">
+        <Volume2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-surface-void/70" />
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={volume}
+          onChange={(e) => setVolume(Number(e.currentTarget.value))}
+          aria-label="Volume"
+          className="player-range h-1 w-full"
+          style={{ ['--range-fill' as string]: `${Math.round(volume * 100)}%` }}
+        />
       </div>
 
       {/* Anuncio accesible del track actual */}

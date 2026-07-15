@@ -80,12 +80,12 @@ export const CassetteDeck = memo(function CassetteDeck({ spinning, title, classN
       viewBox="0 0 220 132"
       className={cn('select-none', className)}
     >
-      {/* Cuerpo */}
-      <rect x="6" y="6" width="208" height="120" rx="10" className="fill-surface-console stroke-ghost/50" strokeWidth="1.5" />
-      {/* Bisel interior */}
-      <rect x="14" y="14" width="192" height="104" rx="6" className="fill-surface-studio" />
-      {/* Ventana */}
-      <rect x="24" y="26" width="172" height="56" rx="4" className="fill-surface-void stroke-ghost/40" strokeWidth="1" />
+      {/* Cuerpo — cassette color crema (estilo Awesome Mix) */}
+      <rect x="6" y="6" width="208" height="120" rx="10" className="fill-[#EDE7D8] stroke-[#C7BFA8]" strokeWidth="1.5" />
+      {/* Bisel interior — crema un punto más oscuro (profundidad) */}
+      <rect x="14" y="14" width="192" height="104" rx="6" className="fill-[#E3DBC6]" />
+      {/* Ventana — oscura para que los carretes se lean sobre el cassette claro */}
+      <rect x="24" y="26" width="172" height="56" rx="4" className="fill-surface-void stroke-[#B9B09A]" strokeWidth="1" />
 
       {/* Cinta expuesta entre carretes (borde inferior de la ventana) */}
       <path d="M72 74 Q 110 86 148 74" className="fill-none stroke-teal-700/35" strokeWidth="1.5" />
@@ -94,27 +94,28 @@ export const CassetteDeck = memo(function CassetteDeck({ spinning, title, classN
       <Reel cx={72} cy={54} spinning={spinning} />
       <Reel cx={148} cy={54} spinning={spinning} />
 
-      {/* Etiqueta — título en plumón (Awesome Mix) o líneas decorativas */}
-      <rect x="52" y="92" width="116" height="22" rx="2" className="fill-surface-void/60" />
+      {/* Etiqueta — sticker blanco con el título en plumón azul, centrado */}
+      <rect x="46" y="90" width="128" height="24" rx="2" className="fill-[#F7F4EA] stroke-[#D6CEBA]" strokeWidth="0.75" />
       {title ? (
         <>
           <clipPath id={clipId}>
-            <rect x="52" y="92" width="116" height="22" rx="2" />
+            <rect x="46" y="90" width="128" height="24" rx="2" />
           </clipPath>
           <text
-            x="58"
-            y="108"
+            x="110"
+            y="107"
+            textAnchor="middle"
             clipPath={`url(#${clipId})`}
-            transform="rotate(-2 110 103)"
-            className="fill-synthwave-blue font-marker text-[11px]"
+            transform="rotate(-2 110 102)"
+            className="fill-[#1F4FB0] font-marker text-[12px]"
           >
             {title}
           </text>
         </>
       ) : (
         <>
-          <line x1="60" y1="99" x2="150" y2="99" className="stroke-ghost/40" strokeWidth="1.5" />
-          <line x1="60" y1="106" x2="120" y2="106" className="stroke-teal-700/40" strokeWidth="1.5" />
+          <line x1="58" y1="99" x2="162" y2="99" className="stroke-[#B9B09A]" strokeWidth="1.5" />
+          <line x1="58" y1="106" x2="130" y2="106" className="stroke-[#C7BFA8]" strokeWidth="1.5" />
         </>
       )}
 

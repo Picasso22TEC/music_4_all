@@ -10,6 +10,7 @@ import { useFocusTrap, useReducedMotion } from '@/shared/hooks'
 
 import { useSidebarState } from '../model/useSidebarState'
 import { SidebarContent } from './SidebarContent'
+import { SidebarSession } from './SidebarSession'
 
 // ─── Framer variants ──────────────────────────────────────────────────────────
 // Transform string completo (no el shorthand x) — hardware accelerated.
@@ -123,7 +124,7 @@ export function MobileNav() {
               }
               className={cn(
                 'fixed inset-y-0 left-0 w-sidebar z-modal',
-                'bg-surface-abyss border-r border-subtle',
+                'bg-surface-sidebar border-r border-subtle',
                 'flex flex-col',
               )}
             >
@@ -145,6 +146,7 @@ export function MobileNav() {
                   duplicar landmarks con el mismo nombre */}
               <nav aria-label="Mobile navigation" className="flex min-h-0 flex-1 flex-col">
                 <SidebarContent onNavigate={close} />
+                <SidebarSession />
               </nav>
             </motion.div>
           </>

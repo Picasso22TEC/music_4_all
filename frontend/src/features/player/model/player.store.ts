@@ -1,4 +1,36 @@
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
+
+// ─── Storage con dedupe ───────────────────────────────────────────────────────
+// La cola/pista se persisten para que el reproductor sobreviva a un refresh
+// (reanuda EN PAUSA por la política de autoplay). progressSeconds NO se persiste,
+// pero persist serializa en cada cambio del store; deduplicamos por string para
+// no escribir en cada tick de progreso (solo cuando cambian los campos durables).
+
+const dedupeStorage = {
+  getItem: (name: string): string | null =>
+    typeof window !== 'undefined' ? window.localStorage.getItem(name) : null,
+  setItem: (() => {
+    let last: string | null = null
+    return (name: string, value: string): void => {
+      if (typeof window === 'undefined' || value === last) return
+      last = value
+      try {
+        window.localStorage.setItem(name, value)
+      } catch {
+        // storage lleno / no disponible — la persistencia es best-effort
+      }
+    }
+  })(),
+  removeItem: (name: string): void => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.removeItem(name)
+    } catch {
+      // no-op
+    }
+  },
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,7 +118,9 @@ function trackAt(queue: PlayerTrack[], order: number[], orderPos: number): Playe
 // Pure state. The actual playback lives in AudioController, which owns the one
 // <audio> element, applies this state to it, and writes progress/duration back.
 
-export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => ({
+export const usePlayerStore = create<PlayerState & PlayerActions>()(
+  persist(
+    (set, get) => ({
   queue: [],
   order: [],
   orderPos: -1,
@@ -213,7 +247,25 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
       progressSeconds: 0,
       durationSeconds: 0,
     }),
-}))
+    }),
+    {
+      name: 'music4all-player',
+      storage: createJSONStorage(() => dedupeStorage),
+      // Solo el estado durable. isPlaying/progress/duration NO se persisten:
+      // tras recargar el reproductor arranca EN PAUSA (política de autoplay)
+      // desde el inicio de la pista, con la cola intacta.
+      partialize: (s) => ({
+        queue: s.queue,
+        order: s.order,
+        orderPos: s.orderPos,
+        current: s.current,
+        shuffle: s.shuffle,
+        repeat: s.repeat,
+        volume: s.volume,
+      }),
+    },
+  ),
+)
 
 // ─── Selectors ──────────────────────────────────────────────────────────────
 

@@ -6,9 +6,8 @@ import { Disc3 } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { NeonTitle, SignFrame } from '@/shared/ui'
-import { useAuthStore } from '@/features/auth'
 
-import { NAV_ITEMS, SESSION_DOT, SESSION_LABEL } from '../model/nav'
+import { NAV_ITEMS } from '../model/nav'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -27,8 +26,6 @@ export interface SidebarContentProps {
  */
 export function SidebarContent({ onNavigate }: SidebarContentProps) {
   const pathname = usePathname() ?? ''
-  const status   = useAuthStore((s) => s.status)
-  const user     = useAuthStore((s) => s.user)
 
   return (
     <>
@@ -87,30 +84,6 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
           )
         })}
       </ul>
-
-      {/* ── Session status (wireframes §15 — bottom section) ──────────── */}
-      <div className="shrink-0 border-t border-subtle px-4 py-3 space-y-1">
-        {/* Connection dot + label */}
-        <div className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className={cn(
-              'inline-block h-1.5 w-1.5 rounded-full',
-              SESSION_DOT[status] ?? 'bg-disabled',
-            )}
-          />
-          <span className="font-mono text-2xs font-medium uppercase text-secondary">
-            {SESSION_LABEL[status] ?? 'OFFLINE'}
-          </span>
-        </div>
-
-        {/* User email (when authenticated) */}
-        {user?.email && (
-          <p className="truncate pl-3.5 font-sans text-xs text-disabled">
-            {user.email}
-          </p>
-        )}
-      </div>
     </>
   )
 }

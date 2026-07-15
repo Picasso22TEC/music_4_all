@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react'
 
-import { NeonParticles } from '@/shared/ui/NeonParticles'
 import { PageTransition } from '@/shared/ui/PageTransition'
 
 export interface AnimatedMainProps {
@@ -23,11 +22,11 @@ export function AnimatedMain({ children }: AnimatedMainProps) {
     <main
       id="main-content"
       tabIndex={-1}
-      className="flex-1 overflow-y-auto pb-20 lg:pb-0 focus-visible:outline-none"
+      className="flex-1 overflow-y-auto bg-black pb-20 lg:pb-0 focus-visible:outline-none"
     >
-      {/* Decorative background — purely visual, isolated from downloads.store/auth.store */}
+      {/* Área de contenido en negro puro: máximo contraste para las cards y
+          acentos neón (se quitaron las partículas de fondo — sobraban). */}
       <div className="relative min-h-full">
-        <NeonParticles variant="default" density="low" />
         <PageTransition>{children}</PageTransition>
       </div>
     </main>

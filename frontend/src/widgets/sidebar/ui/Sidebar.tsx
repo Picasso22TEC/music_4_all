@@ -30,8 +30,9 @@ export function Sidebar({ footer }: SidebarProps) {
         'fixed top-0 left-0 bottom-0 w-sidebar',
         // Stacking — z-sticky: 200 (design-system §1.5)
         'z-sticky',
-        // Surface + separator (tokens from Phase 3.5)
-        'bg-surface-abyss border-r border-subtle',
+        // Surface + separator — tinte teal profundo para contrastar con el
+        // contenido en negro (rediseño 2026-07)
+        'bg-surface-sidebar border-r border-subtle',
         // Layout
         'flex flex-col',
         // Responsive — hidden on mobile (<lg), visible on desktop (wireframes §8.2)

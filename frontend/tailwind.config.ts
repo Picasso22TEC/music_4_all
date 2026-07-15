@@ -24,6 +24,15 @@ const config: Config = {
         'surface-console': '#131920',
         'surface-studio':  '#1A2330',
         'surface-rack':    '#21303F',
+        // Panel del sidebar — tinte teal profundo para contrastar con el
+        // contenido en negro puro (rediseño 2026-07).
+        'surface-sidebar': '#0A1A18',
+
+        // Amarillo Sony Sports (WM-F5) — cuerpo del Walkman del reproductor.
+        walkman: {
+          DEFAULT: '#FFD60A',
+          dark:    '#E0B400',
+        },
 
         // Grupo B — Texto (design-system §1.1-B)
         // Genera text-primary, text-secondary, text-disabled, text-ghost

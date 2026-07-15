@@ -28,7 +28,7 @@ export const SESSION_DOT: Record<string, string> = {
 }
 
 export const SESSION_LABEL: Record<string, string> = {
-  authenticated:   'TIDAL HIFI',
+  authenticated:   'Tidal',
   expired:         'EXPIRED',
   unauthenticated: 'OFFLINE',
 }

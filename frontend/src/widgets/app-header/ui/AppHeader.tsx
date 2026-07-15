@@ -17,7 +17,7 @@ interface SessionBadgeConfig {
 }
 
 const SESSION_BADGE: Record<string, SessionBadgeConfig> = {
-  authenticated:   { variant: 'status-ok',    label: 'HIFI' },
+  authenticated:   { variant: 'status-ok',    label: 'TIDAL' },
   expired:         { variant: 'status-warn',  label: 'EXPIRED' },
   unauthenticated: { variant: 'status-error', label: 'OFFLINE' },
 }
