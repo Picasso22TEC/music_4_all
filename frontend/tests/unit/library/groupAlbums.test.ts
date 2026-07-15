@@ -106,6 +106,18 @@ describe('groupIntoAlbums', () => {
     expect(albums[0].artist).toBe('Kendrick Lamar')
   })
 
+  it('collects the album tracks in approximate album order (reverses download desc)', () => {
+    // El historial llega descendente por fecha; dentro de un álbum eso es del
+    // último track al primero, así que se invierte a orden de álbum.
+    const [album] = groupIntoAlbums([
+      rec({ title: 'Exit Music', downloadedAt: '2026-07-14T10:03:00Z' }),
+      rec({ title: 'Karma Police', downloadedAt: '2026-07-14T10:02:00Z' }),
+      rec({ title: 'Airbag', downloadedAt: '2026-07-14T10:01:00Z' }),
+    ])
+    expect(album.tracks.map((t) => t.title)).toEqual(['Airbag', 'Karma Police', 'Exit Music'])
+    expect(album.tracks).toHaveLength(3)
+  })
+
   it('sorts albums with the most recently downloaded first', () => {
     const albums = groupIntoAlbums([
       rec({ jobId: 'job-old', coverUrl: 'https://cover/old.jpg', downloadedAt: '2026-01-01T00:00:00Z' }),

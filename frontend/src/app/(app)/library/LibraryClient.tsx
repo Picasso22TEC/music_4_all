@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { CircleAlert, Disc3 } from 'lucide-react'
 
 import { Button } from '@/shared/ui/Button'
@@ -8,7 +8,9 @@ import { Skeleton } from '@/shared/ui/Skeleton'
 import { useHistoryQuery } from '@/features/history'
 
 import { AlbumTile } from './AlbumTile'
+import { AlbumTracksModal } from './AlbumTracksModal'
 import { groupIntoAlbums } from './groupAlbums'
+import type { LibraryAlbum } from './groupAlbums'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +23,9 @@ export function LibraryClient() {
 
   const albums = useMemo(() => groupIntoAlbums(data ?? []), [data])
   const trackCount = data?.length ?? 0
+
+  // Álbum abierto en el modal de detalle (lista de tracks)
+  const [selected, setSelected] = useState<LibraryAlbum | null>(null)
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -99,11 +104,19 @@ export function LibraryClient() {
             {albums.map((album, index) => (
               // La primera fila (hasta 5 en xl) es la que suele contener el LCP:
               // priority evita el warning de next/image y precarga la carátula.
-              <AlbumTile key={album.key} album={album} priority={index < 5} />
+              <AlbumTile
+                key={album.key}
+                album={album}
+                priority={index < 5}
+                onSelect={() => setSelected(album)}
+              />
             ))}
           </div>
         )}
       </main>
+
+      {/* Detalle del álbum — lista de tracks descargados */}
+      <AlbumTracksModal album={selected} onClose={() => setSelected(null)} />
     </div>
   )
 }

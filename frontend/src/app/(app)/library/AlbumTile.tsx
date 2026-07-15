@@ -39,7 +39,16 @@ function formatDate(iso: string): string {
 
 // ─── Component (presentacional) ───────────────────────────────────────────────
 
-export function AlbumTile({ album, priority = false }: { album: LibraryAlbum; priority?: boolean }) {
+export function AlbumTile({
+  album,
+  priority = false,
+  onSelect,
+}: {
+  album: LibraryAlbum
+  priority?: boolean
+  /** Abre el detalle del álbum (lista de tracks descargados). */
+  onSelect: () => void
+}) {
   const badge = resolveQuality(album.quality)
   const dateLabel = formatDate(album.downloadedAt)
   const tracks = `${album.trackCount} track${album.trackCount !== 1 ? 's' : ''}`
@@ -47,22 +56,23 @@ export function AlbumTile({ album, priority = false }: { album: LibraryAlbum; pr
   // El título del álbum lidera; si el registro es previo a la columna `album`
   // (null), caemos al artista como principal para no dejar la tarjeta sin nombre.
   const primary = album.albumTitle || album.artist
-  const ariaLabel = album.albumTitle
-    ? `${album.albumTitle} by ${album.artist} — ${tracks}, ${album.quality}, downloaded ${dateLabel}`
-    : `${album.artist} — ${tracks}, ${album.quality}, downloaded ${dateLabel}`
+  const named = album.albumTitle ? `${album.albumTitle} by ${album.artist}` : album.artist
+  const ariaLabel = `Show tracks — ${named}, ${tracks}, ${album.quality}, downloaded ${dateLabel}`
 
   return (
-    <article
-      aria-label={ariaLabel}
-      className="group flex flex-col gap-2"
-    >
+    <article className="group flex flex-col gap-2">
       <div className="relative">
-        {/* Funda cuadrada (no el vinilo circular de la búsqueda) — estantería */}
-        <div
+        {/* Funda cuadrada (no el vinilo circular de la búsqueda) — estantería.
+            Clicable: abre el detalle con la lista de tracks descargados. */}
+        <button
+          type="button"
+          onClick={onSelect}
+          aria-label={ariaLabel}
           className={cn(
-            'relative aspect-square w-full overflow-hidden rounded-md',
+            'relative block aspect-square w-full overflow-hidden rounded-md',
             'border border-subtle bg-surface-studio',
             'transition-shadow duration-300 group-hover:shadow-glow-active',
+            'focus-visible:outline-none focus-visible:shadow-glow-focus',
           )}
         >
           {album.coverUrl ? (
@@ -82,7 +92,7 @@ export function AlbumTile({ album, priority = false }: { album: LibraryAlbum; pr
               <Music className="h-10 w-10" />
             </span>
           )}
-        </div>
+        </button>
 
         {/* Sello de calidad — esquina, rotado (como en las vinyl cards) */}
         <div className="pointer-events-none absolute bottom-2 left-2 -rotate-[8deg]">

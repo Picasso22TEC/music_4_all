@@ -5,6 +5,12 @@ import type { HistoryRecord } from '@/features/history'
 // NO persiste el título del álbum — solo nombres de track — por eso la tarjeta
 // de Library lidera con el artista.
 
+export interface LibraryTrack {
+  id: string
+  title: string
+  quality: string
+}
+
 export interface LibraryAlbum {
   /** Clave de agrupación (coverUrl || jobId || id del primer track) */
   key: string
@@ -17,6 +23,8 @@ export interface LibraryAlbum {
   quality: string
   /** ISO 8601 del track más reciente del álbum */
   downloadedAt: string
+  /** Tracks descargados del álbum, en orden de descarga (≈ orden del álbum) */
+  tracks: LibraryTrack[]
 }
 
 // ─── Agrupación: historial (por track) → álbumes ──────────────────────────────
@@ -37,6 +45,7 @@ interface AlbumAcc {
   trackCount: number
   latest: string
   artistCounts: Map<string, number>
+  tracks: LibraryTrack[]
 }
 
 /** Funde `src` dentro de `dst` (mismo álbum llegado por otra clave de pasada 1). */
@@ -48,6 +57,21 @@ function absorb(dst: AlbumAcc, src: AlbumAcc): void {
   for (const [name, count] of src.artistCounts) {
     dst.artistCounts.set(name, (dst.artistCounts.get(name) ?? 0) + count)
   }
+  dst.tracks.push(...src.tracks)
+}
+
+/** Acumulador inicial (un solo track) a partir de un registro del historial. */
+function accFromRecord(r: HistoryRecord, key: string): AlbumAcc {
+  return {
+    key,
+    coverUrl: r.coverUrl,
+    albumTitle: r.album,
+    quality: r.quality,
+    trackCount: 1,
+    latest: r.downloadedAt,
+    artistCounts: new Map([[r.artist, 1]]),
+    tracks: [{ id: r.id, title: r.title, quality: r.quality }],
+  }
 }
 
 export function groupIntoAlbums(records: HistoryRecord[]): LibraryAlbum[] {
@@ -57,25 +81,9 @@ export function groupIntoAlbums(records: HistoryRecord[]): LibraryAlbum[] {
     const key = r.jobId || r.coverUrl || r.id
     const acc = byKey.get(key)
     if (!acc) {
-      byKey.set(key, {
-        key,
-        coverUrl: r.coverUrl,
-        albumTitle: r.album,
-        quality: r.quality,
-        trackCount: 1,
-        latest: r.downloadedAt,
-        artistCounts: new Map([[r.artist, 1]]),
-      })
+      byKey.set(key, accFromRecord(r, key))
     } else {
-      absorb(acc, {
-        key,
-        coverUrl: r.coverUrl,
-        albumTitle: r.album,
-        quality: r.quality,
-        trackCount: 1,
-        latest: r.downloadedAt,
-        artistCounts: new Map([[r.artist, 1]]),
-      })
+      absorb(acc, accFromRecord(r, key))
     }
   }
 
@@ -113,6 +121,10 @@ export function groupIntoAlbums(records: HistoryRecord[]): LibraryAlbum[] {
       trackCount: acc.trackCount,
       quality: acc.quality,
       downloadedAt: acc.latest,
+      // El historial llega en orden descendente por fecha; dentro de un álbum
+      // eso es del último track al primero, así que invertimos para aproximar
+      // el orden del álbum (track 1 primero).
+      tracks: acc.tracks.slice().reverse(),
     }
   })
 
