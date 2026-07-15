@@ -129,7 +129,11 @@ function NeonLetter({ char, color, index }: { char: string; color: string; index
       }
     }
 
-    void life()
+    // .catch: en React StrictMode (dev) el tubo se desmonta y re-monta; la
+    // instancia transitoria puede llamar controls.start() sin suscriptor montado
+    // y framer-motion lanza un invariant (solo dev). Se silencia — la instancia
+    // real anima bien; en producción el invariant no existe.
+    void life().catch(() => {})
 
     return () => {
       cancelled = true
