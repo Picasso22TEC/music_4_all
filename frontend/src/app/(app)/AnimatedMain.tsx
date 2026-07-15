@@ -23,7 +23,7 @@ export function AnimatedMain({ children }: AnimatedMainProps) {
     <main
       id="main-content"
       tabIndex={-1}
-      className="flex-1 overflow-y-auto pb-20 focus-visible:outline-none"
+      className="flex-1 overflow-y-auto pb-20 lg:pb-0 focus-visible:outline-none"
     >
       {/* Decorative background — purely visual, isolated from downloads.store/auth.store */}
       <div className="relative min-h-full">

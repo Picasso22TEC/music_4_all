@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useId } from 'react'
 
 import { cn } from '@/shared/lib/cn'
 
@@ -9,6 +9,11 @@ import { cn } from '@/shared/lib/cn'
 export interface CassetteDeckProps {
   /** Reels spin while true. The caller gates this on isPlaying && !reducedMotion. */
   spinning: boolean
+  /**
+   * Título de la canción, escrito con plumón en la etiqueta (homenaje al
+   * "Awesome Mix"). Si se omite, se dibujan las líneas decorativas de siempre.
+   */
+  title?: string
   className?: string
 }
 
@@ -67,7 +72,8 @@ function Reel({ cx, cy, spinning }: { cx: number; cy: number; spinning: boolean 
  * 2.3.1). Puramente grafico: aria-hidden; el estado audible lo comunica el
  * texto aria-live del reproductor.
  */
-export const CassetteDeck = memo(function CassetteDeck({ spinning, className }: CassetteDeckProps) {
+export const CassetteDeck = memo(function CassetteDeck({ spinning, title, className }: CassetteDeckProps) {
+  const clipId = useId()
   return (
     <svg
       aria-hidden="true"
@@ -88,10 +94,29 @@ export const CassetteDeck = memo(function CassetteDeck({ spinning, className }: 
       <Reel cx={72} cy={54} spinning={spinning} />
       <Reel cx={148} cy={54} spinning={spinning} />
 
-      {/* Etiqueta impresa (decorativa) */}
+      {/* Etiqueta — título en plumón (Awesome Mix) o líneas decorativas */}
       <rect x="52" y="92" width="116" height="22" rx="2" className="fill-surface-void/60" />
-      <line x1="60" y1="99" x2="150" y2="99" className="stroke-ghost/40" strokeWidth="1.5" />
-      <line x1="60" y1="106" x2="120" y2="106" className="stroke-teal-700/40" strokeWidth="1.5" />
+      {title ? (
+        <>
+          <clipPath id={clipId}>
+            <rect x="52" y="92" width="116" height="22" rx="2" />
+          </clipPath>
+          <text
+            x="58"
+            y="108"
+            clipPath={`url(#${clipId})`}
+            transform="rotate(-2 110 103)"
+            className="fill-synthwave-blue font-marker text-[11px]"
+          >
+            {title}
+          </text>
+        </>
+      ) : (
+        <>
+          <line x1="60" y1="99" x2="150" y2="99" className="stroke-ghost/40" strokeWidth="1.5" />
+          <line x1="60" y1="106" x2="120" y2="106" className="stroke-teal-700/40" strokeWidth="1.5" />
+        </>
+      )}
 
       {/* Tornillos */}
       <circle cx="18" cy="18" r="1.5" className="fill-ghost/60" />

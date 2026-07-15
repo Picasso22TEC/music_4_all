@@ -4,7 +4,7 @@ import { SessionRecoveryModal } from '@/features/auth'
 import { AudioController } from '@/features/player'
 import { AppHeader } from '@/widgets/app-header'
 import { DownloadPanel } from '@/widgets/download-panel'
-import { PlayerBar } from '@/widgets/player-bar'
+import { PlayerBar, SidebarWalkman } from '@/widgets/player-bar'
 import { MobileNav, Sidebar } from '@/widgets/sidebar'
 
 import { AnimatedMain } from './AnimatedMain'
@@ -45,8 +45,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
 
-      {/* ── Sidebar — fixed left panel ────────────────────────────── */}
-      <Sidebar />
+      {/* ── Sidebar — fixed left panel + Walkman en la zona baja (desktop) ── */}
+      <Sidebar footer={<SidebarWalkman />} />
 
       {/* ── Main column — offset by sidebar on lg+ ────────────────── */}
       {/*  lg:ml-60 = 240px = w-sidebar (16 × 15 = 240px in Tailwind) */}
@@ -70,8 +70,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/*  Renders nothing when isPanelVisible=false.                    */}
       <DownloadPanel />
 
-      {/* ── Player bar — fixed bottom ──────────────────────────────── */}
-      {/*  Rendered outside the column so it spans full viewport width */}
+      {/* ── Player — mini-barra inferior SOLO en móvil (<lg) ──────────── */}
+      {/*  En lg+ el reproductor vive como Walkman en el sidebar; esta barra
+          es el fallback cuando el sidebar se oculta. Fuera de la columna
+          para abarcar todo el ancho del viewport en móvil. */}
       <PlayerBar />
 
       {/* ── Audio engine — the single <audio> element (hidden); PlayerBar

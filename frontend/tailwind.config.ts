@@ -111,6 +111,8 @@ const config: Config = {
         neon: ['var(--font-neon)', 'cursive'],
         // Retro / Displays — VT323 (código OAuth, contador de expiración)
         retro: ['var(--font-retro)', 'monospace'],
+        // Plumón — Permanent Marker (título de canción en el cassette del Walkman)
+        marker: ['var(--font-marker)', 'cursive'],
       },
 
       // ── Escala de tamaños tipográficos (design-system §2.2) ────────────────

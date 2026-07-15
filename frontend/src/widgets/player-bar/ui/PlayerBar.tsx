@@ -99,8 +99,11 @@ export function PlayerBar() {
         'h-player z-sticky',
         // Surface + separator
         'bg-surface-abyss border-t border-subtle',
-        // Layout — on lg+ push content past sidebar (240px + 16px = 256px)
-        'flex items-center gap-4 px-4 lg:pl-64',
+        // Layout
+        'flex items-center gap-4 px-4',
+        // Solo móvil: en lg+ el reproductor vive como Walkman en el sidebar.
+        // Esta mini-barra es el fallback cuando el sidebar está oculto (<lg).
+        'lg:hidden',
       )}
     >
       {/* ── Láseres ambientales en idle ─────────────────────────────────

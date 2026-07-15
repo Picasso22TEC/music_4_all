@@ -1,8 +1,18 @@
 'use client'
 
+import type { ReactNode } from 'react'
+
 import { cn } from '@/shared/lib/cn'
 
 import { SidebarContent } from './SidebarContent'
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+export interface SidebarProps {
+  /** Slot para la zona baja del sidebar (el Walkman). La capa app lo compone —
+   *  el sidebar no importa el widget del player (FSD: sin cross-imports). */
+  footer?: ReactNode
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -11,7 +21,7 @@ import { SidebarContent } from './SidebarContent'
  * MobileNav (compuesto por la capa app vía AppHeader menuSlot). El contenido
  * (brand + items + sesión) es compartido: ver SidebarContent.
  */
-export function Sidebar() {
+export function Sidebar({ footer }: SidebarProps) {
   return (
     <nav
       aria-label="Main navigation"
@@ -29,6 +39,7 @@ export function Sidebar() {
       )}
     >
       <SidebarContent />
+      {footer}
     </nav>
   )
 }

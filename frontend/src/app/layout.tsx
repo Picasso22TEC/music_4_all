@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { GeistMono } from 'geist/font/mono'
-import { Inter, Monoton, VT323 } from 'next/font/google'
+import { Inter, Monoton, Permanent_Marker, VT323 } from 'next/font/google'
 
 import './globals.css'
 import { Providers } from '@/providers/Providers'
@@ -38,6 +38,15 @@ const vt323 = VT323({
   display: 'swap',
 })
 
+// Permanent Marker — título de la canción escrito con plumón en el cassette del
+// Walkman (homenaje al "Awesome Mix" de Guardianes). CSS var: --font-marker
+const permanentMarker = Permanent_Marker({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-marker',
+  display: 'swap',
+})
+
 // ── Metadata ─────────────────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
@@ -59,7 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       // GeistMono.variable  → --font-geist-mono (mapeado a --font-display en globals.css)
       // monoton.variable    → --font-neon (letrero neon)
       // vt323.variable      → --font-retro (displays retro)
-      className={`${inter.variable} ${GeistMono.variable} ${monoton.variable} ${vt323.variable}`}
+      className={`${inter.variable} ${GeistMono.variable} ${monoton.variable} ${vt323.variable} ${permanentMarker.variable}`}
     >
       <body className="min-h-screen bg-surface-void font-sans text-primary antialiased">
         <Providers>
