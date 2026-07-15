@@ -73,5 +73,11 @@ frontend/playwright-report/
 frontend/test-results/
 frontend/blob-report/
 
+# Playwright MCP — artefactos de depuracion del navegador (logs, snapshots, capturas)
+.playwright-mcp/
+
+# TypeScript — cache incremental de compilacion (se regenera en cada build)
+*.tsbuildinfo
+
 # Binario pesado de la version monolitica previa (solo referencia local)
 /_old/ffmpeg.exe
