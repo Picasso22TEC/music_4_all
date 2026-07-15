@@ -3,40 +3,30 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import type { AudioQuality } from '@/entities'
 
-type ViewMode = 'grid' | 'list'
-type ResultsTab = 'albums' | 'tracks' | 'playlists'
-
 interface SettingsState {
+  /** Calidad de descarga por defecto — fuente ÚNICA para dashboard/álbum/artista */
   audioQuality: AudioQuality
-  downloadPath: string              // empty = OS downloads folder
-  concurrentDownloads: number       // 1–5
-  viewMode: ViewMode
-  lastResultsTab: ResultsTab
+  /**
+   * Atenúa la escena decorativa y las animaciones decorativas, además de lo que
+   * ya hace `prefers-reduced-motion`. Preferencia explícita del usuario para una
+   * UI más calmada / mejor rendimiento.
+   */
+  reduceEffects: boolean
 }
 
 interface SettingsActions {
   setAudioQuality: (q: AudioQuality) => void
-  setDownloadPath: (p: string) => void
-  setConcurrentDownloads: (n: number) => void
-  setViewMode: (m: ViewMode) => void
-  setLastResultsTab: (t: ResultsTab) => void
+  setReduceEffects: (v: boolean) => void
 }
 
 export const useSettingsStore = create<SettingsState & SettingsActions>()(
   persist(
     (set) => ({
       audioQuality: 'MASTER',
-      downloadPath: '',
-      concurrentDownloads: 2,
-      viewMode: 'grid',
-      lastResultsTab: 'albums',
+      reduceEffects: false,
 
       setAudioQuality: (audioQuality) => set({ audioQuality }),
-      setDownloadPath: (downloadPath) => set({ downloadPath }),
-      setConcurrentDownloads: (n) =>
-        set({ concurrentDownloads: Math.max(1, Math.min(5, n)) }),
-      setViewMode: (viewMode) => set({ viewMode }),
-      setLastResultsTab: (lastResultsTab) => set({ lastResultsTab }),
+      setReduceEffects: (reduceEffects) => set({ reduceEffects }),
     }),
     {
       name: 'music4all-settings',

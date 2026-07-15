@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 
-import type { Album, ArtistResult, AudioQuality } from '@/entities'
+import type { Album, ArtistResult } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
 import {
   AudioWaves,
@@ -15,6 +15,7 @@ import {
 } from '@/shared/ui'
 
 import { useAuthStore } from '@/features/auth'
+import { useSettingsStore } from '@/features/settings'
 import {
   EmptyState,
   SearchResults,
@@ -55,7 +56,12 @@ export default function DashboardClient() {
   // ── Search state ────────────────────────────────────────────────────────────
   // Query lives in the global store (driven by the AppHeader search bar, A2/A4).
   const query = useSearchStore((s) => s.query)
-  const [quality, setQuality] = useState<AudioQuality>('MASTER')
+
+  // Calidad de descarga — fuente ÚNICA en el settings.store (el toolbar del
+  // dashboard es un atajo a la misma preferencia que usan álbum y artista).
+  const quality = useSettingsStore((s) => s.audioQuality)
+  const setQuality = useSettingsStore((s) => s.setAudioQuality)
+  const reduceEffects = useSettingsStore((s) => s.reduceEffects)
 
   const trimmed  = query.trim()
   const isUrl    = trimmed.length > 0 && isValidTidalUrl(trimmed)
@@ -138,25 +144,32 @@ export default function DashboardClient() {
   return (
     <div className="relative isolate flex min-h-full flex-col gap-6 p-6">
 
-      {/* Ecualizador decorativo de fondo — solo Dashboard. El relative va en
-          este root (no contra el motion.div de PageTransition, cuyo transform
-          crea un containing block intermitente durante las transiciones). */}
-      <AudioWaves className="absolute inset-x-0 bottom-0 -z-10 h-40" />
+      {/* Escena decorativa de la tienda de discos (Fase 15) — solo Dashboard.
+          Se oculta cuando el usuario activa "Reduce visual effects" en Settings
+          (además de lo que ya hace prefers-reduced-motion en las animaciones). */}
+      {!reduceEffects && (
+        <>
+          {/* Ecualizador decorativo de fondo. El relative va en este root (no
+              contra el motion.div de PageTransition, cuyo transform crea un
+              containing block intermitente durante las transiciones). */}
+          <AudioWaves className="absolute inset-x-0 bottom-0 -z-10 h-40" />
 
-      {/* Planta de interior (Fase 15) — utilería en la esquina, delante del
-          skyline del ecualizador pero siempre tras el contenido (-z-10) */}
-      <PottedPlant className="absolute bottom-0 right-6 -z-10 hidden h-40 w-auto sm:block" />
+          {/* Planta de interior — utilería en la esquina, delante del skyline
+              del ecualizador pero siempre tras el contenido (-z-10) */}
+          <PottedPlant className="absolute bottom-0 right-6 -z-10 hidden h-40 w-auto sm:block" />
 
-      {/* Altavoz vintage (Fase 15) — utilería en la esquina opuesta, misma
-          línea de suelo que el ecualizador y la planta */}
-      <VintageSpeaker className="absolute bottom-0 left-6 -z-10 hidden h-36 w-auto sm:block" />
+          {/* Altavoz vintage — utilería en la esquina opuesta, misma línea de
+              suelo que el ecualizador y la planta */}
+          <VintageSpeaker className="absolute bottom-0 left-6 -z-10 hidden h-36 w-auto sm:block" />
 
-      {/* Cassettes apilados (Fase 15) — pila desalineada junto al altavoz */}
-      <CassetteStack className="absolute bottom-0 left-36 -z-10 hidden h-24 w-auto sm:block" />
+          {/* Cassettes apilados — pila desalineada junto al altavoz */}
+          <CassetteStack className="absolute bottom-0 left-36 -z-10 hidden h-24 w-auto sm:block" />
 
-      {/* Tocadiscos (Fase 15) — mesa con plato girando lento, entre el
-          ecualizador y la planta */}
-      <Turntable className="absolute bottom-0 right-40 -z-10 hidden h-28 w-auto md:block" />
+          {/* Tocadiscos — mesa con plato girando lento, entre el ecualizador y
+              la planta */}
+          <Turntable className="absolute bottom-0 right-40 -z-10 hidden h-28 w-auto md:block" />
+        </>
+      )}
 
       {/* Accessible live region for screen reader announcements */}
       <div

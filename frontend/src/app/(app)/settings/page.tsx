@@ -1,25 +1,80 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+import { LogOut } from 'lucide-react'
+
 import { useSettingsStore } from '@/features/settings'
-import { Card, QualitySelector } from '@/shared/ui'
+import { useAuthStore, useLogoutMutation } from '@/features/auth'
+import { Button, Card, QualitySelector } from '@/shared/ui'
 import { cn } from '@/shared/lib/cn'
 
 export default function SettingsPage() {
-  const audioQuality       = useSettingsStore((s) => s.audioQuality)
-  const setAudioQuality    = useSettingsStore((s) => s.setAudioQuality)
-  const concurrentDownloads    = useSettingsStore((s) => s.concurrentDownloads)
-  const setConcurrentDownloads = useSettingsStore((s) => s.setConcurrentDownloads)
+  const router = useRouter()
+
+  const audioQuality    = useSettingsStore((s) => s.audioQuality)
+  const setAudioQuality = useSettingsStore((s) => s.setAudioQuality)
+  const reduceEffects    = useSettingsStore((s) => s.reduceEffects)
+  const setReduceEffects = useSettingsStore((s) => s.setReduceEffects)
+
+  const user   = useAuthStore((s) => s.user)
+  const logout = useLogoutMutation()
+
+  function handleSignOut() {
+    logout.mutate(undefined, {
+      // Cerrar sesión en el cliente pase lo que pase (aunque el backend falle):
+      // clearSession borra la cookie y pone status 'unauthenticated'.
+      onSettled: () => {
+        useAuthStore.getState().clearSession()
+        router.replace('/login')
+      },
+    })
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
       <div>
         <h1 className="font-sans text-2xl font-bold text-primary">Settings</h1>
         <p className="mt-1 font-sans text-sm text-secondary">
-          Configure your download preferences
+          Manage your account and preferences
         </p>
       </div>
 
-      {/* Audio quality */}
+      {/* ── Account ──────────────────────────────────────────────────── */}
+      <Card>
+        <div className="flex flex-col gap-4">
+          <div>
+            <h2 className="font-sans text-base font-semibold text-primary">Account</h2>
+            <p className="mt-1 font-sans text-sm text-secondary">
+              Your connected Tidal account.
+            </p>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="truncate font-sans text-sm text-primary">
+                {user?.email ?? 'Not signed in'}
+              </p>
+              {user?.plan && (
+                <p className="mt-0.5 font-mono text-2xs uppercase tracking-wider text-teal-400">
+                  Tidal {user.plan}
+                </p>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleSignOut}
+              disabled={logout.isPending}
+              aria-label="Sign out of your Tidal account"
+            >
+              <LogOut aria-hidden="true" className="h-4 w-4" />
+              {logout.isPending ? 'Signing out…' : 'Sign out'}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── Download quality ─────────────────────────────────────────── */}
       <Card>
         <div className="flex flex-col gap-4">
           <div>
@@ -27,48 +82,47 @@ export default function SettingsPage() {
               Download quality
             </h2>
             <p className="mt-1 font-sans text-sm text-secondary">
-              Choose your preferred audio quality for downloads.
+              Your default audio quality — used everywhere you download (dashboard,
+              album and artist pages).
             </p>
           </div>
           <QualitySelector value={audioQuality} onChange={setAudioQuality} />
         </div>
       </Card>
 
-      {/* Concurrent downloads */}
+      {/* ── Appearance ───────────────────────────────────────────────── */}
       <Card>
-        <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="font-sans text-base font-semibold text-primary">
-              Concurrent downloads
+              Reduce visual effects
             </h2>
             <p className="mt-1 font-sans text-sm text-secondary">
-              Maximum number of albums downloading at the same time.
+              Hide the decorative record-shop scene for a calmer, faster interface.
             </p>
           </div>
-          <div
-            role="group"
-            aria-label="Number of concurrent downloads"
-            className="flex gap-2"
+          <button
+            type="button"
+            role="switch"
+            aria-checked={reduceEffects}
+            aria-label="Reduce visual effects"
+            onClick={() => setReduceEffects(!reduceEffects)}
+            className={cn(
+              'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full',
+              'transition-colors duration-150',
+              'focus-visible:outline-none focus-visible:shadow-glow-focus',
+              reduceEffects ? 'bg-teal-500' : 'bg-surface-rack',
+            )}
           >
-            {([1, 2, 3, 4, 5] as const).map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setConcurrentDownloads(n)}
-                aria-pressed={n === concurrentDownloads}
-                className={cn(
-                  'h-10 w-10 rounded-md font-mono text-sm font-medium',
-                  'transition-all duration-100',
-                  'focus-visible:outline-none focus-visible:shadow-glow-focus',
-                  n === concurrentDownloads
-                    ? 'border border-teal-500 bg-teal-500/15 text-teal-400'
-                    : 'border border-subtle text-secondary hover:border-teal-500 hover:text-teal-400',
-                )}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
+            <span
+              aria-hidden="true"
+              className={cn(
+                'inline-block h-4 w-4 rounded-full bg-primary shadow-sm',
+                'transition-transform duration-150',
+                reduceEffects ? 'translate-x-6' : 'translate-x-1',
+              )}
+            />
+          </button>
         </div>
       </Card>
     </div>

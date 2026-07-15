@@ -9,6 +9,7 @@ import { cn } from '@/shared/lib/cn'
 import { formatDuration } from '@/shared/lib/format'
 import { Button } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
+import { useSettingsStore } from '@/features/settings'
 import { useArtistDetailQuery } from '@/features/artist-detail'
 import { albumApi } from '@/features/album-detail'
 import { ArtistCard } from '@/features/search'
@@ -38,6 +39,8 @@ export function ArtistClient({ artistId }: { artistId: string }) {
   const query = useArtistDetailQuery(artistId, status === 'authenticated')
   const data = query.data
   const downloadMutation = useStartDownloadMutation()
+  // Calidad de descarga desde la preferencia global (fuente única)
+  const quality = useSettingsStore((s) => s.audioQuality)
   const [showAllTracks, setShowAllTracks] = useState(false)
 
   // ── Playback ──────────────────────────────────────────────────────────────
@@ -68,7 +71,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
       ...(data?.other ?? []),
     ].find((a) => a.id === albumId)
     downloadMutation.mutate(
-      { albumId, quality: 'MASTER' },
+      { albumId, quality },
       {
         onSuccess: (result) => {
           useDownloadsStore.getState().enqueue({
@@ -77,7 +80,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
             albumTitle: album?.title ?? 'Unknown Album',
             artistName: album?.artist.name ?? 'Unknown Artist',
             totalTracks: result.estimatedTracks,
-            qualityOverride: 'MASTER',
+            qualityOverride: quality,
           })
         },
       },
