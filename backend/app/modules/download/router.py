@@ -5,10 +5,14 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
-from app.core import redis_client as rc
 from app.core.rate_limiter import limiter
 from app.core.tidal import TidalDownloader
-from app.dependencies import get_authenticated_engine
+from app.dependencies import (
+    CurrentUser,
+    assert_job_owner,
+    get_authenticated_engine,
+    get_current_user,
+)
 
 from .schemas import DownloadRequest, DownloadStartResponse, DownloadStatusResponse
 from .service import DownloadService
@@ -39,28 +43,33 @@ async def start_download(
     request: Request,
     body: DownloadRequest,
     engine: TidalDownloader = Depends(get_authenticated_engine),
+    user: CurrentUser = Depends(get_current_user),
 ):
     """Encola una descarga de Tidal (máx. 10/min por IP)."""
-    return await service.start(body.url, engine, request.app.state)
+    return await service.start(body.url, engine, request.app.state, user.tidal_user_id)
 
 
 @router.get("/status/{job_id}", response_model=DownloadStatusResponse)
 @limiter.limit("60/minute")
-async def get_status(request: Request, job_id: str):
-    """Estado actual del job desde Redis."""
-    job = await rc.get_job_state(request.app.state.redis, job_id)
-    if job is None:
-        raise HTTPException(status_code=404, detail="Job no encontrado")
+async def get_status(
+    request: Request,
+    job_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Estado actual del job desde Redis (solo el dueño del job)."""
+    job = await assert_job_owner(request.app.state.redis, job_id, user)
     return DownloadStatusResponse(**job)
 
 
 @router.get("/file/{job_id}")
 @limiter.limit("20/minute")
-async def get_file(request: Request, job_id: str):
-    """Descarga el archivo cuando el job está completado."""
-    job = await rc.get_job_state(request.app.state.redis, job_id)
-    if job is None:
-        raise HTTPException(status_code=404, detail="Job no encontrado")
+async def get_file(
+    request: Request,
+    job_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Descarga el archivo cuando el job está completado (solo el dueño del job)."""
+    job = await assert_job_owner(request.app.state.redis, job_id, user)
     if job["status"] != "completed":
         raise HTTPException(status_code=409, detail=f"Job no completado: {job['status']}")
     file_path = job.get("file_path")

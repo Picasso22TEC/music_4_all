@@ -43,6 +43,7 @@ class JobService:
         req: StartDownloadRequest,
         engine: TidalDownloader,
         app_state: object,
+        user_id: str | None = None,
     ) -> StartDownloadResponse:
         if req.album_id:
             url = f"https://tidal.com/browse/album/{req.album_id}"
@@ -76,6 +77,7 @@ class JobService:
                 "album_id": req.album_id,
                 "track_id": req.track_id,
                 "estimated_tracks": estimated_tracks,
+                "user_id": user_id,  # dueño del job (aislamiento multiusuario / anti-IDOR)
             },
         )
 
@@ -87,6 +89,7 @@ class JobService:
                 "url": url,
                 "title": title,
                 "quality": req.quality,
+                "user_id": user_id,
             },
         )
 
@@ -175,6 +178,7 @@ class JobService:
                         "url": url,
                         "title": state.get("title", ""),
                         "quality": state.get("quality", "MASTER"),
+                        "user_id": state.get("user_id"),
                     },
                 )
                 await rc.publish_progress(redis, job_id, resumed_state)
@@ -201,6 +205,7 @@ class JobService:
                         "url": url,
                         "title": state.get("title", ""),
                         "quality": state.get("quality", "MASTER"),
+                        "user_id": state.get("user_id"),
                     },
                 )
                 await rc.publish_progress(redis, job_id, retried_state)

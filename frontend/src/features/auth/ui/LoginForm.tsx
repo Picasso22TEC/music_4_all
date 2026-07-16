@@ -67,22 +67,18 @@ export function LoginForm() {
   // v2 auth store — status and deviceAuth (camelCase)
   const status = useAuthStore((s) => s.status)
   const deviceAuth = useAuthStore((s) => s.deviceAuth)
-  const hasHydrated = useAuthStore((s) => s.hasHydrated)
 
   const [error, setError] = useState<string | null>(null)
   // Timestamp absoluto de emisión del código — base del contador de expiración.
   const [issuedAt, setIssuedAt] = useState<number | null>(null)
 
-  // ── Redirect if already authenticated (store rehydrated from localStorage) ──
-
-  useEffect(() => {
-    // Wait for rehydration — `status` defaults to 'unauthenticated' before
-    // then, so redirecting too early would just bounce straight back here.
-    if (!hasHydrated) return
-    if (status === 'authenticated') {
-      router.replace('/dashboard')
-    }
-  }, [status, hasHydrated, router])
+  // Nota: el redirect "ya autenticado → /dashboard" lo hace ahora el middleware
+  // server-side vía la cookie httpOnly `m4a_sid`. Si el usuario llega a renderizar
+  // este formulario es que NO tiene cookie de sesión válida (el middleware lo
+  // habría redirigido antes), así que aquí NO redirigimos por el `status`
+  // persistido —que puede estar obsoleto— para evitar un bucle /login ↔ /dashboard.
+  // El redirect post-login se dispara en el efecto de "authorized" de más abajo,
+  // cuando el backend ya ha emitido la cookie.
 
   // ── Device Auth initiation ─────────────────────────────────────────────────
 

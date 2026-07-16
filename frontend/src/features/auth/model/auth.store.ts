@@ -40,20 +40,9 @@ interface AuthActions {
   clearJobIdToRetry: () => void
 }
 
-// ── Cookie helpers — kept thin; cookie is non-httpOnly by design (RM-03 tracks future upgrade) ──
-
-function setSessionCookie(expiresAt: string): void {
-  if (typeof window === 'undefined') return
-  const maxAge = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)
-  if (maxAge > 0) {
-    document.cookie = `music4all_session=1; path=/; max-age=${maxAge}; SameSite=Lax`
-  }
-}
-
-function clearSessionCookie(): void {
-  if (typeof window === 'undefined') return
-  document.cookie = 'music4all_session=; path=/; max-age=0; SameSite=Lax'
-}
+// Route protection is enforced server-side by the httpOnly `m4a_sid` cookie the
+// backend sets on login and clears on logout (see middleware.ts). The store no
+// longer manages a client-set session cookie — it only holds UI auth state.
 
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
@@ -68,17 +57,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       hasHydrated: false,
 
       setAuthenticated: (user, expiresAt) => {
-        setSessionCookie(expiresAt)
         set({ status: 'authenticated', user, expiresAt })
       },
 
       setExpired: () => {
-        clearSessionCookie()
         set({ status: 'expired' })
       },
 
       clearSession: () => {
-        clearSessionCookie()
         set({
           status: 'unauthenticated',
           user: null,
@@ -108,22 +94,11 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         expiresAt: s.expiresAt,
       }),
       onRehydrateStorage: () => (state) => {
-        // El callback puede dispararse con `state` undefined en una pasada de
-        // rehidratación espuria (Next App Router evalúa el store más de una vez);
-        // en ese caso NO debemos tocar la cookie, o borraríamos la que la pasada
-        // buena (con datos) acaba de sembrar y el middleware nos echaría a /login.
-        if (state) {
-          // Marcar expirada si el token ya venció.
-          if (state.expiresAt && new Date(state.expiresAt) < new Date()) {
-            state.status = 'expired'
-          }
-          // Sincronizar la cookie para que el middleware vea el estado de auth
-          // en la siguiente navegación.
-          if (state.status === 'authenticated' && state.expiresAt) {
-            setSessionCookie(state.expiresAt)
-          } else {
-            clearSessionCookie()
-          }
+        // Marcar expirada si el token persistido ya venció. La protección de
+        // rutas la lleva la cookie httpOnly del backend (middleware.ts); el store
+        // solo refleja el estado de auth en la UI, no siembra cookies.
+        if (state && state.expiresAt && new Date(state.expiresAt) < new Date()) {
+          state.status = 'expired'
         }
         useAuthStore.setState({ hasHydrated: true })
       },

@@ -31,3 +31,18 @@ class DeviceAuthPollResponse(BaseModel):
     status: Literal["pending", "authorized", "denied", "expired"]
     user: UserOut | None = None
     expires_at: str | None = None
+
+
+class SessionInfo(BaseModel):
+    """Una sesión de app activa del usuario (panel de sesiones)."""
+
+    sid: str
+    created_at: float  # epoch seconds
+    last_seen: float  # epoch seconds
+    ip: str
+    user_agent: str
+    current: bool  # True si es la sesión de la petición actual
+
+
+class SessionListResponse(BaseModel):
+    sessions: list[SessionInfo]

@@ -236,12 +236,20 @@ describe('LoginForm', () => {
     })
   })
 
-  describe('already authenticated', () => {
-    it('redirects straight to /dashboard without showing the connect button', () => {
+  describe('already authenticated (stale store, no server cookie)', () => {
+    // Route protection moved to the server-side middleware (httpOnly `m4a_sid`
+    // cookie). If LoginForm actually renders, the middleware already let the
+    // request through, i.e. there is NO valid session cookie — so a persisted
+    // `authenticated` status is stale and must NOT drive a client redirect
+    // (doing so would bounce /login ↔ /dashboard). The form should render.
+    it('does not client-redirect on a stale authenticated status; shows the connect button', () => {
       useAuthStore.getState().setAuthenticated(mockUser, futureIso())
       render(<LoginForm />)
 
-      expect(mockRouter.replace).toHaveBeenCalledWith('/dashboard')
+      expect(mockRouter.replace).not.toHaveBeenCalled()
+      expect(
+        screen.getByRole('button', { name: /connect with tidal via device authorization/i })
+      ).toBeVisible()
     })
   })
 })

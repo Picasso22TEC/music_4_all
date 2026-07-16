@@ -18,6 +18,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.core import redis_client as rc
 from app.core.database import AsyncSessionLocal, engine
+from app.core.engine_registry import EngineRegistry
 from app.core.exceptions import ApiException
 from app.core.job_controls import JobControlRegistry
 from app.core.logging_config import get_logger, setup_logging
@@ -58,6 +59,12 @@ async def lifespan(app: FastAPI):
 
     app.state.redis = await rc.create_client(settings.redis_url)
 
+    # Motor Tidal por usuario (multiusuario). El motor global se mantiene solo para
+    # los routers legacy (`/auth/*`) y como fallback de auth del WS sin cookie.
+    app.state.engine_registry = EngineRegistry(
+        max_engines=settings.max_user_engines,
+        idle_ttl=settings.engine_idle_ttl,
+    )
     session_data = await rc.load_session(app.state.redis)
     app.state.engine = TidalDownloader(session_data=session_data)
     app.state.pending_oauth = None
@@ -69,7 +76,12 @@ async def lifespan(app: FastAPI):
     await reconcile_stale_jobs(app.state.redis)
 
     worker_task = asyncio.create_task(
-        start_worker(app.state.engine, app.state.redis, AsyncSessionLocal, app.state.job_controls)
+        start_worker(
+            app.state.engine_registry,
+            app.state.redis,
+            AsyncSessionLocal,
+            app.state.job_controls,
+        )
     )
 
     yield
@@ -81,6 +93,7 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
+    await app.state.engine_registry.cleanup_all()
     await app.state.redis.aclose()
     await engine.dispose()
     app.state.engine._cleanup_temp_dir()

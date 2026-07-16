@@ -75,6 +75,33 @@ def new_sid() -> str:
 
 
 # --------------------------------------------------------------------------- #
+# Serialización de una sesión Tidal → tokens (para almacenamiento por usuario)
+# --------------------------------------------------------------------------- #
+def token_data_from_session(session: object) -> dict:
+    """Extrae los tokens de un ``tidalapi.Session`` ya autenticado a un dict.
+
+    Mismo formato que ``TidalDownloader.get_session_data`` / el que consume
+    ``TidalDownloader._load_session`` (``load_oauth_session``), pero leyendo los
+    atributos directamente (sin la llamada de red de ``check_login``): se usa
+    justo tras autorizar, cuando la sesión ya es válida.
+    """
+    expiry = getattr(session, "expiry_time", None)
+    return {
+        "token_type": getattr(session, "token_type", None),
+        "access_token": getattr(session, "access_token", None),
+        "refresh_token": getattr(session, "refresh_token", None),
+        "expiry_time": expiry.isoformat() if expiry else "",
+    }
+
+
+def user_id_from_session(session: object) -> str | None:
+    """Devuelve el id del usuario Tidal de una sesión, o None si no disponible."""
+    user = getattr(session, "user", None)
+    uid = getattr(user, "id", None) if user is not None else None
+    return str(uid) if uid not in (None, "") else None
+
+
+# --------------------------------------------------------------------------- #
 # Sesión de app (cookie ↔ Redis)
 # --------------------------------------------------------------------------- #
 async def create_app_session(redis, tidal_user_id: str, ip: str = "", ua: str = "") -> str:

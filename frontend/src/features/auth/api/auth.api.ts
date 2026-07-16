@@ -77,6 +77,7 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
-    await client.post('/auth/logout')
+    // v2 session logout: clears the httpOnly m4a_sid cookie + the app session in Redis.
+    await client.post('/session/logout')
   },
 }

@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import settings
 from app.core import redis_client as rc
+from app.core.engine_registry import EngineRegistry
 from app.core.job_controls import JobControlRegistry
 from app.core.logging_config import get_logger, job_logger
 from app.core.metrics import (
@@ -39,7 +40,7 @@ _history_repo = HistoryRepository()
 
 
 async def start_worker(
-    engine: TidalDownloader,
+    engine_registry: EngineRegistry,
     redis,
     session_factory: async_sessionmaker[AsyncSession],
     job_controls: JobControlRegistry,
@@ -60,7 +61,7 @@ async def start_worker(
             await semaphore.acquire()
             asyncio.create_task(
                 _run_with_semaphore(
-                    _process_job(job, engine, redis, session_factory, job_controls),
+                    _handle_job(job, engine_registry, redis, session_factory, job_controls),
                     semaphore,
                 )
             )
@@ -70,6 +71,45 @@ async def start_worker(
         except Exception as exc:
             logger.error("Worker loop error", extra={"error": str(exc)})
             await asyncio.sleep(1)
+
+
+async def _handle_job(
+    job: dict,
+    engine_registry: EngineRegistry,
+    redis,
+    session_factory: async_sessionmaker[AsyncSession],
+    job_controls: JobControlRegistry,
+) -> None:
+    """Resuelve el motor Tidal del **dueño** del job y ejecuta la descarga.
+
+    El motor se toma del ``EngineRegistry`` (fijado con acquire/release para que la
+    evicción no lo retire a mitad de descarga). Si el usuario no tiene sesión Tidal
+    válida, el job se marca como fallido con un mensaje claro.
+    """
+    job_id = str(job.get("job_id", ""))
+    user_id = job.get("user_id")
+    title = job.get("title", "")
+    log = job_logger(__name__, job_id)
+
+    engine = await engine_registry.acquire(redis, str(user_id)) if user_id else None
+    if engine is None:
+        log.warning("No Tidal engine for job — session missing/expired", extra={"user": user_id})
+        await _update_state(
+            redis,
+            job_id,
+            title,
+            DownloadJobStatus.FAILED,
+            0.0,
+            error="Sesión de Tidal no disponible. Vuelve a iniciar sesión.",
+            user_id=user_id,
+        )
+        downloads_total.labels(status="failed").inc()
+        return
+
+    try:
+        await _process_job(job, engine, redis, session_factory, job_controls)
+    finally:
+        await engine_registry.release(str(user_id))
 
 
 async def _process_job(
@@ -83,6 +123,7 @@ async def _process_job(
     url = job["url"]
     title = job.get("title", "")
     job_quality = job.get("quality", "MASTER")
+    user_id = job.get("user_id")  # dueño del job — se propaga a los eventos WS (aislamiento)
     log = job_logger(__name__, job_id)
 
     # Register control before any download begins so HTTP handlers can signal us.
@@ -115,9 +156,10 @@ async def _process_job(
             "title": title,
             "status": DownloadJobStatus.STARTED,
             "started_at": datetime.now(UTC).isoformat(),
+            "user_id": user_id,
         },
     )
-    await _update_state(redis, job_id, title, DownloadJobStatus.DOWNLOADING, 0.0)
+    await _update_state(redis, job_id, title, DownloadJobStatus.DOWNLOADING, 0.0, user_id=user_id)
 
     try:
         kind, item_id, tracks, title, folder = await asyncio.to_thread(
@@ -125,7 +167,9 @@ async def _process_job(
         )
     except Exception as exc:
         log.error("prepare() failed", extra={"error": str(exc)})
-        await _update_state(redis, job_id, title, DownloadJobStatus.FAILED, 0.0, error=str(exc))
+        await _update_state(
+            redis, job_id, title, DownloadJobStatus.FAILED, 0.0, error=str(exc), user_id=user_id
+        )
         downloads_in_progress.dec()
         downloads_total.labels(status="failed").inc()
         job_controls.unregister(job_id)
@@ -185,6 +229,7 @@ async def _process_job(
                             "current_track_filename": name,
                             "speed_mbps": 0.0,
                             "eta_seconds": eta,
+                            "user_id": user_id,
                         },
                     ),
                     loop,
@@ -266,7 +311,13 @@ async def _process_job(
         downloads_total.labels(status="completed").inc()
         log.info("Job completed", extra={"duration_s": round(duration, 1), "tracks": total})
         await _update_state(
-            redis, job_id, title, DownloadJobStatus.COMPLETED, 100.0, file_path=file_path
+            redis,
+            job_id,
+            title,
+            DownloadJobStatus.COMPLETED,
+            100.0,
+            file_path=file_path,
+            user_id=user_id,
         )
     else:
         downloads_total.labels(status="failed").inc()
@@ -278,6 +329,7 @@ async def _process_job(
             DownloadJobStatus.FAILED,
             round(done / total * 100, 1),
             error=f"{done}/{total} tracks completados",
+            user_id=user_id,
         )
 
 
@@ -297,6 +349,7 @@ async def _update_state(
     progress: float,
     error: str | None = None,
     file_path: str | None = None,
+    user_id: str | None = None,
 ) -> None:
     state = {
         "job_id": job_id,
@@ -305,6 +358,7 @@ async def _update_state(
         "progress": progress,
         "error": error,
         "file_path": file_path,
+        "user_id": user_id,
     }
     await rc.set_job_state(redis, job_id, state)
     await rc.publish_progress(redis, job_id, state)

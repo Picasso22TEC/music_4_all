@@ -17,7 +17,9 @@ import time
 import anyio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.config import settings
 from app.core import redis_client as rc
+from app.core import user_session as us
 from app.core.tidal import TidalDownloader
 from app.modules.download.ws_mapper import flat_to_spec_message
 
@@ -91,19 +93,35 @@ async def websocket_downloads(websocket: WebSocket) -> None:
         Phase C — Heartbeat: 35 s idle → server_ping; client ping → pong
         Phase P2 — Send lock: serialises relay vs main-loop send_json calls
         Phase E — Clean lifecycle (pubsub, tasks, socket)
+
+    Multiusuario: la identidad sale de la cookie de sesión de app (``m4a_sid``); el
+    relay solo reenvía eventos cuyo ``user_id`` coincide con el del conectado
+    (aislamiento — A no ve jobs de B). Si no hay cookie se cae al motor global
+    (compatibilidad legacy/tests) y no se filtra por usuario.
     """
+    redis = websocket.app.state.redis  # type: ignore[attr-defined]
+
     # ── Phase D: Validate session BEFORE accepting ────────────────────────────
-    engine: TidalDownloader = websocket.app.state.engine  # type: ignore[attr-defined]
-    is_auth: bool = await asyncio.to_thread(engine.check_auth)
-    if not is_auth:
-        # Accept then immediately close with 1008 Policy Violation (RFC 6455)
-        await websocket.accept()
-        await websocket.close(code=1008, reason="Unauthorized — session expired or missing")
-        return
+    uid: str | None = None
+    sid = websocket.cookies.get(settings.session_cookie_name)
+    if sid:
+        session_data = await us.get_app_session(redis, sid)
+        if not session_data:
+            await websocket.accept()
+            await websocket.close(code=1008, reason="Unauthorized — session expired or missing")
+            return
+        uid = str(session_data["tidal_user_id"])
+    else:
+        # Fallback legacy: sin cookie, usar el estado del motor global.
+        engine: TidalDownloader = websocket.app.state.engine  # type: ignore[attr-defined]
+        is_auth: bool = await asyncio.to_thread(engine.check_auth)
+        if not is_auth:
+            await websocket.accept()
+            await websocket.close(code=1008, reason="Unauthorized — session expired or missing")
+            return
 
     await websocket.accept()
 
-    redis = websocket.app.state.redis  # type: ignore[attr-defined]
     pubsub = redis.pubsub()
     await pubsub.subscribe(rc.REDIS_ALL_JOBS_CHANNEL)
 
@@ -147,6 +165,10 @@ async def websocket_downloads(websocket: WebSocket) -> None:
             except json.JSONDecodeError:
                 continue
             if not isinstance(flat, dict):
+                continue
+            # Aislamiento multiusuario: con sesión resuelta (uid), solo se reenvían
+            # los eventos del propio usuario. Sin uid (fallback legacy) no se filtra.
+            if uid is not None and str(flat.get("user_id") or "") != uid:
                 continue
             spec = flat_to_spec_message(flat)
             if spec is None:

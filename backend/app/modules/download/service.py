@@ -11,7 +11,9 @@ _repo = DownloadRepository()
 
 
 class DownloadService:
-    async def start(self, url: str, engine: TidalDownloader, app_state) -> DownloadStartResponse:
+    async def start(
+        self, url: str, engine: TidalDownloader, app_state, user_id: str | None = None
+    ) -> DownloadStartResponse:
         # Obtener título antes de encolar (llamada rápida a Tidal)
         kind, item_id, tracks, title, folder = await asyncio.to_thread(_repo.prepare, url, engine)
 
@@ -28,6 +30,7 @@ class DownloadService:
                 "progress": 0.0,
                 "error": None,
                 "file_path": None,
+                "user_id": user_id,
             },
         )
 
@@ -38,6 +41,7 @@ class DownloadService:
                 "job_id": job_id,
                 "url": url,
                 "title": title,
+                "user_id": user_id,
             },
         )
 

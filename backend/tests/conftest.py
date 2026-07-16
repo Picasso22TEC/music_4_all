@@ -18,20 +18,30 @@ def api_client():
 
 @pytest.fixture
 def api_client_with_state():
-    """Cliente HTTP de FastAPI con `app.state.engine`/`app.state.redis` mockeados.
+    """Cliente HTTP de FastAPI con `app.state`/dependencias de auth mockeadas.
 
     `api_client` crea un `TestClient(app)` sin usarlo como context manager, por lo
     que el `lifespan` de la app nunca se ejecuta y `app.state.engine` /
-    `app.state.redis` no existen (`AttributeError`). Este fixture inicializa
-    mocks mínimos para esos atributos -- requeridos por dependencias como
-    `get_authenticated_engine` y por endpoints que leen `app.state.redis` -- y
-    restaura el estado previo de `app.state` al finalizar para no afectar a
-    otras pruebas que comparten la misma instancia global de `app`.
+    `app.state.redis` / `app.state.engine_registry` no existen (`AttributeError`).
+    Este fixture inicializa mocks mínimos para esos atributos y, tras la migración
+    multiusuario, **sobrescribe** las dependencias `get_current_user` /
+    `get_authenticated_engine` (que en producción exigen la cookie de sesión) para
+    que las pruebas de endpoints sigan usando el motor mockeado sin cookie real.
+    Restaura estado y overrides al finalizar.
     """
+    from app.dependencies import (
+        CurrentUser,
+        get_authenticated_engine,
+        get_current_user,
+        get_current_user_optional,
+    )
+
     had_engine = hasattr(app.state, "engine")
     had_redis = hasattr(app.state, "redis")
+    had_registry = hasattr(app.state, "engine_registry")
     prev_engine = getattr(app.state, "engine", None)
     prev_redis = getattr(app.state, "redis", None)
+    prev_registry = getattr(app.state, "engine_registry", None)
 
     engine_mock = MagicMock()
     engine_mock.check_auth.return_value = True
@@ -39,12 +49,27 @@ def api_client_with_state():
     redis_mock = MagicMock()
     redis_mock.get = AsyncMock(return_value=None)
 
+    registry_mock = MagicMock()
+    registry_mock.get = AsyncMock(return_value=engine_mock)
+    registry_mock.get_authenticated = AsyncMock(return_value=engine_mock)
+    registry_mock.acquire = AsyncMock(return_value=engine_mock)
+    registry_mock.release = AsyncMock()
+
     app.state.engine = engine_mock
     app.state.redis = redis_mock
+    app.state.engine_registry = registry_mock
+
+    test_user = CurrentUser(tidal_user_id="test-user", sid="test-sid")
+    app.dependency_overrides[get_authenticated_engine] = lambda: engine_mock
+    app.dependency_overrides[get_current_user] = lambda: test_user
+    app.dependency_overrides[get_current_user_optional] = lambda: test_user
 
     try:
         yield TestClient(app)
     finally:
+        app.dependency_overrides.pop(get_authenticated_engine, None)
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_current_user_optional, None)
         if had_engine:
             app.state.engine = prev_engine
         else:
@@ -53,6 +78,10 @@ def api_client_with_state():
             app.state.redis = prev_redis
         else:
             del app.state.redis
+        if had_registry:
+            app.state.engine_registry = prev_registry
+        else:
+            del app.state.engine_registry
 
 
 @pytest.fixture

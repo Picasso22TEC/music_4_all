@@ -75,9 +75,11 @@ describe('auth.store', () => {
       expect(useAuthStore.getState().expiresAt).toBe(iso)
     })
 
-    it('writes the music4all_session cookie', () => {
+    it('does not write a client session cookie (server httpOnly m4a_sid owns auth)', () => {
+      // Route protection now relies on the backend httpOnly `m4a_sid` cookie
+      // (see middleware.ts); the store must not set a spoofable client cookie.
       useAuthStore.getState().setAuthenticated(mockUser, futureIso())
-      expect(document.cookie).toContain('music4all_session=1')
+      expect(document.cookie).not.toContain('music4all_session')
     })
   })
 

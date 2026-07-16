@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     session_absolute_ttl: int = 86400  # 24 h máximo por sesión
     session_cookie_name: str = "m4a_sid"
     cookie_secure: bool = False  # True en producción (cookies solo por HTTPS)
+    cookie_samesite: str = "lax"  # Lax: cookie viaja en navegaciones top-level (middleware)
+
+    # EngineRegistry (multiusuario) — un motor Tidal por usuario, con caché LRU/TTL.
+    # max_user_engines acota la memoria/temp dirs; engine_idle_ttl evicta motores
+    # ociosos (sin descargas en curso) para liberar su directorio temporal.
+    max_user_engines: int = 50
+    engine_idle_ttl: int = 1800  # 30 min sin uso → evicción
 
     # Worker concurrency
     max_concurrent_downloads: int = 3

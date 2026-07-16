@@ -6,8 +6,11 @@ import uuid
 from datetime import UTC, datetime
 
 import tidalapi
+from fastapi import Request, Response
 
-from app.core import redis_client as rc
+from app.config import settings
+from app.core import user_session as us
+from app.core.logging_config import get_logger
 from app.core.oauth_helper import ensure_https as _ensure_https
 from app.core.oauth_helper import poll_device_auth as poll_oauth_future
 from app.core.oauth_helper import start_device_auth as create_oauth_session
@@ -16,9 +19,40 @@ from app.core.tidal import TidalDownloader
 from .schemas import (
     DeviceAuthInitResponse,
     DeviceAuthPollResponse,
+    SessionInfo,
+    SessionListResponse,
     SessionStatusResponse,
     UserOut,
 )
+
+logger = get_logger(__name__)
+
+# ─── Cookie de sesión de app ──────────────────────────────────────────────────
+
+
+def set_session_cookie(response: Response, sid: str) -> None:
+    """Emite la cookie httpOnly ``m4a_sid``. El servidor manda el ciclo de vida real
+    (TTL idle + absoluto en Redis); ``max_age`` cubre el máximo absoluto."""
+    response.set_cookie(
+        key=settings.session_cookie_name,
+        value=sid,
+        max_age=settings.session_absolute_ttl,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        path="/",
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.session_cookie_name,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        path="/",
+    )
+
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,30 +106,16 @@ def _expires_at_from_session(session: object) -> str | None:
 
 
 class SessionService:
-    async def get_status(self, engine: TidalDownloader, redis=None) -> SessionStatusResponse:
-        # check_auth() puede refrescar el access_token in-place. Capturamos el token
-        # antes/después para detectar el refresh y re-persistir la sesión en Redis
-        # (si no, el token nuevo vive solo en memoria y se pierde al reiniciar).
-        token_before = getattr(engine.session, "access_token", None)
-        is_auth = await asyncio.to_thread(engine.check_auth)
-        if not is_auth:
-            return SessionStatusResponse(status="expired", user=None, expires_at=None)
+    async def get_status(self, engine: TidalDownloader) -> SessionStatusResponse:
+        """Construye el estado a partir de un motor ya autenticado (por usuario).
 
+        La verificación/refresco de token la hace `EngineRegistry.get_authenticated`
+        antes de llegar aquí; este método solo serializa usuario y expiración.
+        """
         session = engine.session
-        token_after = getattr(session, "access_token", None)
-        if redis is not None and token_after and token_after != token_before:
-            session_data = await asyncio.to_thread(engine.get_session_data)
-            if session_data:
-                await rc.save_session(redis, session_data)
-
         expires_at = await asyncio.to_thread(_expires_at_from_session, session)
         user = await asyncio.to_thread(_user_out_from_session, session)
-
-        return SessionStatusResponse(
-            status="active",
-            user=user,
-            expires_at=expires_at,
-        )
+        return SessionStatusResponse(status="active", user=user, expires_at=expires_at)
 
     async def start_device_auth(self, app_state: object) -> DeviceAuthInitResponse:
         session, link, future = await create_oauth_session()
@@ -143,9 +163,10 @@ class SessionService:
     async def poll_device_auth(
         self,
         device_code: str,
-        engine: TidalDownloader,
-        app_state: object,
+        request: Request,
+        response: Response,
     ) -> DeviceAuthPollResponse:
+        app_state = request.app.state
         pending_v2: dict = getattr(app_state, "pending_oauth_v2", {})
 
         # Poda defensiva de flujos abandonados/expirados (el usuario nunca autoriza
@@ -166,18 +187,28 @@ class SessionService:
             return DeviceAuthPollResponse(status="pending")
 
         if authorized:
-            engine.session = session
-
-            session_data = await asyncio.to_thread(engine.get_session_data)
-            if session_data:
-                await rc.save_session(app_state.redis, session_data)  # type: ignore[attr-defined]
-
             user = await asyncio.to_thread(_user_out_from_session, session)
             expires_at = await asyncio.to_thread(_expires_at_from_session, session)
 
-            # Limpiar entradas
+            # ── Sesión multiusuario: tokens cifrados por usuario + cookie de app ──
+            redis = app_state.redis
+            uid = us.user_id_from_session(session)
+            if uid:
+                token_data = us.token_data_from_session(session)
+                await us.store_user_tokens(redis, uid, "oauth", token_data)
+                sid = await us.create_app_session(
+                    redis,
+                    uid,
+                    ip=(request.client.host if request.client else ""),
+                    ua=request.headers.get("user-agent", ""),
+                )
+                set_session_cookie(response, sid)
+            else:
+                logger.warning("Login Tidal sin user.id; no se pudo crear sesión de app")
+
+            # Limpiar entradas del flujo device
             del pending_v2[device_code]
-            app_state.pending_oauth = None  # type: ignore[attr-defined]
+            app_state.pending_oauth = None
 
             return DeviceAuthPollResponse(
                 status="authorized",
@@ -188,3 +219,42 @@ class SessionService:
         # Login fallido o denegado
         pending_v2.pop(device_code, None)
         return DeviceAuthPollResponse(status="denied")
+
+    # ── Logout + panel de sesiones ───────────────────────────────────────────
+    async def logout(self, redis, sid: str | None, response: Response) -> dict:
+        """Cierra la sesión de app actual (no toca las de otros dispositivos)."""
+        if sid:
+            await us.delete_app_session(redis, sid)
+        clear_session_cookie(response)
+        return {"message": "Sesión cerrada"}
+
+    async def list_sessions(
+        self, redis, tidal_user_id: str, current_sid: str | None
+    ) -> SessionListResponse:
+        raw = await us.list_user_sessions(redis, tidal_user_id)
+        sessions = [
+            SessionInfo(
+                sid=s["sid"],
+                created_at=float(s.get("created_at", 0.0)),
+                last_seen=float(s.get("last_seen", 0.0)),
+                ip=str(s.get("ip", "")),
+                user_agent=str(s.get("ua", "")),
+                current=(s["sid"] == current_sid),
+            )
+            for s in raw
+        ]
+        # Más recientes primero
+        sessions.sort(key=lambda s: s.last_seen, reverse=True)
+        return SessionListResponse(sessions=sessions)
+
+    async def revoke_session(self, redis, tidal_user_id: str, sid: str) -> dict:
+        """Cierra una sesión concreta del usuario (verificando que le pertenece)."""
+        owned = {s["sid"] for s in await us.list_user_sessions(redis, tidal_user_id)}
+        if sid not in owned:
+            return {"revoked": 0}
+        await us.delete_app_session(redis, sid)
+        return {"revoked": 1}
+
+    async def revoke_other_sessions(self, redis, tidal_user_id: str, keep_sid: str | None) -> dict:
+        revoked = await us.revoke_all_sessions(redis, tidal_user_id, keep_sid=keep_sid)
+        return {"revoked": revoked}

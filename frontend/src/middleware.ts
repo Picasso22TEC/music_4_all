@@ -14,25 +14,28 @@ const PROTECTED_PATHS = [
 // Routes that redirect to dashboard when already authenticated
 const AUTH_PATHS = ['/login']
 
+// httpOnly session cookie issued by the backend (must match backend
+// settings.session_cookie_name). Client JS cannot read/spoof it; the middleware
+// (server-side) can, so route protection is enforced against the real session.
+const SESSION_COOKIE = 'm4a_sid'
+
 /**
- * Middleware — cookie-based route protection (TD-07).
+ * Middleware — server-side route protection backed by the httpOnly session cookie.
  *
- * The `music4all_session` cookie is set client-side by auth.store (setAuthenticated,
- * clearSession, setExpired, onRehydrateStorage). It is a non-httpOnly convenience
- * cookie; the ground truth for auth is the Tidal token managed by the backend.
+ * The `m4a_sid` cookie is set by the backend on successful Tidal login (Set-Cookie,
+ * httpOnly + SameSite=Lax) and cleared on logout. Because it is httpOnly it cannot be
+ * forged from client JS, so its presence is a trustworthy gate here (the backend still
+ * re-validates every request against Redis; this only avoids rendering protected shells
+ * for clearly-unauthenticated visitors).
  *
  * Flow:
  *  - No cookie + protected route → redirect to /login
  *  - Cookie present + auth route (/login) → redirect to /dashboard
  *  - Everything else → pass through
- *
- * Note: on first load after the update, users with a valid auth.store but no cookie
- * are redirected to /login. LoginForm detects the authenticated store state, sets
- * the cookie via onRehydrateStorage, then redirects back to /dashboard.
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const hasSession = !!request.cookies.get('music4all_session')?.value
+  const hasSession = !!request.cookies.get(SESSION_COOKIE)?.value
 
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p))
   const isAuthRoute = AUTH_PATHS.some((p) => pathname.startsWith(p))
