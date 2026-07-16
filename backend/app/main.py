@@ -1,7 +1,5 @@
 import asyncio
-import json
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -61,16 +59,6 @@ async def lifespan(app: FastAPI):
     app.state.redis = await rc.create_client(settings.redis_url)
 
     session_data = await rc.load_session(app.state.redis)
-    if not session_data:
-        session_file = Path(settings.session_file)
-        if session_file.exists():
-            try:
-                session_data = json.loads(session_file.read_text())
-                await rc.save_session(app.state.redis, session_data)
-                session_file.unlink(missing_ok=True)
-            except Exception:
-                pass
-
     app.state.engine = TidalDownloader(session_data=session_data)
     app.state.pending_oauth = None
     app.state.pending_oauth_v2 = {}  # dict[device_code → {session, future}]
@@ -123,6 +111,28 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+# ── Cabeceras de seguridad ──────────────────────────────────────────────────────
+# Defensa en profundidad para las respuestas del API (JSON/archivos). La CSP real de
+# la web (Next.js) vive en nginx; aquí un CSP mínimo bloquea que este origen sirva
+# contenido activo. Se omite en las rutas de docs para no romper Swagger UI. HSTS solo
+# lo honran los navegadores sobre HTTPS (nginx termina TLS en producción).
+_DOCS_PATHS = ("/docs", "/redoc", "/openapi.json")
+
+
+@app.middleware("http")
+async def _security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+    if not request.url.path.startswith(_DOCS_PATHS):
+        response.headers.setdefault(
+            "Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"
+        )
+    return response
+
 
 # ── Prometheus ────────────────────────────────────────────────────────────────
 Instrumentator(

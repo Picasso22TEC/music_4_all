@@ -8,9 +8,6 @@ class Settings(BaseSettings):
     # Tidal
     tidal_quality: str = "LOSSLESS"
 
-    # Auth
-    session_file: str = "session.json"
-
     # Redis
     redis_url: str = "redis://localhost:6379"
 
