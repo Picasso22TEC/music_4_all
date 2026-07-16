@@ -1,0 +1,5 @@
+# Los scripts que ejecuta Linux dentro de los contenedores deben conservar LF.
+# Este repo se trabaja en Windows con core.autocrlf=true: sin esta regla, git
+# entregaría docker-entrypoint.sh con CRLF y el contenedor no arrancaría
+# ("bad interpreter: /bin/sh^M"), además de forma intermitente según quién clone.
+*.sh text eol=lf

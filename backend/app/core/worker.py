@@ -13,11 +13,13 @@ Flujo:
 import asyncio
 import json
 import time
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import settings
+from app.core import quotas
 from app.core import redis_client as rc
 from app.core.engine_registry import EngineRegistry
 from app.core.job_controls import JobControlRegistry
@@ -61,7 +63,9 @@ async def start_worker(
             await semaphore.acquire()
             asyncio.create_task(
                 _run_with_semaphore(
-                    _handle_job(job, engine_registry, redis, session_factory, job_controls),
+                    _handle_job(
+                        job, engine_registry, redis, session_factory, job_controls, semaphore
+                    ),
                     semaphore,
                 )
             )
@@ -79,6 +83,7 @@ async def _handle_job(
     redis,
     session_factory: async_sessionmaker[AsyncSession],
     job_controls: JobControlRegistry,
+    semaphore: asyncio.Semaphore | None = None,
 ) -> None:
     """Resuelve el motor Tidal del **dueño** del job y ejecuta la descarga.
 
@@ -104,12 +109,17 @@ async def _handle_job(
             user_id=user_id,
         )
         downloads_total.labels(status="failed").inc()
+        if user_id:
+            await quotas.release_job(redis, str(user_id), job_id)
         return
 
     try:
-        await _process_job(job, engine, redis, session_factory, job_controls)
+        await _process_job(job, engine, redis, session_factory, job_controls, semaphore)
     finally:
         await engine_registry.release(str(user_id))
+        # El job ya está en estado terminal: libera su cupo de cuota. La
+        # autolimpieza de `quotas` haría lo mismo; esto solo lo libera antes.
+        await quotas.release_job(redis, str(user_id), job_id)
 
 
 async def _process_job(
@@ -118,6 +128,7 @@ async def _process_job(
     redis,
     session_factory: async_sessionmaker[AsyncSession],
     job_controls: JobControlRegistry,
+    semaphore: asyncio.Semaphore | None = None,
 ) -> None:
     job_id = job["job_id"]
     url = job["url"]
@@ -189,11 +200,13 @@ async def _process_job(
     last_pub = {"t": 0.0, "pct": -1}
 
     for i, track in enumerate(tracks):
-        # Pause: block between tracks until resumed or cancelled.
-        while ctrl.pause_event.is_set():
-            if ctrl.cancel_event.is_set():
-                break
-            await asyncio.sleep(0.5)
+        # Pause: wait between tracks until resumed or cancelled, ceding the
+        # worker slot meanwhile (ver _released_slot).
+        if ctrl.pause_event.is_set():
+            log.info("Job paused — releasing worker slot while it waits")
+            async with _released_slot(semaphore):
+                while ctrl.pause_event.is_set() and not ctrl.cancel_event.is_set():
+                    await asyncio.sleep(0.5)
 
         # Cancel: exit the download loop immediately.
         if ctrl.cancel_event.is_set():
@@ -270,6 +283,7 @@ async def _process_job(
                         quality=quality,
                         cover_url=cover,
                         job_id=job_id,
+                        user_id=user_id,
                     )
                     await _history_repo.save_audit(
                         session,
@@ -277,6 +291,7 @@ async def _process_job(
                         detail=json.dumps(
                             {"job_id": job_id, "title": track.name, "quality": quality}
                         ),
+                        user_id=user_id,
                     )
             else:
                 log.warning(
@@ -331,6 +346,27 @@ async def _process_job(
             error=f"{done}/{total} tracks completados",
             user_id=user_id,
         )
+
+
+@asynccontextmanager
+async def _released_slot(semaphore: asyncio.Semaphore | None):
+    """Cede el slot de concurrencia mientras dura el bloque y lo recupera al salir.
+
+    Un job pausado no puede retener su slot: el tope es global y compartido, así
+    que con `max_concurrent_downloads` jobs pausados el worker dejaría de atender
+    a **todos** los usuarios (un usuario podría congelar las descargas del resto
+    con solo pulsar pausa). Se recupera el slot al salir del bloque por cualquier
+    vía —reanudación o cancelación— para que la liberación única que hace
+    `_run_with_semaphore` al terminar el job siga cuadrando.
+    """
+    if semaphore is None:  # sin contabilidad de slots (llamadas directas en tests)
+        yield
+        return
+    semaphore.release()
+    try:
+        yield
+    finally:
+        await semaphore.acquire()
 
 
 async def _run_with_semaphore(coro, semaphore: asyncio.Semaphore) -> None:

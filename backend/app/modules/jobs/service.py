@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 
+from app.core import quotas
 from app.core import redis_client as rc
 from app.core.job_controls import JobControlRegistry
 from app.core.tidal import TidalDownloader
@@ -80,6 +81,10 @@ class JobService:
                 "user_id": user_id,  # dueño del job (aislamiento multiusuario / anti-IDOR)
             },
         )
+
+        # Ocupa cupo de cuota (concurrente + diaria) antes de encolar.
+        if user_id:
+            await quotas.register_job(app_state.redis, user_id, job_id)  # type: ignore[attr-defined]
 
         # Encolar para el worker (formato compatible con worker actual)
         await rc.enqueue_job(
@@ -171,6 +176,8 @@ class JobService:
                     "error": None,
                 }
                 await rc.set_job_state(redis, job_id, resumed_state)
+                # Vuelve a ocupar cupo concurrente; no gasta cuota diaria (no es un job nuevo).
+                await _reoccupy_quota(redis, state, job_id)
                 await rc.enqueue_job(
                     redis,
                     {
@@ -198,6 +205,8 @@ class JobService:
                     "progress": 0.0,
                 }
                 await rc.set_job_state(redis, job_id, retried_state)
+                # El job había fallado (cupo liberado): vuelve a ocuparlo sin gastar cuota diaria.
+                await _reoccupy_quota(redis, state, job_id)
                 await rc.enqueue_job(
                     redis,
                     {
@@ -237,6 +246,10 @@ class JobService:
         await rc.set_job_state(redis, job_id, cancelled_state)
         # Notify WebSocket clients of the cancellation.
         await rc.publish_progress(redis, job_id, cancelled_state)
+        # Libera el cupo de cuota del usuario sin esperar a la autolimpieza.
+        owner = state.get("user_id")
+        if owner:
+            await quotas.release_job(redis, str(owner), job_id)
         # Signal the running worker to abort immediately.
         _reg: JobControlRegistry | None = getattr(app_state, "job_controls", None)
         ctrl = _reg.get(job_id) if _reg is not None else None
@@ -249,6 +262,13 @@ class JobService:
             tracks_saved=tracks_saved,
             output_path=output_path,
         )
+
+
+async def _reoccupy_quota(redis, state: dict, job_id: str) -> None:
+    """Reocupa el cupo concurrente de un job reencolado (retry/resume sin worker vivo)."""
+    owner = state.get("user_id")
+    if owner:
+        await quotas.register_job(redis, str(owner), job_id, count_daily=False)
 
 
 def _url_from_state(state: dict) -> str | None:

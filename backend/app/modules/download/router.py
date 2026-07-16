@@ -5,6 +5,7 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
+from app.core import quotas
 from app.core.rate_limiter import limiter
 from app.core.tidal import TidalDownloader
 from app.dependencies import (
@@ -45,7 +46,8 @@ async def start_download(
     engine: TidalDownloader = Depends(get_authenticated_engine),
     user: CurrentUser = Depends(get_current_user),
 ):
-    """Encola una descarga de Tidal (máx. 10/min por IP)."""
+    """Encola una descarga de Tidal (máx. 10/min y dentro de la cuota del usuario)."""
+    await quotas.assert_within_quota(request.app.state.redis, user.tidal_user_id)
     return await service.start(body.url, engine, request.app.state, user.tidal_user_id)
 
 

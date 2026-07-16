@@ -9,11 +9,11 @@ class HistoryService:
         self.repository = HistoryRepository()
 
     async def get_history(
-        self, session: AsyncSession, limit: int = 100
+        self, session: AsyncSession, user_id: str, limit: int = 100
     ) -> list[DownloadRecordSchema]:
-        records = await self.repository.get_all(session, limit)
+        records = await self.repository.get_all(session, user_id, limit)
         return [DownloadRecordSchema.model_validate(r) for r in records]
 
-    async def get_stats(self, session: AsyncSession) -> HistoryStats:
-        data = await self.repository.get_stats(session)
+    async def get_stats(self, session: AsyncSession, user_id: str) -> HistoryStats:
+        data = await self.repository.get_stats(session, user_id)
         return HistoryStats(**data)

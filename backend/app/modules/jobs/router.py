@@ -1,6 +1,7 @@
 import tidalapi.exceptions as tidal_exc
 from fastapi import APIRouter, Depends, Request
 
+from app.core import quotas
 from app.core.exceptions import ApiException
 from app.core.rate_limiter import limiter
 from app.core.tidal import TidalDownloader
@@ -33,6 +34,8 @@ async def start_download(
     user: CurrentUser = Depends(get_current_user),
 ):
     """Encola una descarga de álbum o track individual con calidad específica."""
+    # Cuota del usuario antes de tocar Tidal (429 si la supera).
+    await quotas.assert_within_quota(request.app.state.redis, user.tidal_user_id)
     try:
         return await _service.create_job(body, engine, request.app.state, user.tidal_user_id)
     except ValueError as exc:

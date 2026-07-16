@@ -16,5 +16,6 @@ export {
 } from './model/downloads.queries'
 export { useDownloadQueue } from './model/useDownloadQueue'
 export { useDownloadActions } from './model/useDownloadActions'
+export { useDownloadErrorToast } from './model/useDownloadErrorToast'
 export { downloadsApi } from './api/downloads.api'
 export { useDownloadSocket } from './hooks/useDownloadSocket'

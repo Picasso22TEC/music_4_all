@@ -23,7 +23,11 @@ import {
   useSearchQuery,
   useSearchStore,
 } from '@/features/search'
-import { useStartDownloadMutation, useDownloadsStore } from '@/features/downloads'
+import {
+  useStartDownloadMutation,
+  useDownloadsStore,
+  useDownloadErrorToast,
+} from '@/features/downloads'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -110,11 +114,13 @@ export default function DashboardClient() {
   // ── Download ────────────────────────────────────────────────────────────────
 
   const downloadMutation = useStartDownloadMutation()
+  const onDownloadError = useDownloadErrorToast()
 
   /** Triggered by AlbumCard.onDownload — maps to POST /downloads {albumId, quality} */
   function handleDownload(albumId: string) {
     const album = albums.find((a) => a.id === albumId)
     downloadMutation.mutate({ albumId, quality }, {
+      onError: onDownloadError,
       onSuccess: (result) => {
         useDownloadsStore.getState().enqueue({
           backendJobId: result.jobId,

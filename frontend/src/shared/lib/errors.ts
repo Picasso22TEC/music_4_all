@@ -4,6 +4,8 @@ export type ApiErrorCode =
   | 'SESSION_EXPIRED'
   | 'UNAUTHORIZED'
   | 'RATE_LIMITED'
+  // Cuota del usuario agotada (concurrentes o diaria) — 429 con mensaje explicativo.
+  | 'QUOTA_EXCEEDED'
   | 'REGION_BLOCKED'
   | 'CONFLICT'
   | 'INVALID_TRANSITION'

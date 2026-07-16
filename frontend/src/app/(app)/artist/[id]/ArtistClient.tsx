@@ -14,7 +14,11 @@ import { useArtistDetailQuery } from '@/features/artist-detail'
 import { albumApi } from '@/features/album-detail'
 import { ArtistCard } from '@/features/search'
 import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
-import { useDownloadsStore, useStartDownloadMutation } from '@/features/downloads'
+import {
+  useDownloadsStore,
+  useStartDownloadMutation,
+  useDownloadErrorToast,
+} from '@/features/downloads'
 
 import { ReleaseSection } from './ReleaseSection'
 import { SectionHeading } from './SectionHeading'
@@ -39,6 +43,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
   const query = useArtistDetailQuery(artistId, status === 'authenticated')
   const data = query.data
   const downloadMutation = useStartDownloadMutation()
+  const onDownloadError = useDownloadErrorToast()
   // Calidad de descarga desde la preferencia global (fuente única)
   const quality = useSettingsStore((s) => s.audioQuality)
   const [showAllTracks, setShowAllTracks] = useState(false)
@@ -73,6 +78,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
     downloadMutation.mutate(
       { albumId, quality },
       {
+        onError: onDownloadError,
         onSuccess: (result) => {
           useDownloadsStore.getState().enqueue({
             backendJobId: result.jobId,

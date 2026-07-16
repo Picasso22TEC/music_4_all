@@ -23,6 +23,28 @@ Problemas reales encontrados durante el desarrollo, su causa raíz, la solución
 
 ---
 
+## 1.b Base creada por el `create_all` antiguo: `DuplicateTableError` al migrar
+
+**Problema**: tras pasar el esquema a Alembic (Fase 3), el contenedor `backend` no arranca y el entrypoint falla con `asyncpg.exceptions.DuplicateTableError: relation "downloads" already exists`.
+
+**Causa raíz**: hasta la Fase 3, el lifespan de `app/main.py` llamaba a `Base.metadata.create_all` y **nadie ejecutaba Alembic** (ni compose, ni el Dockerfile, ni CI). Las bases desplegadas así tienen las tablas pero **no** la tabla `alembic_version`, así que Alembic las cree vacías e intenta aplicar `001` (crear tablas) sobre tablas que ya existen. El mismo agujero explicaba un fallo peor y silencioso: `create_all` **no altera** tablas existentes, de modo que las columnas nuevas (`user_id` en la Fase 3) nunca aparecían en un despliegue ya en marcha y el error salía en tiempo de ejecución (historial a 500, `save_download` fallando en el worker).
+
+**Solución aplicada**:
+- `create_all` fuera del lifespan: el esquema lo gestiona **solo** Alembic.
+- `backend/docker-entrypoint.sh` ejecuta `alembic upgrade head` antes de arrancar uvicorn (una vez por contenedor; hacerlo en el lifespan lo lanzaría una vez por worker en el target de producción, que usa `--workers 2`).
+- `tests/test_migrations_match_models.py` compara el esquema de las migraciones con el de los modelos para que la deriva falle en CI y no en producción.
+- Para adoptar una base preexistente, **una sola vez**, registrarla en la revisión que corresponda a su esquema (`002` si tiene `album` pero no `user_id`):
+  ```bash
+  docker exec tidal_downloader-backend-1 sh -c 'cd /app && uv run alembic stamp 002'
+  ```
+
+**Pasos de diagnóstico**:
+1. `docker exec tidal_downloader-postgres-1 psql -U music4all -d music4all -t -c "SELECT version_num FROM alembic_version;"` — si da `relation "alembic_version" does not exist`, la base nunca pasó por Alembic.
+2. Confirmar a qué revisión equivale su esquema comparando columnas e índices con las migraciones (`\d downloads`): 001 crea las tablas base, 002 añade `album`, 003 añade `user_id`.
+3. Tras el `stamp`, `alembic upgrade head` debe aplicar solo lo pendiente y los datos permanecer intactos (`SELECT COUNT(*) FROM downloads;` antes y después).
+
+---
+
 ## 2. `certifi` / `cacert.pem` no encontrado dentro del contenedor
 
 **Problema**: peticiones HTTPS desde el backend (tidalapi, llamadas a `resources.tidal.com`, OAuth) fallaban dentro del contenedor con errores de verificación SSL / archivo de certificados no encontrado, aunque el mismo código funcionaba en el host Windows.

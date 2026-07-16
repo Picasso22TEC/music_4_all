@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 
+from app.core import quotas
 from app.core import redis_client as rc
 from app.core.tidal import TidalDownloader
 from app.modules.download.schemas import DownloadJobStatus, DownloadStartResponse
@@ -33,6 +34,10 @@ class DownloadService:
                 "user_id": user_id,
             },
         )
+
+        # Ocupa cupo de cuota (concurrente + diaria) antes de encolar.
+        if user_id:
+            await quotas.register_job(app_state.redis, user_id, job_id)
 
         # Encolar para el worker
         await rc.enqueue_job(

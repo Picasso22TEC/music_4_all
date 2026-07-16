@@ -17,9 +17,11 @@ class HistoryRepository:
         cover_url: str | None,
         job_id: str | None = None,
         album: str | None = None,
+        user_id: str | None = None,
     ) -> DownloadRecord:
         record = DownloadRecord(
             id=str(uuid.uuid4()),
+            user_id=user_id,
             title=title,
             artist=artist,
             album=album,
@@ -33,26 +35,36 @@ class HistoryRepository:
         await session.refresh(record)
         return record
 
-    async def get_all(self, session: AsyncSession, limit: int = 100) -> list[DownloadRecord]:
+    async def get_all(
+        self, session: AsyncSession, user_id: str, limit: int = 100
+    ) -> list[DownloadRecord]:
+        """Descargas de un usuario. `user_id` es obligatorio: sin filtro no hay
+        historial (las filas huérfanas de la era single-user no son de nadie)."""
         result = await session.execute(
-            select(DownloadRecord).order_by(DownloadRecord.downloaded_at.desc()).limit(limit)
+            select(DownloadRecord)
+            .where(DownloadRecord.user_id == user_id)
+            .order_by(DownloadRecord.downloaded_at.desc())
+            .limit(limit)
         )
         return list(result.scalars().all())
 
-    async def get_stats(self, session: AsyncSession) -> dict:
-        total = await session.scalar(select(func.count(DownloadRecord.id))) or 0
+    async def get_stats(self, session: AsyncSession, user_id: str) -> dict:
+        mine = DownloadRecord.user_id == user_id
+
+        total = await session.scalar(select(func.count(DownloadRecord.id)).where(mine)) or 0
 
         today = datetime.now(UTC).date()
         today_count = (
             await session.scalar(
                 select(func.count(DownloadRecord.id)).where(
-                    func.date(DownloadRecord.downloaded_at) == today
+                    mine, func.date(DownloadRecord.downloaded_at) == today
                 )
             )
         ) or 0
 
         quality_rows = await session.execute(
             select(DownloadRecord.quality, func.count(DownloadRecord.id))
+            .where(mine)
             .group_by(DownloadRecord.quality)
             .order_by(func.count(DownloadRecord.id).desc())
         )
@@ -61,10 +73,15 @@ class HistoryRepository:
         return {"total": total, "today": today_count, "by_quality": by_quality}
 
     async def save_audit(
-        self, session: AsyncSession, event: str, detail: str | None = None
+        self,
+        session: AsyncSession,
+        event: str,
+        detail: str | None = None,
+        user_id: str | None = None,
     ) -> None:
         log = AuditLog(
             id=str(uuid.uuid4()),
+            user_id=user_id,
             event=event,
             detail=detail,
             created_at=datetime.now(UTC),

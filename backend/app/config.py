@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     # Worker concurrency
     max_concurrent_downloads: int = 3
 
+    # Cuotas por usuario — acotan el consumo individual de la cola compartida y del
+    # rate-limit del client_id de Tidal. 0 o negativo = sin límite (desarrollo).
+    max_downloads_per_day: int = 50
+    max_concurrent_jobs_per_user: int = 3
+
     # PostgreSQL — SQLite solo en desarrollo local
     database_url: str = "sqlite+aiosqlite:///./dev.db"
 

@@ -49,7 +49,10 @@ async def get_current_user_optional(request: Request) -> CurrentUser | None:
     data = await us.get_app_session(redis, sid)
     if not data:
         return None
-    return CurrentUser(tidal_user_id=str(data["tidal_user_id"]), sid=sid)
+    user = CurrentUser(tidal_user_id=str(data["tidal_user_id"]), sid=sid)
+    # Lo lee `rate_limiter.user_or_ip_key` para aplicar el límite por usuario.
+    request.state.current_user = user
+    return user
 
 
 async def get_current_user(request: Request) -> CurrentUser:

@@ -42,6 +42,14 @@ downloads_concurrency_limit = Gauge(
     "Límite máximo de descargas simultáneas (MAX_CONCURRENT_DOWNLOADS)",
 )
 
+# ── Cuotas por usuario ────────────────────────────────────────────────────────
+
+quota_rejections_total = Counter(
+    "music4all_quota_rejections_total",
+    "Descargas rechazadas por superar la cuota del usuario",
+    ["quota"],  # daily | concurrent
+)
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 auth_logins_total = Counter(

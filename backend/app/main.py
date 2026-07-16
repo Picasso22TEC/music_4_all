@@ -22,7 +22,6 @@ from app.core.engine_registry import EngineRegistry
 from app.core.exceptions import ApiException
 from app.core.job_controls import JobControlRegistry
 from app.core.logging_config import get_logger, setup_logging
-from app.core.models import Base
 from app.core.rate_limiter import limiter
 from app.core.reconciliation import reconcile_stale_jobs
 from app.core.tidal import TidalDownloader
@@ -54,8 +53,11 @@ def _setup_tracing() -> None:
 async def lifespan(app: FastAPI):
     logger.info("Starting Music 4 All API", extra={"version": "7.0.0"})
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # El esquema es responsabilidad de Alembic (`alembic upgrade head`, que el
+    # contenedor ejecuta antes de arrancar; en local, ver docs/development.md).
+    # Antes se llamaba aquí a `Base.metadata.create_all`, que solo crea tablas
+    # que faltan y **nunca altera las existentes**: las bases ya desplegadas se
+    # quedaban sin las columnas nuevas y el arranque no se enteraba.
 
     app.state.redis = await rc.create_client(settings.redis_url)
 

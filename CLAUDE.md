@@ -56,6 +56,7 @@ Detalle completo, diagramas y endpoints: **`docs/architecture.md`**.
 ```bash
 # Backend (desde backend/)
 uv sync                                    # instalar dependencias
+uv run alembic upgrade head                # crear/actualizar el esquema (la app ya no lo hace)
 uv run uvicorn app.main:app --reload       # levantar API (http://localhost:8000)
 uv run pytest -q                           # todos los tests
 uv run pytest tests/test_ws_downloads.py -v  # un archivo
@@ -76,6 +77,8 @@ docker compose up --build
 ```
 
 > **Dev local sin Docker:** el backend usa **SQLite** por defecto (`database_url = "sqlite+aiosqlite:///./dev.db"` en `app/config.py`); PostgreSQL solo se activa al pasar `DATABASE_URL` (Docker Compose lo hace). **Redis/Valkey sí es requerido siempre** (sesión OAuth, cola de jobs, Pub/Sub de progreso).
+
+> **El esquema lo crea solo Alembic.** La app ya no llama a `create_all` al arrancar (no altera tablas existentes → las bases desplegadas se quedaban sin las columnas nuevas). En Docker lo aplica `backend/docker-entrypoint.sh`; en local hay que ejecutar `alembic upgrade head`. Si tocas `app/core/models.py`, **escribe su migración**: `tests/test_migrations_match_models.py` compara ambos esquemas y falla si divergen. Ver `docs/development.md` §7.
 
 Detalle de cada comando, migraciones Alembic y convenciones: **`docs/development.md`**.
 

@@ -144,9 +144,40 @@ uv run alembic current
 ```
 
 - Configuración: `backend/alembic.ini` (`script_location = alembic`), entorno en `backend/alembic/env.py`.
-- Migraciones existentes: `backend/alembic/versions/001_initial_tables.py` (tablas `downloads`, `audit_logs`).
+- Migraciones existentes: `001` tablas iniciales, `002` columna `album`, `003` columna `user_id` (multiusuario), `004` backfill del historial sin dueño.
 - Alembic usa `settings.async_database_url` — para generar/aplicar migraciones contra Postgres, exportar `DATABASE_URL=postgresql://...` antes de ejecutar (por defecto usa SQLite local `dev.db`).
 - Revisar siempre el archivo de migración autogenerado antes de aplicarlo — `autogenerate` no detecta todos los cambios (renombres de columnas, algunos tipos).
+
+### Alembic es el único dueño del esquema
+
+La app **no** crea tablas al arrancar. Hasta la Fase 3 el lifespan de `main.py`
+llamaba a `Base.metadata.create_all`, que solo crea tablas que faltan y **nunca
+altera las existentes**: en una base ya desplegada, una columna nueva del modelo
+simplemente no aparecía y el fallo salía en tiempo de ejecución.
+
+- **En Docker** las migraciones las aplica `backend/docker-entrypoint.sh` antes de
+  arrancar uvicorn (una sola vez por contenedor, en vez de una por worker).
+- **En local sin Docker**, antes del primer arranque:
+  ```bash
+  cd backend
+  uv run alembic upgrade head
+  uv run uvicorn app.main:app --reload
+  ```
+- `tests/test_migrations_match_models.py` compara el esquema que producen las
+  migraciones con el de los modelos: si tocas `app/core/models.py` y olvidas la
+  migración, falla ahí en vez de en el despliegue.
+
+### Adoptar una base creada por el `create_all` antiguo
+
+Una base anterior a este cambio tiene las tablas pero **no** `alembic_version`, así
+que `alembic upgrade head` intentaría crear tablas que ya existen y falla con
+`DuplicateTableError: relation "downloads" already exists`. Se registra una sola vez
+en la revisión que corresponda a su esquema (`002` si tiene `album` pero no
+`user_id`) y a partir de ahí el flujo normal funciona:
+
+```bash
+docker exec tidal_downloader-backend-1 sh -c 'cd /app && uv run alembic stamp 002'
+```
 
 ---
 

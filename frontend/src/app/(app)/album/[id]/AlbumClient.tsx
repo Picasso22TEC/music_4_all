@@ -12,7 +12,11 @@ import { Button, QualitySelector } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
 import { useAlbumDetailQuery } from '@/features/album-detail'
 import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
-import { useDownloadsStore, useStartDownloadMutation } from '@/features/downloads'
+import {
+  useDownloadsStore,
+  useStartDownloadMutation,
+  useDownloadErrorToast,
+} from '@/features/downloads'
 import { useSettingsStore } from '@/features/settings'
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -35,6 +39,7 @@ export function AlbumClient({ albumId }: { albumId: string }) {
   const quality = useSettingsStore((s) => s.audioQuality)
   const setQuality = useSettingsStore((s) => s.setAudioQuality)
   const downloadMutation = useStartDownloadMutation()
+  const onDownloadError = useDownloadErrorToast()
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   // ── Playback ──────────────────────────────────────────────────────────────
@@ -62,6 +67,7 @@ export function AlbumClient({ albumId }: { albumId: string }) {
     downloadMutation.mutate(
       { albumId, quality },
       {
+        onError: onDownloadError,
         onSuccess: (result) => {
           useDownloadsStore.getState().enqueue({
             backendJobId: result.jobId,
@@ -82,10 +88,18 @@ export function AlbumClient({ albumId }: { albumId: string }) {
     if (chosen.length === tracks.length) {
       enqueueAlbum()
     } else {
+      // One request per track: si se rechazan varias (p.ej. al topar la cuota)
+      // basta con avisar una vez — un toast por track taparía la pantalla.
+      let errorReported = false
       for (const track of chosen) {
         downloadMutation.mutate(
           { trackId: track.id, quality },
           {
+            onError: (error) => {
+              if (errorReported) return
+              errorReported = true
+              onDownloadError(error)
+            },
             onSuccess: (result) => {
               useDownloadsStore.getState().enqueue({
                 backendJobId: result.jobId,

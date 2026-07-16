@@ -26,8 +26,11 @@ async def redis():
 
 
 def _request(redis, cookies: dict[str, str] | None = None):
+    # `state` propio de la petición (lo tiene todo Request real): ahí se publica
+    # el usuario resuelto para que el rate limiter pueda keyear por usuario.
     return SimpleNamespace(
         cookies=cookies or {},
+        state=SimpleNamespace(),
         app=SimpleNamespace(state=SimpleNamespace(redis=redis)),
     )
 
@@ -49,6 +52,14 @@ async def test_optional_returns_user_for_valid_session(redis):
     assert user is not None
     assert user.tidal_user_id == "user-42"
     assert user.sid == sid
+
+
+async def test_optional_publishes_user_on_request_state(redis):
+    # El rate limiter lee request.state.current_user para keyear por usuario.
+    sid = await us.create_app_session(redis, "user-9")
+    req = _request(redis, {"m4a_sid": sid})
+    user = await get_current_user_optional(req)
+    assert req.state.current_user is user
 
 
 async def test_required_raises_401_without_session(redis):

@@ -24,6 +24,13 @@ async def redis():
     await client.aclose()
 
 
+# Tokens largos y distintivos a propósito: se usan como canario de "no está en
+# claro" contra el ciphertext en base64. Un valor corto (p.ej. "AT") aparece por
+# azar dentro del base64 y hace fallar la prueba ~5% de las veces.
+_ACCESS_TOKEN = "access-token-canary-3f9c1d7b"
+_REFRESH_TOKEN = "refresh-token-canary-8a2e4c60"
+
+
 def _authorized_session():
     return SimpleNamespace(
         user=SimpleNamespace(
@@ -33,8 +40,8 @@ def _authorized_session():
             subscription=SimpleNamespace(type="HIFI"),
         ),
         token_type="Bearer",
-        access_token="AT",
-        refresh_token="RT",
+        access_token=_ACCESS_TOKEN,
+        refresh_token=_REFRESH_TOKEN,
         expiry_time=datetime.now(UTC) + timedelta(hours=1),
         country_code="US",
     )
@@ -78,12 +85,13 @@ async def test_login_sets_cookie_and_encrypted_tokens(redis, monkeypatch):
     stored = await us.get_user_tokens(redis, "555", "oauth")
     assert stored == {
         "token_type": "Bearer",
-        "access_token": "AT",
-        "refresh_token": "RT",
+        "access_token": _ACCESS_TOKEN,
+        "refresh_token": _REFRESH_TOKEN,
         "expiry_time": session.expiry_time.isoformat(),
     }
     raw = await redis.get("user:555:tidal:oauth")
-    assert "AT" not in raw  # no en claro
+    assert _ACCESS_TOKEN not in raw  # no en claro
+    assert _REFRESH_TOKEN not in raw
 
     # Cookie httpOnly emitida y sesión de app resoluble.
     cookie = response.headers.get("set-cookie", "")
