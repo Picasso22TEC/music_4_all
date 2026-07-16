@@ -212,46 +212,145 @@ class TidalDownloader:
     @retry(max_retries=2)
     def _fetch_lyrics(self, artist: str, track_name: str, cancel_event=None) -> tuple[str, str]:
         clean_track = self._clean_title_for_search(track_name)
-        headers = {"User-Agent": "Music4All-App/1.0"}
+        headers = {"User-Agent": "Music4All-App/1.0 (Tidal downloader)"}
 
-        try:
-            r = requests.get(
-                "https://lrclib.net/api/get",
-                params={"artist_name": artist, "track_name": clean_track},
-                headers=headers,
-                timeout=5,
-            )
-            r.raise_for_status()
-            data = r.json()
-            synced = data.get("syncedLyrics") or ""
-            plain = data.get("plainLyrics") or ""
+        def _get(track: str) -> tuple[str, str]:
+            # /api/get: match directo. lrclib puede responder lento, así que un
+            # timeout generoso + un reintento evita perder la letra por latencia
+            # (causa real de que antes quedaran vacías con timeout=5s).
+            params = {"artist_name": artist, "track_name": track}
+            for attempt in range(2):
+                try:
+                    r = requests.get(
+                        "https://lrclib.net/api/get", params=params, headers=headers, timeout=12
+                    )
+                    if r.status_code == 404:
+                        return "", ""
+                    r.raise_for_status()
+                    data = r.json()
+                    return data.get("syncedLyrics") or "", data.get("plainLyrics") or ""
+                except requests.exceptions.RequestException:
+                    if attempt == 0:
+                        time.sleep(1)
+            return "", ""
+
+        def _search() -> tuple[str, str]:
+            # /api/search: fuzzy. Útil cuando el título exacto no matchea (remasters,
+            # sufijos). Prefiere el primer resultado con letra sincronizada.
+            try:
+                r = requests.get(
+                    "https://lrclib.net/api/search",
+                    params={"artist_name": artist, "track_name": clean_track},
+                    headers=headers,
+                    timeout=12,
+                )
+                r.raise_for_status()
+                results = r.json() or []
+                for d in results:
+                    if d.get("syncedLyrics"):
+                        return d["syncedLyrics"], ""
+                for d in results:
+                    if d.get("plainLyrics"):
+                        return "", d["plainLyrics"]
+            except requests.exceptions.RequestException:
+                pass
+            return "", ""
+
+        for track in dict.fromkeys([clean_track, track_name]):  # dedup, conserva orden
+            synced, plain = _get(track)
             if synced:
                 return synced, ""
             if plain:
                 return "", plain
-        except requests.exceptions.RequestException:
-            pass
 
-        if clean_track != track_name:
+        return _search()
+
+    def _fetch_genre(self, artist: str, track_name: str, isrc: str = "", cancel_event=None) -> str:
+        """Obtiene un género desde MusicBrainz (Tidal no expone género).
+
+        Prioriza ISRC (preciso) → recording; si no, busca recording por
+        artista+título; como último recurso usa el género del artista. Devuelve
+        el género/tag más votado o "" si no hay match. Best-effort: no debe
+        bloquear la descarga si MusicBrainz falla o va lento.
+        """
+        headers = {"User-Agent": "Music4All/1.0 (Tidal downloader; contact: local)"}
+        base = "https://musicbrainz.org/ws/2"
+
+        def _top(obj: dict) -> str:
+            for key in ("genres", "tags"):
+                items = obj.get(key) or []
+                if items:
+                    best = max(items, key=lambda g: g.get("count", 0) or 0)
+                    name = (best.get("name") or "").strip()
+                    if name:
+                        return name.title()
+            return ""
+
+        def _recording_genre(rid: str) -> str:
             try:
                 r = requests.get(
-                    "https://lrclib.net/api/get",
-                    params={"artist_name": artist, "track_name": track_name},
+                    f"{base}/recording/{rid}",
+                    params={"fmt": "json", "inc": "genres+tags"},
                     headers=headers,
-                    timeout=5,
+                    timeout=8,
                 )
-                r.raise_for_status()
-                data = r.json()
-                synced = data.get("syncedLyrics") or ""
-                plain = data.get("plainLyrics") or ""
-                if synced:
-                    return synced, ""
-                if plain:
-                    return "", plain
+                if r.ok:
+                    return _top(r.json())
             except requests.exceptions.RequestException:
                 pass
+            return ""
 
-        return "", ""
+        try:
+            rid = None
+            if isrc:
+                r = requests.get(
+                    f"{base}/isrc/{isrc}",
+                    params={"fmt": "json"},
+                    headers=headers,
+                    timeout=8,
+                )
+                if r.ok:
+                    recs = r.json().get("recordings") or []
+                    if recs:
+                        rid = recs[0].get("id")
+            if rid is None:
+                q = f'recording:"{track_name}" AND artist:"{artist}"'
+                r = requests.get(
+                    f"{base}/recording",
+                    params={"query": q, "fmt": "json", "limit": 1},
+                    headers=headers,
+                    timeout=8,
+                )
+                if r.ok:
+                    recs = r.json().get("recordings") or []
+                    if recs:
+                        rid = recs[0].get("id")
+            if rid:
+                genre = _recording_genre(rid)
+                if genre:
+                    return genre
+            # Fallback: género del artista (suele existir aunque el recording no lo tenga).
+            r = requests.get(
+                f"{base}/artist",
+                params={"query": f'artist:"{artist}"', "fmt": "json", "limit": 1},
+                headers=headers,
+                timeout=8,
+            )
+            if r.ok:
+                artists = r.json().get("artists") or []
+                if artists:
+                    aid = artists[0].get("id")
+                    ra = requests.get(
+                        f"{base}/artist/{aid}",
+                        params={"fmt": "json", "inc": "genres+tags"},
+                        headers=headers,
+                        timeout=8,
+                    )
+                    if ra.ok:
+                        return _top(ra.json())
+        except requests.exceptions.RequestException:
+            pass
+        return ""
 
     # ---------- Calidad ----------
     def _classify_quality(self, sample_rate: int, bit_depth: int) -> tuple[str, str]:
@@ -450,15 +549,21 @@ class TidalDownloader:
     def _download_cover(self, album_obj, output_path: Path, cancel_event=None):
         if output_path.exists():
             return
-        try:
-            if hasattr(album_obj, "cover") and album_obj.cover:
-                cover_url = f"https://resources.tidal.com/images/{album_obj.cover.replace('-', '/')}/1280x1280.jpg"
+        cover = getattr(album_obj, "cover", None)
+        if not cover:
+            return
+        base = f"https://resources.tidal.com/images/{cover.replace('-', '/')}"
+        # origin.jpg = resolución máxima disponible en Tidal; 1280x1280 como fallback
+        # por si un cover no expone origin.
+        for cover_url in (f"{base}/origin.jpg", f"{base}/1280x1280.jpg"):
+            try:
                 r = requests.get(cover_url, timeout=10)
                 r.raise_for_status()
                 with output_path.open("wb") as f:
                     f.write(r.content)
-        except Exception:
-            pass
+                return
+            except Exception:
+                continue
 
     # ---------- Obtener stream (solo FLAC normal) ----------
     @retry(max_retries=2)
@@ -706,6 +811,14 @@ class TidalDownloader:
                 track_obj.artist.name, track_obj.name, cancel_event=cancel_event
             )
 
+            # Género (Tidal no lo expone → MusicBrainz, best-effort por ISRC/artista)
+            genre = self._fetch_genre(
+                track_obj.artist.name,
+                track_obj.name,
+                isrc=getattr(track_obj, "isrc", "") or "",
+                cancel_event=cancel_event,
+            )
+
             # Stream URL (calidad seleccionada)
             url_init, url_media, method = self._get_stream_url_and_type(track_obj, quality)
             if url_init is None and url_media is None:
@@ -742,6 +855,7 @@ class TidalDownloader:
                 synced_lyrics=synced,
                 plain_lyrics=plain,
                 cover_path=cover_path,
+                genre=genre,
             )
 
             info = self._read_audio_info(final_path)

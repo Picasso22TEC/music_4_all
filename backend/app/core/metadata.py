@@ -19,6 +19,8 @@ class TrackMetadata:
     title: str
     track_number: str
     disc_number: str
+    track_total: str = ""
+    disc_total: str = ""
     copyright: str = ""
     album_artist: str = ""
     artists: list[str] = field(default_factory=list)
@@ -26,13 +28,14 @@ class TrackMetadata:
     date: str = ""
     isrc: str = ""
     bpm: str = ""
+    genre: str = ""
     lyrics: str = ""
     cover_data: bytes | None = None
     comment: str = ""
 
 
 def build_metadata(
-    track, album, synced_lyrics="", plain_lyrics="", cover_path: Path | None = None
+    track, album, synced_lyrics="", plain_lyrics="", cover_path: Path | None = None, genre: str = ""
 ) -> TrackMetadata:
     """Construye un objeto TrackMetadata desde los datos de Tidal."""
 
@@ -68,10 +71,18 @@ def build_metadata(
         except Exception as e:
             log.warning(f"No se pudo leer la portada: {e}")
 
+    # Totales del álbum (num_tracks/num_volumes = -1 o None si Tidal no los informa).
+    num_tracks = getattr(album, "num_tracks", None)
+    track_total = str(num_tracks) if isinstance(num_tracks, int) and num_tracks > 0 else ""
+    num_volumes = getattr(album, "num_volumes", None)
+    disc_total = str(num_volumes) if isinstance(num_volumes, int) and num_volumes > 0 else ""
+
     return TrackMetadata(
         title=title,
         track_number=str(track.track_num) if track.track_num else "1",
         disc_number=str(getattr(track, "volume_num", 1) or 1),
+        track_total=track_total,
+        disc_total=disc_total,
         copyright=getattr(track, "copyright", "") or getattr(album, "copyright", "") or "",
         album_artist=album_artist,
         artists=artist_names,
@@ -79,6 +90,7 @@ def build_metadata(
         date=date_str,
         isrc=getattr(track, "isrc", "") or "",
         bpm=str(getattr(track, "bpm", "") or ""),
+        genre=genre or "",
         lyrics=lyrics,
         cover_data=cover_data,
     )
@@ -95,11 +107,13 @@ def apply_flac_metadata(file_path: Path, metadata: TrackMetadata) -> None:
     audio["ALBUMARTIST"] = [metadata.album_artist]
     audio["TRACKNUMBER"] = [metadata.track_number]
     audio["DISCNUMBER"] = [metadata.disc_number]
-    audio["TRACKTOTAL"] = [
-        str(audio.info.total_samples) if hasattr(audio.info, "total_samples") else "1"
-    ]
-    audio["DISCTOTAL"] = [metadata.disc_number]
+    # TRACKTOTAL = nº de pistas del álbum (no total_samples). DISCTOTAL = nº de discos.
+    if metadata.track_total:
+        audio["TRACKTOTAL"] = [metadata.track_total]
+    audio["DISCTOTAL"] = [metadata.disc_total or metadata.disc_number]
 
+    if metadata.genre:
+        audio["GENRE"] = [metadata.genre]
     if metadata.copyright:
         audio["COPYRIGHT"] = [metadata.copyright]
     if metadata.date:
@@ -151,18 +165,17 @@ def apply_m4a_metadata(file_path: Path, metadata: TrackMetadata) -> None:
     if metadata.album_title:
         audio["\xa9alb"] = [metadata.album_title]
 
-    try:
-        track_no = int(metadata.track_number)
-    except (TypeError, ValueError):
-        track_no = 1
-    audio["trkn"] = [(track_no, 0)]
+    def _as_int(value: str, default: int = 0) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
 
-    try:
-        disc_no = int(metadata.disc_number)
-    except (TypeError, ValueError):
-        disc_no = 1
-    audio["disk"] = [(disc_no, 0)]
+    audio["trkn"] = [(_as_int(metadata.track_number, 1), _as_int(metadata.track_total, 0))]
+    audio["disk"] = [(_as_int(metadata.disc_number, 1), _as_int(metadata.disc_total, 0))]
 
+    if metadata.genre:
+        audio["\xa9gen"] = [metadata.genre]
     if metadata.copyright:
         audio["cprt"] = [metadata.copyright]
     if metadata.date:
