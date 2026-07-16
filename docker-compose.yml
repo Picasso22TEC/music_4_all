@@ -81,6 +81,12 @@ services:
     volumes:
       - ./frontend:/app
       - frontend_pnpm_store:/app/node_modules
+      # Preserva el build de Next del contenedor — mismo motivo que backend_venv:
+      # el bind-mount de arriba trae ./frontend/.next del host Windows, y un
+      # `pnpm build` en el host (gates de CI/local) deja ahí un build de PRODUCCIÓN
+      # que el dev-server no reconoce: sirve HTML que apunta a chunks inexistentes
+      # → 404 en CSS/JS, MODULE_NOT_FOUND en webpack-runtime y la web sin estilos.
+      - frontend_next_cache:/app/.next
     dns:
       - 8.8.8.8
       - 1.1.1.1
@@ -167,3 +173,4 @@ volumes:
   loki_data:
   downloads:
   frontend_pnpm_store:
+  frontend_next_cache:

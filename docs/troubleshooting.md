@@ -23,6 +23,21 @@ Problemas reales encontrados durante el desarrollo, su causa raíz, la solución
 
 ---
 
+## 1.a Frontend sin estilos: `pnpm build` del host Windows pisando el `.next` del contenedor
+
+**Problema**: la web se ve como HTML crudo (sin CSS, sin botones, tipografía por defecto). En consola, **404 en todos los assets**: `_next/static/css/app/layout.css`, `main-app.js`, `app/layout.js`, el chunk de la página. En los logs del contenedor `frontend`, `MODULE_NOT_FOUND` con `requireStack: ['/app/.next/server/webpack-runtime.js', ...]`.
+
+**Causa raíz**: misma familia que el problema 1 (artefacto de build de Windows colándose en el contenedor Linux por el bind-mount). `docker-compose.yml` monta `./frontend:/app`, y `node_modules` estaba protegido con un volumen nombrado pero **`.next` no**. Ejecutar `pnpm build` en el host (los gates de calidad lo hacen) deja en `frontend/.next` un build de **producción** (`BUILD_ID`, `prerender-manifest.json`), que el bind-mount entrega al `next dev` del contenedor. El dev-server no reconoce ese build: sirve HTML que apunta a chunks de desarrollo que no existen → 404 en todo y la página sin estilos. Reiniciar el contenedor no lo arregla (el `.next` malo sigue en el host); parece un problema de hot-reload y no lo es.
+
+**Solución aplicada**: volumen nombrado `frontend_next_cache:/app/.next` en el servicio `frontend` (mismo patrón que `backend_venv`). El contenedor construye su `.next` en un volumen Linux y el `.next` del host queda enmascarado, así que un `pnpm build` en Windows ya no puede romper el contenedor.
+
+**Pasos de diagnóstico**:
+1. `cat frontend/.next/BUILD_ID` en el host — si existe, hay un build de producción (solo lo crea `next build`).
+2. `docker exec tidal_downloader-frontend-1 cat /app/.next/BUILD_ID` — si devuelve **el mismo id**, el contenedor está usando el build del host: ese es el fallo.
+3. Con el arreglo aplicado, ese comando no debe encontrar `BUILD_ID` (un build de desarrollo no lo genera) y la consola del navegador debe quedar sin errores.
+
+---
+
 ## 1.b Base creada por el `create_all` antiguo: `DuplicateTableError` al migrar
 
 **Problema**: tras pasar el esquema a Alembic (Fase 3), el contenedor `backend` no arranca y el entrypoint falla con `asyncpg.exceptions.DuplicateTableError: relation "downloads" already exists`.
