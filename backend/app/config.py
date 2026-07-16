@@ -11,6 +11,15 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379"
 
+    # Sesión de app (multiusuario) — cookie m4a_sid mapeada en Redis a un usuario Tidal.
+    # session_encryption_key cifra los tokens Tidal en reposo: OBLIGATORIA en producción
+    # (si va vacía, en dev se usa una clave efímera y los tokens no sobreviven al reinicio).
+    session_encryption_key: str = ""
+    session_idle_ttl: int = 1800  # 30 min de inactividad (TTL deslizante)
+    session_absolute_ttl: int = 86400  # 24 h máximo por sesión
+    session_cookie_name: str = "m4a_sid"
+    cookie_secure: bool = False  # True en producción (cookies solo por HTTPS)
+
     # Worker concurrency
     max_concurrent_downloads: int = 3
 
