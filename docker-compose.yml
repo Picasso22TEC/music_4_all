@@ -41,6 +41,12 @@ services:
       - TIDAL_QUALITY=LOSSLESS
       - REDIS_URL=redis://valkey:6379
       - DATABASE_URL=postgresql://music4all:music4all@postgres:5432/music4all
+      # Cifra los tokens Tidal en reposo. Se toma del .env de la raíz (ignorado por
+      # git) o del entorno; nunca se hardcodea aquí. Si va vacía, el backend usa una
+      # clave efímera por proceso: con --reload, cada edición de un archivo reinicia
+      # uvicorn, genera otra clave y deja los tokens guardados indescifrables — la
+      # sesión de app sigue viva pero Tidal responde 401 y la web dice "expirada".
+      - SESSION_ENCRYPTION_KEY=${SESSION_ENCRYPTION_KEY:-}
       # uv uses copy mode because the bind-mount is a cross-filesystem Windows volume
       - UV_LINK_MODE=copy
     volumes:

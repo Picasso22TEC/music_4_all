@@ -60,6 +60,30 @@ Problemas reales encontrados durante el desarrollo, su causa raíz, la solución
 
 ---
 
+## 1.c "Sesión expirada" en desarrollo tras editar cualquier archivo del backend
+
+**Problema**: en pleno uso, la web empieza a decir que la sesión expiró. En el backend aparecen 401 en rutas que usan el motor de Tidal (`/download/stream/{track_id}`, `/downloads`, `/search`...), pero **la sesión de app sigue viva en Redis** (`TTL app:session:*` devuelve varios cientos de segundos). Volver a entrar lo arregla... hasta la siguiente edición.
+
+**Causa raíz**: `SESSION_ENCRYPTION_KEY` vacía. `app/core/user_session.py` cifra los tokens de Tidal en reposo y, sin esa variable, deriva una **clave efímera por proceso** (`_EPHEMERAL_KEY = secrets.token_hex(32)`), avisando por log. El contenedor de desarrollo arranca `uvicorn --reload`: al tocar **cualquier** archivo del backend, uvicorn reinicia el proceso y genera **otra** clave, con lo que los tokens ya guardados dejan de descifrarse. Entonces `get_authenticated_engine` no puede construir el motor del usuario y responde 401 → el interceptor de Axios marca la sesión como expirada. Despista porque la sesión de app **no** está cifrada (vive en claro en Redis) y sobrevive: lo que se pierde son los tokens de Tidal.
+
+**Solución aplicada**:
+- `docker-compose.yml` pasa `SESSION_ENCRYPTION_KEY=${SESSION_ENCRYPTION_KEY:-}` al backend (desde el `.env` de la raíz, ignorado por git — **nunca** hardcodeada en el compose).
+- `.env.example` documenta la variable y cómo generarla.
+- La clave se deriva por SHA-256, así que vale cualquier cadena aleatoria larga:
+  ```bash
+  docker compose exec backend sh -c '/app/.venv/bin/python -c "import secrets; print(secrets.token_hex(32))"'
+  ```
+
+**Pasos de diagnóstico**:
+1. `docker logs tidal_downloader-backend-1 2>&1 | grep -i efímera` — si aparece "usando clave efímera de dev", es esto. Aparece **una vez por proceso**: verlo repetido = uvicorn recargó y las claves anteriores se perdieron.
+2. `docker exec tidal_downloader-backend-1 sh -c 'echo ${#SESSION_ENCRYPTION_KEY}'` — 0 significa que no llega al contenedor.
+3. Verificar que los tokens sobreviven a una recarga: guardar uno, `touch backend/app/main.py`, esperar el reinicio y volver a leerlo (debe descifrarse).
+4. Ojo con Git Bash en Windows: convierte rutas absolutas (`/app/...` → `C:/Program Files/Git/app/...`). Usar `docker exec ... sh -c '...'` para que la ruta la resuelva el contenedor.
+
+**Tras aplicar la clave**, las sesiones y tokens creados con la clave efímera anterior son indescifrables: hay que borrarlos (`valkey-cli DEL user:<uid>:tidal:oauth` y las `app:session:*`) y volver a entrar una última vez.
+
+---
+
 ## 2. `certifi` / `cacert.pem` no encontrado dentro del contenedor
 
 **Problema**: peticiones HTTPS desde el backend (tidalapi, llamadas a `resources.tidal.com`, OAuth) fallaban dentro del contenedor con errores de verificación SSL / archivo de certificados no encontrado, aunque el mismo código funcionaba en el host Windows.
