@@ -1,17 +1,21 @@
 import { Skeleton } from '@/shared/ui/Skeleton'
-import type { Album, ArtistResult } from '@/entities'
+import type { Album, ArtistResult, Track } from '@/entities'
 
 import { AlbumCard } from './AlbumCard'
 import { ArtistCard } from './ArtistCard'
 import { EmptyState } from './EmptyState'
+import { TrackResults } from './TrackResults'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface SearchResultsProps {
   albums: Album[]
   artists?: ArtistResult[]
+  tracks?: Track[]
   loading?: boolean
   onDownloadAlbum?: (id: string) => void
+  onPlayTrack?: (index: number) => void
+  onDownloadTrack?: (track: Track) => void
 }
 
 // ─── Skeleton count (full row on all breakpoints) ─────────────────────────────
@@ -33,8 +37,11 @@ const SKELETON_COUNT = 10
 export function SearchResults({
   albums,
   artists = [],
+  tracks = [],
   loading = false,
   onDownloadAlbum,
+  onPlayTrack,
+  onDownloadTrack,
 }: SearchResultsProps) {
   // ── Loading skeleton ────────────────────────────────────────────────────────
   if (loading) {
@@ -57,9 +64,11 @@ export function SearchResults({
   }
 
   // ── Empty results ───────────────────────────────────────────────────────────
-  if (albums.length === 0 && artists.length === 0) {
+  if (albums.length === 0 && artists.length === 0 && tracks.length === 0) {
     return <EmptyState variant="no-results" />
   }
+
+  const showTracks = tracks.length > 0 && onPlayTrack && onDownloadTrack
 
   return (
     <div className="flex flex-col gap-8">
@@ -75,6 +84,11 @@ export function SearchResults({
             ))}
           </div>
         </section>
+      )}
+
+      {/* ── Songs — antes se pedían al backend y no se pintaban nunca ─────── */}
+      {showTracks && (
+        <TrackResults tracks={tracks} onPlay={onPlayTrack} onDownload={onDownloadTrack} />
       )}
 
       {/* ── Album grid ─────────────────────────────────────────────────────── */}

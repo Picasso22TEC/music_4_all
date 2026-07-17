@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 
-import type { Album, ArtistResult } from '@/entities'
+import type { Album, ArtistResult, Track } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
 import {
   AudioWaves,
@@ -27,7 +27,9 @@ import {
   useStartDownloadMutation,
   useDownloadsStore,
   useDownloadErrorToast,
+  useTrackDownload,
 } from '@/features/downloads'
+import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -111,10 +113,25 @@ export default function DashboardClient() {
     [isUrl, textQuery.data],
   )
 
+  // Songs from a text search: el backend ya las buscaba y el mapper ya las
+  // convertía; hasta ahora se descartaban aquí y no había forma de descargar una
+  // canción sin pasar por su álbum.
+  const tracks = useMemo<Track[]>(
+    () => (isUrl ? [] : (textQuery.data?.tracks.items.slice() ?? [])),
+    [isUrl, textQuery.data],
+  )
+
   // ── Download ────────────────────────────────────────────────────────────────
 
   const downloadMutation = useStartDownloadMutation()
   const onDownloadError = useDownloadErrorToast()
+  const downloadTrack = useTrackDownload(quality)
+
+  /** Reproduce la lista de canciones encontradas desde la elegida. */
+  function playTrack(startIndex: number) {
+    if (tracks.length === 0) return
+    usePlayerStore.getState().playQueue(tracks.map(trackToPlayerTrack), startIndex)
+  }
 
   /** Triggered by AlbumCard.onDownload — maps to POST /downloads {albumId, quality} */
   function handleDownload(albumId: string) {
@@ -238,7 +255,10 @@ export default function DashboardClient() {
           <SearchResults
             albums={albums}
             artists={artists}
+            tracks={tracks}
             onDownloadAlbum={handleDownload}
+            onPlayTrack={playTrack}
+            onDownloadTrack={downloadTrack}
           />
         )}
       </section>

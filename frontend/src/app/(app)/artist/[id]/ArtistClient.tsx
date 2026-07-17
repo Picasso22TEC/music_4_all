@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Play, Shuffle, User } from 'lucide-react'
+import { ArrowLeft, Download, Play, Shuffle, User } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { formatDuration } from '@/shared/lib/format'
@@ -18,6 +18,7 @@ import {
   useDownloadsStore,
   useStartDownloadMutation,
   useDownloadErrorToast,
+  useTrackDownload,
 } from '@/features/downloads'
 
 import { ReleaseSection } from './ReleaseSection'
@@ -46,6 +47,7 @@ export function ArtistClient({ artistId }: { artistId: string }) {
   const onDownloadError = useDownloadErrorToast()
   // Calidad de descarga desde la preferencia global (fuente única)
   const quality = useSettingsStore((s) => s.audioQuality)
+  const downloadTrack = useTrackDownload(quality)
   const [showAllTracks, setShowAllTracks] = useState(false)
 
   // ── Playback ──────────────────────────────────────────────────────────────
@@ -226,6 +228,18 @@ export function ArtistClient({ artistId }: { artistId: string }) {
                       <span className="shrink-0 font-mono text-xs text-secondary tabular-nums">
                         {formatDuration(track.durationSeconds)}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => downloadTrack(track)}
+                        aria-label={`Download: ${track.title}`}
+                        className={cn(
+                          'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                          'text-secondary transition-transform duration-150 ease-out active:scale-90',
+                          'hover:text-teal-400 focus-visible:outline-none focus-visible:shadow-glow-focus',
+                        )}
+                      >
+                        <Download aria-hidden="true" className="h-4 w-4" />
+                      </button>
                     </div>
                   </li>
                 ))}

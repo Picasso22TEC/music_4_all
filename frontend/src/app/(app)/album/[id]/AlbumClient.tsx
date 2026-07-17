@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Music, Play } from 'lucide-react'
+import { ArrowLeft, Download, Music, Play, Shuffle } from 'lucide-react'
 
 import { cn } from '@/shared/lib/cn'
 import { formatDuration } from '@/shared/lib/format'
 import { Button, QualitySelector } from '@/shared/ui'
+import type { AudioQuality } from '@/entities'
 import { useAuthStore } from '@/features/auth'
 import { useAlbumDetailQuery } from '@/features/album-detail'
 import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
@@ -16,6 +17,7 @@ import {
   useDownloadsStore,
   useStartDownloadMutation,
   useDownloadErrorToast,
+  useTrackDownload,
 } from '@/features/downloads'
 import { useSettingsStore } from '@/features/settings'
 
@@ -36,16 +38,31 @@ export function AlbumClient({ albumId }: { albumId: string }) {
   const album = query.data?.album
   const tracks = query.data?.tracks ?? []
 
-  const quality = useSettingsStore((s) => s.audioQuality)
-  const setQuality = useSettingsStore((s) => s.setAudioQuality)
+  // Calidad: el selector de esta página es un **override local**. Antes escribía
+  // en la preferencia global, así que tocarlo aquí cambiaba en silencio la calidad
+  // por defecto de toda la app; parecía una elección del álbum y no lo era.
+  // Mientras no se elija nada manda el ajuste global (y así también se evita
+  // congelar un valor previo a la rehidratación del store).
+  const defaultQuality = useSettingsStore((s) => s.audioQuality)
+  const [qualityOverride, setQualityOverride] = useState<AudioQuality | null>(null)
+  const quality = qualityOverride ?? defaultQuality
+
   const downloadMutation = useStartDownloadMutation()
   const onDownloadError = useDownloadErrorToast()
+  const downloadTrack = useTrackDownload(quality)
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   // ── Playback ──────────────────────────────────────────────────────────────
   function playFrom(startIndex: number) {
     if (tracks.length === 0) return
     usePlayerStore.getState().playQueue(tracks.map(trackToPlayerTrack), startIndex)
+  }
+
+  function shuffleAlbum() {
+    if (tracks.length === 0) return
+    const store = usePlayerStore.getState()
+    if (!store.shuffle) store.toggleShuffle()
+    store.playQueue(tracks.map(trackToPlayerTrack), Math.floor(Math.random() * tracks.length))
   }
 
   // ── Selection ─────────────────────────────────────────────────────────────
@@ -92,26 +109,13 @@ export function AlbumClient({ albumId }: { albumId: string }) {
       // basta con avisar una vez — un toast por track taparía la pantalla.
       let errorReported = false
       for (const track of chosen) {
-        downloadMutation.mutate(
-          { trackId: track.id, quality },
-          {
-            onError: (error) => {
-              if (errorReported) return
-              errorReported = true
-              onDownloadError(error)
-            },
-            onSuccess: (result) => {
-              useDownloadsStore.getState().enqueue({
-                backendJobId: result.jobId,
-                albumId,
-                albumTitle: track.title,
-                artistName: track.artist.name,
-                totalTracks: 1,
-                qualityOverride: quality,
-              })
-            },
+        downloadTrack(track, {
+          onError: (error) => {
+            if (errorReported) return
+            errorReported = true
+            onDownloadError(error)
           },
-        )
+        })
       }
     }
     setSelected(new Set())
@@ -202,16 +206,28 @@ export function AlbumClient({ albumId }: { albumId: string }) {
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-3">
                 {tracks.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={() => playFrom(0)}
-                    aria-label={`Play ${album.title}`}
-                  >
-                    <Play aria-hidden="true" className="h-4 w-4" />
-                    Play
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => playFrom(0)}
+                      aria-label={`Play ${album.title}`}
+                    >
+                      <Play aria-hidden="true" className="h-4 w-4" />
+                      Play
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={shuffleAlbum}
+                      aria-label={`Shuffle ${album.title}`}
+                    >
+                      <Shuffle aria-hidden="true" className="h-4 w-4" />
+                      Shuffle
+                    </Button>
+                  </>
                 )}
                 <Button type="button" variant="secondary" size="sm" onClick={enqueueAlbum}>
                   Download full album
@@ -221,8 +237,11 @@ export function AlbumClient({ albumId }: { albumId: string }) {
                 <span className="font-sans text-xs text-secondary" aria-hidden="true">
                   Quality:
                 </span>
-                <QualitySelector value={quality} onChange={setQuality} />
+                <QualitySelector value={quality} onChange={setQualityOverride} />
               </div>
+              <p className="font-sans text-2xs text-disabled">
+                Applies to downloads from this album. Your default lives in Settings.
+              </p>
             </div>
           </header>
 
@@ -293,6 +312,23 @@ export function AlbumClient({ albumId }: { albumId: string }) {
                       <span className="shrink-0 font-mono text-xs text-secondary tabular-nums">
                         {formatDuration(track.durationSeconds)}
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          // La fila es un <label>: sin esto, descargar marcaría
+                          // además la casilla de selección.
+                          e.preventDefault()
+                          downloadTrack(track)
+                        }}
+                        aria-label={`Download track: ${track.title}`}
+                        className={cn(
+                          'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
+                          'text-secondary transition-transform duration-150 ease-out active:scale-90',
+                          'hover:text-teal-400 focus-visible:outline-none focus-visible:shadow-glow-focus',
+                        )}
+                      >
+                        <Download aria-hidden="true" className="h-4 w-4" />
+                      </button>
                     </label>
                   </li>
                 ))}
