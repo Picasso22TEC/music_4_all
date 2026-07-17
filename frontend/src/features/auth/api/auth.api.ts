@@ -76,6 +76,23 @@ export const authApi = {
     }
   },
 
+  /**
+   * Reporta actividad real del usuario y renueva la ventana de inactividad.
+   *
+   * El plazo lo dicta el servidor: duplicarlo aquí se desincronizaría en cuanto
+   * alguien cambiase `session_idle_ttl`.
+   */
+  async keepalive(): Promise<{ idleTtlSeconds: number; expiresInSeconds: number }> {
+    const { data } = await client.post<{
+      idle_ttl_seconds: number
+      expires_in_seconds: number
+    }>('/session/keepalive')
+    return {
+      idleTtlSeconds: data.idle_ttl_seconds,
+      expiresInSeconds: data.expires_in_seconds,
+    }
+  },
+
   async logout(): Promise<void> {
     // v2 session logout: clears the httpOnly m4a_sid cookie + the app session in Redis.
     await client.post('/session/logout')

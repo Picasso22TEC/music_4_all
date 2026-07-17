@@ -25,11 +25,13 @@ async def redis():
     await client.aclose()
 
 
-def _request(redis, cookies: dict[str, str] | None = None):
-    # `state` propio de la petición (lo tiene todo Request real): ahí se publica
-    # el usuario resuelto para que el rate limiter pueda keyear por usuario.
+def _request(redis, cookies: dict[str, str] | None = None, headers: dict[str, str] | None = None):
+    # `state` y `headers` los tiene todo Request real: en `state` se publica el
+    # usuario resuelto (lo lee el rate limiter) y en `headers` viaja la marca de
+    # petición de fondo (que no renueva el TTL de inactividad).
     return SimpleNamespace(
         cookies=cookies or {},
+        headers=headers or {},
         state=SimpleNamespace(),
         app=SimpleNamespace(state=SimpleNamespace(redis=redis)),
     )

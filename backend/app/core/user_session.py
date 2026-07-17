@@ -125,10 +125,16 @@ async def create_app_session(redis, tidal_user_id: str, ip: str = "", ua: str = 
     return sid
 
 
-async def get_app_session(redis, sid: str | None) -> dict | None:
-    """Devuelve los datos de la sesión (y refresca el TTL idle), o None si no válida.
+async def get_app_session(redis, sid: str | None, touch: bool = True) -> dict | None:
+    """Devuelve los datos de la sesión, o None si no es válida.
 
     Aplica expiración absoluta: si se superó ``abs_exp``, borra la sesión y devuelve None.
+
+    ``touch=True`` refresca el TTL idle (sesión deslizante). Con ``touch=False`` la
+    sesión se lee **sin** contar como actividad: lo usan las peticiones de fondo
+    (p.ej. el auto-refresco del historial). Sin esa distinción el timeout de
+    inactividad no se cumpliría nunca con una pestaña abierta, que es justo el
+    escenario que debe cubrir (el usuario se va y deja la sesión abierta).
     """
     if not sid:
         return None
@@ -140,6 +146,8 @@ async def get_app_session(redis, sid: str | None) -> dict | None:
     if now >= data.get("abs_exp", 0):
         await delete_app_session(redis, sid)
         return None
+    if not touch:
+        return data
     data["last_seen"] = now
     await redis.setex(_APP_SESSION.format(sid=sid), settings.session_idle_ttl, json.dumps(data))
     return data

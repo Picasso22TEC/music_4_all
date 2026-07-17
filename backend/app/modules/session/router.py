@@ -8,6 +8,7 @@ from app.dependencies import CurrentUser, get_current_user, get_current_user_opt
 from .schemas import (
     DeviceAuthInitResponse,
     DeviceAuthPollResponse,
+    KeepaliveResponse,
     SessionListResponse,
     SessionStatusResponse,
 )
@@ -77,6 +78,28 @@ async def poll_device_auth(
         )
 
     return result
+
+
+@router.post("/keepalive", response_model=KeepaliveResponse)
+@limiter.limit("60/minute")
+async def keepalive(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Reporta actividad real del usuario y renueva el TTL idle de la sesión.
+
+    Lo llama el vigilante de inactividad del navegador, que es el único que puede
+    ver si el usuario sigue ahí (ratón/teclado). Las peticiones automáticas de la
+    app se marcan con `X-Background-Request` y **no** renuevan nada, así que este
+    endpoint es la única vía por la que una sesión sobrevive sin navegar.
+
+    Deliberadamente barato: `get_current_user` ya renovó el TTL al resolver la
+    cookie; aquí no se toca Tidal ni la base de datos.
+    """
+    return KeepaliveResponse(
+        idle_ttl_seconds=settings.session_idle_ttl,
+        expires_in_seconds=settings.session_idle_ttl,
+    )
 
 
 @router.post("/logout")

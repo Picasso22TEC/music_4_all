@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { SessionRecoveryModal } from '@/features/auth'
+import { IdleWarningModal, SessionRecoveryModal } from '@/features/auth'
 import { AudioController } from '@/features/player'
 import { AppHeader } from '@/widgets/app-header'
 import { DownloadPanel } from '@/widgets/download-panel'
@@ -71,6 +71,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* ── Session Recovery Modal — auth error recovery (G-recovery) ─── */}
       {/*  Always present so openSessionRecovery() works from anywhere.   */}
       <SessionRecoveryModal />
+
+      {/* ── Vigilante de inactividad ──────────────────────────────────── */}
+      {/*  Aquí para que corra en toda la app autenticada y no se reinicie
+          al navegar. Cierra la sesión si el usuario deja de interaccionar:
+          las peticiones automáticas ya no la mantienen viva sola.        */}
+      <IdleWarningModal />
 
       {/* ── Download panel — fixed above PlayerBar ────────────────────── */}
       {/*  Always mounted so the WS socket stays alive for the session.  */}

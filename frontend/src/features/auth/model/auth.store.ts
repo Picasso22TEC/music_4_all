@@ -5,10 +5,19 @@ import type { DeviceAuthCode, TidalUser } from '@/entities'
 
 type SessionStatus = 'authenticated' | 'expired' | 'unauthenticated'
 
+/**
+ * Por qué se acabó la sesión, para poder decírselo al usuario.
+ * 'idle' = se cerró por inactividad (useIdleTimeout); 'rejected' = el servidor la
+ * rechazó (401) y el interceptor la dio por perdida.
+ */
+export type SessionEndReason = 'idle' | 'rejected'
+
 interface AuthState {
   status: SessionStatus
   user: TidalUser | null
   expiresAt: string | null          // ISO 8601
+  /** Motivo del último cierre; se limpia al volver a entrar. */
+  endReason: SessionEndReason | null
   deviceAuth: DeviceAuthCode | null
   isCheckingSession: boolean
   isRecoveryModalOpen: boolean
@@ -25,7 +34,7 @@ interface AuthState {
 
 interface AuthActions {
   setAuthenticated: (user: TidalUser, expiresAt: string) => void
-  setExpired: () => void
+  setExpired: (reason?: SessionEndReason) => void
   clearSession: () => void
   setDeviceAuth: (code: DeviceAuthCode) => void
   clearDeviceAuth: () => void
@@ -50,6 +59,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       status: 'unauthenticated',
       user: null,
       expiresAt: null,
+      endReason: null,
       deviceAuth: null,
       isCheckingSession: false,
       isRecoveryModalOpen: false,
@@ -57,11 +67,11 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       hasHydrated: false,
 
       setAuthenticated: (user, expiresAt) => {
-        set({ status: 'authenticated', user, expiresAt })
+        set({ status: 'authenticated', user, expiresAt, endReason: null })
       },
 
-      setExpired: () => {
-        set({ status: 'expired' })
+      setExpired: (reason = 'rejected') => {
+        set({ status: 'expired', endReason: reason })
       },
 
       clearSession: () => {
@@ -69,6 +79,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           status: 'unauthenticated',
           user: null,
           expiresAt: null,
+          endReason: null,
           deviceAuth: null,
         })
       },
@@ -92,6 +103,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         status: s.status,
         user: s.user,
         expiresAt: s.expiresAt,
+        // Persistido para que el aviso sobreviva al redirect a /login.
+        endReason: s.endReason,
       }),
       onRehydrateStorage: () => (state) => {
         // Marcar expirada si el token persistido ya venció. La protección de
@@ -99,6 +112,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         // solo refleja el estado de auth en la UI, no siembra cookies.
         if (state && state.expiresAt && new Date(state.expiresAt) < new Date()) {
           state.status = 'expired'
+          state.endReason = state.endReason ?? 'rejected'
         }
         useAuthStore.setState({ hasHydrated: true })
       },

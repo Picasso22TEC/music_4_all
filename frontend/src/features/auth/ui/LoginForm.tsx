@@ -67,6 +67,7 @@ export function LoginForm() {
   // v2 auth store — status and deviceAuth (camelCase)
   const status = useAuthStore((s) => s.status)
   const deviceAuth = useAuthStore((s) => s.deviceAuth)
+  const endReason = useAuthStore((s) => s.endReason)
 
   const [error, setError] = useState<string | null>(null)
   // Timestamp absoluto de emisión del código — base del contador de expiración.
@@ -190,6 +191,19 @@ export function LoginForm() {
           >
             Connect to Tidal
           </h1>
+
+          {/* Por qué se acabó la sesión anterior. Sin esto, un cierre por
+              inactividad se vive como una expulsión inexplicable. */}
+          {!error && !deviceAuth && endReason === 'idle' && (
+            <div
+              role="status"
+              className="rounded-md border border-subtle bg-surface-console/60 px-4 py-3"
+            >
+              <p className="font-sans text-sm text-secondary">
+                Your session was closed after a while without activity. Sign in again to continue.
+              </p>
+            </div>
+          )}
 
           {/* Error message — finite glitch/shake on appearance */}
           {error && (

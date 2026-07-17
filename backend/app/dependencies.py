@@ -30,6 +30,13 @@ class CurrentUser:
     sid: str
 
 
+# Cabecera con la que el frontend marca sus peticiones automáticas (auto-refresco).
+# No renuevan el TTL idle de la sesión: si contaran como actividad, una pestaña
+# abierta mantendría la sesión viva para siempre y el timeout de inactividad no
+# serviría de nada. La actividad real del usuario la reporta `/session/keepalive`.
+BACKGROUND_REQUEST_HEADER = "x-background-request"
+
+
 def _unauthorized() -> ApiException:
     return ApiException(
         code="UNAUTHORIZED",
@@ -46,7 +53,8 @@ async def get_current_user_optional(request: Request) -> CurrentUser | None:
     redis = getattr(request.app.state, "redis", None)
     if not sid or redis is None:
         return None
-    data = await us.get_app_session(redis, sid)
+    touch = request.headers.get(BACKGROUND_REQUEST_HEADER) != "1"
+    data = await us.get_app_session(redis, sid, touch=touch)
     if not data:
         return None
     user = CurrentUser(tidal_user_id=str(data["tidal_user_id"]), sid=sid)

@@ -44,5 +44,17 @@ class SessionInfo(BaseModel):
     current: bool  # True si es la sesión de la petición actual
 
 
+class KeepaliveResponse(BaseModel):
+    """Respuesta de `/session/keepalive`.
+
+    `idle_ttl_seconds` lo dicta el servidor para que el vigilante del navegador no
+    tenga que duplicar el plazo (y desincronizarse en cuanto alguien cambie el
+    ajuste). `expires_in_seconds` es lo que queda si el usuario no vuelve a actuar.
+    """
+
+    idle_ttl_seconds: int
+    expires_in_seconds: int
+
+
 class SessionListResponse(BaseModel):
     sessions: list[SessionInfo]

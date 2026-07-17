@@ -4,6 +4,8 @@ export { AuthTransitionOverlay } from './AuthTransitionOverlay'
 
 export { SessionRecoveryModal } from './SessionRecoveryModal'
 
+export { IdleWarningModal } from './IdleWarningModal'
+
 export { SessionRecoveryContent } from './SessionRecoveryContent'
 export type { SessionRecoveryContentProps } from './SessionRecoveryContent'
 

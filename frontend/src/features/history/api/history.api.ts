@@ -1,4 +1,4 @@
-import client from '@/shared/api/client'
+import client, { BACKGROUND_REQUEST_HEADERS } from '@/shared/api/client'
 
 import type { HistoryRecord } from '../model/history.types'
 
@@ -41,6 +41,9 @@ export const historyApi = {
   async getHistory(limit = 100): Promise<HistoryRecord[]> {
     const { data } = await client.get<HistoryRecordDTO[]>('/history', {
       params: { limit },
+      // Esta lista se refresca sola cada 30 s: no puede contar como actividad del
+      // usuario, o la app se mantendría la sesión viva sola para siempre.
+      headers: BACKGROUND_REQUEST_HEADERS,
     })
     return data.map(mapRecord)
   },

@@ -124,7 +124,9 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Content-Type", "Authorization"],
+    # X-Background-Request: marca el auto-refresco del frontend para que no cuente
+    # como actividad del usuario (ver app/dependencies.py).
+    allow_headers=["Content-Type", "Authorization", "X-Background-Request"],
 )
 
 # ── Cabeceras de seguridad ──────────────────────────────────────────────────────
