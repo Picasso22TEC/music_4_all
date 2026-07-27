@@ -13,25 +13,38 @@ export interface TrackResultsProps {
   tracks: Track[]
   onPlay: (index: number) => void
   onDownload: (track: Track) => void
+  /** Section heading. Defaults to "Songs" (the search results list). */
+  heading?: string
+  /** Optional cap on how many rows to render (e.g. album preview). */
+  max?: number
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
- * Songs found by a text search.
+ * A list of song rows with play/download. Used both for the search "Songs"
+ * results and, with a custom `heading`/`max`, for the album-context preview in
+ * the recommendations (Fase 4, etapa B).
  *
  * The backend already searched tracks and the API layer already mapped them —
  * they were simply never rendered, so a song could only be downloaded by first
  * finding the album it belongs to.
  */
-export function TrackResults({ tracks, onPlay, onDownload }: TrackResultsProps) {
+export function TrackResults({
+  tracks,
+  onPlay,
+  onDownload,
+  heading = 'Songs',
+  max,
+}: TrackResultsProps) {
+  const shown = max ? tracks.slice(0, max) : tracks
   return (
-    <section aria-label={`${tracks.length} song${tracks.length !== 1 ? 's' : ''} found`}>
+    <section aria-label={`${heading}: ${shown.length} track${shown.length !== 1 ? 's' : ''}`}>
       <h2 className="mb-3 font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
-        Songs
+        {heading}
       </h2>
       <ol className="flex flex-col">
-        {tracks.map((track, index) => (
+        {shown.map((track, index) => (
           <li key={track.id}>
             <div
               className={cn(

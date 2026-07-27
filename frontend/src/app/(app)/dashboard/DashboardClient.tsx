@@ -18,6 +18,7 @@ import { useAuthStore } from '@/features/auth'
 import { useSettingsStore } from '@/features/settings'
 import {
   EmptyState,
+  SearchRecommendations,
   SearchResults,
   useResolveUrlQuery,
   useSearchQuery,
@@ -29,7 +30,8 @@ import {
   useDownloadErrorToast,
   useTrackDownload,
 } from '@/features/downloads'
-import { albumApi } from '@/features/album-detail'
+import { albumApi, useAlbumDetailQuery } from '@/features/album-detail'
+import { useArtistDetailQuery } from '@/features/artist-detail'
 import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -129,6 +131,28 @@ export default function DashboardClient() {
     [isUrl, textQuery.data],
   )
 
+  // ── Recomendaciones (Fase 4, etapa B) — se derivan del top result ──────────
+  // Artista "semilla": el propio (artist hit) o el de la canción/álbum encontrado.
+  const seedArtistId = useMemo<string | null>(() => {
+    if (!topHit) return null
+    if (topHit.type === 'artist') return topHit.artist.id
+    if (topHit.type === 'track') return topHit.track.artist.id
+    if (topHit.type === 'album') return topHit.album.artist.id
+    return null // playlist: sin artista de referencia
+  }, [topHit])
+  // Álbum de la canción buscada (solo cuando el top result es una canción).
+  const parentAlbumId = topHit?.type === 'track' ? topHit.track.albumId || null : null
+
+  // Reutilizan endpoints ya cacheados en el backend (tidal_cache). Gated por auth.
+  const recEnabled = status === 'authenticated'
+  const artistDetail = useArtistDetailQuery(recEnabled ? seedArtistId : null, recEnabled)
+  const albumContextQuery = useAlbumDetailQuery(recEnabled ? parentAlbumId : null, recEnabled)
+
+  const similarArtists = artistDetail.data?.similar ?? []
+  const moreFromArtist = artistDetail.data?.albums ?? []
+  const seedArtistName = artistDetail.data?.artist.name ?? ''
+  const albumContext = albumContextQuery.data ?? null
+
   // ── Download ────────────────────────────────────────────────────────────────
 
   const downloadMutation = useStartDownloadMutation()
@@ -158,6 +182,13 @@ export default function DashboardClient() {
     if (albumTracks.length > 0) {
       usePlayerStore.getState().playQueue(albumTracks.map(trackToPlayerTrack), 0)
     }
+  }
+
+  /** Reproduce las canciones del álbum de contexto (recomendaciones) desde un índice. */
+  function playAlbumContextTrack(startIndex: number) {
+    const t = albumContext?.tracks ?? []
+    if (t.length === 0) return
+    usePlayerStore.getState().playQueue(t.map(trackToPlayerTrack), startIndex)
   }
 
   /** Triggered by AlbumCard.onDownload — maps to POST /downloads {albumId, quality} */
@@ -282,17 +313,32 @@ export default function DashboardClient() {
 
         {/* State D — results (top result + songs + artists + albums) */}
         {hasContent && hasResults && (
-          <SearchResults
-            albums={albums}
-            artists={artists}
-            tracks={tracks}
-            topHit={topHit}
-            onDownloadAlbum={handleDownload}
-            onPlayAlbum={playAlbum}
-            onPlayTrack={playTrack}
-            onPlayTopTrack={playTopTrack}
-            onDownloadTrack={downloadTrack}
-          />
+          <div className="flex flex-col gap-10">
+            <SearchResults
+              albums={albums}
+              artists={artists}
+              tracks={tracks}
+              topHit={topHit}
+              onDownloadAlbum={handleDownload}
+              onPlayAlbum={playAlbum}
+              onPlayTrack={playTrack}
+              onPlayTopTrack={playTopTrack}
+              onDownloadTrack={downloadTrack}
+            />
+
+            {/* Recomendaciones (Fase 4, etapa B): álbum de la canción + más del
+                artista + artistas similares. Datos de endpoints ya cacheados. */}
+            <SearchRecommendations
+              albumContext={albumContext}
+              artistName={seedArtistName}
+              moreFromArtist={moreFromArtist}
+              similarArtists={similarArtists}
+              onDownloadAlbum={handleDownload}
+              onPlayAlbum={playAlbum}
+              onPlayAlbumTrack={playAlbumContextTrack}
+              onDownloadTrack={downloadTrack}
+            />
+          </div>
         )}
       </section>
 

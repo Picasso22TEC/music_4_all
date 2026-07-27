@@ -18,5 +18,8 @@ export type { SearchInputProps } from './ui/SearchInput'
 export { SearchResults } from './ui/SearchResults'
 export type { SearchResultsProps } from './ui/SearchResults'
 
+export { SearchRecommendations } from './ui/SearchRecommendations'
+export type { SearchRecommendationsProps } from './ui/SearchRecommendations'
+
 export { EmptyState } from './ui/EmptyState'
 export type { EmptyStateProps, EmptyStateVariant } from './ui/EmptyState'
