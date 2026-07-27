@@ -9,6 +9,9 @@ from .schemas import (
     DeviceAuthInitResponse,
     DeviceAuthPollResponse,
     KeepaliveResponse,
+    PkceCompleteRequest,
+    PkceStartResponse,
+    PkceStatusResponse,
     SessionListResponse,
     SessionStatusResponse,
 )
@@ -78,6 +81,46 @@ async def poll_device_auth(
         )
 
     return result
+
+
+# ─── PKCE: sesión Hi-Fi 16-bit (Fase 5) ───────────────────────────────────────
+
+
+@router.post("/pkce/start", response_model=PkceStartResponse)
+@limiter.limit("5/minute")
+async def start_pkce(request: Request, user: CurrentUser = Depends(get_current_user)):
+    """Inicia el login PKCE para conectar la sesión Hi-Fi (16-bit) del usuario."""
+    try:
+        return await _service.start_pkce(request.app.state, user.tidal_user_id)
+    except Exception as exc:
+        raise ApiException(
+            "SERVER_ERROR", f"Error iniciando el login Hi-Fi: {exc}", 500, retriable=True
+        ) from exc
+
+
+@router.post("/pkce/complete", response_model=PkceStatusResponse)
+@limiter.limit("10/minute")
+async def complete_pkce(
+    request: Request,
+    body: PkceCompleteRequest,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Canjea la URL pegada por el usuario y guarda su sesión Hi-Fi (16-bit)."""
+    return await _service.complete_pkce(request.app.state, user.tidal_user_id, body.redirect_url)
+
+
+@router.get("/pkce/status", response_model=PkceStatusResponse)
+@limiter.limit("30/minute")
+async def pkce_status(request: Request, user: CurrentUser = Depends(get_current_user)):
+    """¿El usuario tiene conectada la sesión Hi-Fi (16-bit)?"""
+    return await _service.pkce_status(request.app.state.redis, user.tidal_user_id)
+
+
+@router.delete("/pkce", response_model=PkceStatusResponse)
+@limiter.limit("10/minute")
+async def disconnect_pkce(request: Request, user: CurrentUser = Depends(get_current_user)):
+    """Desconecta la sesión Hi-Fi (16-bit) del usuario (borra sus tokens PKCE)."""
+    return await _service.disconnect_pkce(request.app.state.redis, user.tidal_user_id)
 
 
 @router.post("/keepalive", response_model=KeepaliveResponse)

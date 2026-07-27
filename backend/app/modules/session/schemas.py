@@ -58,3 +58,25 @@ class KeepaliveResponse(BaseModel):
 
 class SessionListResponse(BaseModel):
     sessions: list[SessionInfo]
+
+
+# ─── PKCE (segunda sesión Tidal para 16-bit LOSSLESS — Fase 5) ────────────────
+# El cliente device flow (Automotive) da hi-res 24-bit pero no 16-bit; el cliente
+# PKCE web sí da 16-bit. Se conecta como sesión adicional del mismo usuario.
+
+
+class PkceStartResponse(BaseModel):
+    #: URL de login web de Tidal (el usuario la abre, se loguea y acaba en una
+    #: página "Oops" cuyo URL debe copiar y pegar en /session/pkce/complete).
+    login_url: str
+
+
+class PkceCompleteRequest(BaseModel):
+    #: La URL COMPLETA de la página "Oops" (contiene ?code=...). El redirect_uri de
+    #: Tidal es fijo, así que no hay callback propio: el usuario la pega a mano.
+    redirect_url: str
+
+
+class PkceStatusResponse(BaseModel):
+    #: True si el usuario tiene una sesión PKCE (16-bit) conectada.
+    connected: bool

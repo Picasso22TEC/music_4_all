@@ -10,6 +10,7 @@ from fastapi import Request, Response
 
 from app.config import settings
 from app.core import user_session as us
+from app.core.exceptions import ApiException
 from app.core.logging_config import get_logger
 from app.core.oauth_helper import ensure_https as _ensure_https
 from app.core.oauth_helper import poll_device_auth as poll_oauth_future
@@ -19,11 +20,17 @@ from app.core.tidal import TidalDownloader
 from .schemas import (
     DeviceAuthInitResponse,
     DeviceAuthPollResponse,
+    PkceStartResponse,
+    PkceStatusResponse,
     SessionInfo,
     SessionListResponse,
     SessionStatusResponse,
     UserOut,
 )
+
+# Ventana para completar el login PKCE (el código de Tidal vive ~2 min; se da
+# margen para que el usuario copie la URL de la página "Oops").
+_PKCE_PENDING_TTL = 300
 
 logger = get_logger(__name__)
 
@@ -219,6 +226,90 @@ class SessionService:
         # Login fallido o denegado
         pending_v2.pop(device_code, None)
         return DeviceAuthPollResponse(status="denied")
+
+    # ── PKCE: segunda sesión Tidal para 16-bit LOSSLESS (Fase 5) ─────────────
+    async def start_pkce(self, app_state: object, uid: str) -> PkceStartResponse:
+        """Inicia el login PKCE web y devuelve la URL que el usuario debe abrir.
+
+        La ``tidalapi.Session`` (con su ``code_verifier``) se guarda en memoria
+        keyed por ``uid`` hasta que el usuario complete el flujo (mismo patrón
+        in-memory que el device flow, `pending_oauth_v2`; ok con 1 réplica).
+        """
+        session = tidalapi.Session()
+        login_url = await asyncio.to_thread(session.pkce_login_url)
+
+        if not hasattr(app_state, "pending_pkce"):
+            app_state.pending_pkce = {}  # type: ignore[attr-defined]
+        pending: dict = app_state.pending_pkce  # type: ignore[attr-defined]
+        # Poda de flujos abandonados (nadie los completa ni cancela).
+        now = time.monotonic()
+        for stale in [u for u, e in pending.items() if e.get("expires_at", 0) < now]:
+            pending.pop(stale, None)
+        pending[uid] = {"session": session, "expires_at": now + _PKCE_PENDING_TTL}
+
+        return PkceStartResponse(login_url=_ensure_https(login_url))
+
+    async def complete_pkce(
+        self, app_state: object, uid: str, redirect_url: str
+    ) -> PkceStatusResponse:
+        """Canjea el código de la URL pegada y guarda la sesión PKCE del usuario.
+
+        Verifica que la cuenta Tidal logueada por PKCE es la MISMA que la de la
+        sesión de app (un usuario no puede colgar tokens de otra cuenta).
+        """
+        pending: dict = getattr(app_state, "pending_pkce", {})
+        entry = pending.get(uid)
+        if entry is None or entry.get("expires_at", 0) < time.monotonic():
+            pending.pop(uid, None)
+            raise ApiException(
+                "PKCE_NOT_STARTED",
+                "No hay un login Hi-Fi en curso o ya expiró. Vuelve a iniciarlo.",
+                400,
+                retriable=False,
+            )
+        session: tidalapi.Session = entry["session"]
+
+        try:
+            token = await asyncio.to_thread(session.pkce_get_auth_token, redirect_url)
+            await asyncio.to_thread(lambda: session.process_auth_token(token, is_pkce_token=True))
+            logged_in = await asyncio.to_thread(session.check_login)
+        except Exception as exc:
+            pending.pop(uid, None)
+            raise ApiException(
+                "PKCE_EXCHANGE_FAILED",
+                f"No se pudo completar el login Hi-Fi: {exc}",
+                400,
+                retriable=False,
+            ) from exc
+
+        if not logged_in:
+            pending.pop(uid, None)
+            raise ApiException(
+                "PKCE_EXCHANGE_FAILED", "El login Hi-Fi no quedó activo.", 400, retriable=False
+            )
+
+        pkce_uid = us.user_id_from_session(session)
+        if pkce_uid is not None and str(pkce_uid) != str(uid):
+            pending.pop(uid, None)
+            raise ApiException(
+                "PKCE_WRONG_ACCOUNT",
+                "Esa cuenta de Tidal no coincide con la de tu sesión.",
+                403,
+                retriable=False,
+            )
+
+        token_data = us.token_data_from_session(session)
+        await us.store_user_tokens(app_state.redis, uid, "pkce", token_data)  # type: ignore[attr-defined]
+        pending.pop(uid, None)
+        return PkceStatusResponse(connected=True)
+
+    async def pkce_status(self, redis, uid: str) -> PkceStatusResponse:
+        tokens = await us.get_user_tokens(redis, uid, "pkce")
+        return PkceStatusResponse(connected=tokens is not None)
+
+    async def disconnect_pkce(self, redis, uid: str) -> PkceStatusResponse:
+        await us.delete_user_tokens(redis, uid, "pkce")
+        return PkceStatusResponse(connected=False)
 
     # ── Logout + panel de sesiones ───────────────────────────────────────────
     async def logout(self, redis, sid: str | None, response: Response) -> dict:
