@@ -107,7 +107,9 @@ function Shell({
       )}
     >
       {cover ? (
-        <Image src={cover} alt="" fill sizes="112px" className="object-cover" />
+        // El Top result está above-the-fold → es el LCP; priority evita el aviso
+        // de Next y prioriza su carga.
+        <Image src={cover} alt="" fill sizes="112px" priority className="object-cover" />
       ) : (
         <span className="flex h-full w-full items-center justify-center">{fallback}</span>
       )}

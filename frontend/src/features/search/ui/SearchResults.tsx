@@ -85,8 +85,11 @@ export function SearchResults({
   return (
     <div className="flex flex-col gap-8">
       {/* ── Top result + Songs — two columns on desktop (Tidal affordance) ── */}
+      {/* items-start: sin él, la grid iguala la altura de ambas columnas a la de
+          la lista de Songs (larga) y la card del Top result —flex items-center—
+          se estira y su contenido queda flotando en el centro de una caja enorme. */}
       {topHit && (
-        <div className={cn('grid gap-6', showTracks && 'lg:grid-cols-2')}>
+        <div className={cn('grid gap-6', showTracks && 'lg:grid-cols-2 lg:items-start')}>
           <TopResultCard
             topHit={topHit}
             onPlayAlbum={onPlayAlbum}
