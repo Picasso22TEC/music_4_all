@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 
-import type { Album, ArtistResult, Track } from '@/entities'
+import type { Album, ArtistResult, TopHit, Track } from '@/entities'
 import { isValidTidalUrl } from '@/shared/lib/url.utils'
 import {
   AudioWaves,
@@ -29,6 +29,7 @@ import {
   useDownloadErrorToast,
   useTrackDownload,
 } from '@/features/downloads'
+import { albumApi } from '@/features/album-detail'
 import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -121,6 +122,13 @@ export default function DashboardClient() {
     [isUrl, textQuery.data],
   )
 
+  // Best match (Tidal "Top result"). Solo en búsqueda de texto (el resolve de URL
+  // no lo trae). Coste cero: viene en la misma llamada de /search.
+  const topHit = useMemo<TopHit | null>(
+    () => (isUrl ? null : (textQuery.data?.topHit ?? null)),
+    [isUrl, textQuery.data],
+  )
+
   // ── Download ────────────────────────────────────────────────────────────────
 
   const downloadMutation = useStartDownloadMutation()
@@ -131,6 +139,25 @@ export default function DashboardClient() {
   function playTrack(startIndex: number) {
     if (tracks.length === 0) return
     usePlayerStore.getState().playQueue(tracks.map(trackToPlayerTrack), startIndex)
+  }
+
+  /** Reproduce una canción concreta (top result); si está en la lista, arranca la
+      cola desde ahí, si no, la reproduce sola. */
+  function playTopTrack(track: Track) {
+    const index = tracks.findIndex((t) => t.id === track.id)
+    if (index >= 0) {
+      usePlayerStore.getState().playQueue(tracks.map(trackToPlayerTrack), index)
+    } else {
+      usePlayerStore.getState().playQueue([trackToPlayerTrack(track)], 0)
+    }
+  }
+
+  /** Reproduce un álbum completo (top result álbum): pide su detalle y encola. */
+  async function playAlbum(albumId: string) {
+    const { tracks: albumTracks } = await albumApi.getDetail(albumId)
+    if (albumTracks.length > 0) {
+      usePlayerStore.getState().playQueue(albumTracks.map(trackToPlayerTrack), 0)
+    }
   }
 
   /** Triggered by AlbumCard.onDownload — maps to POST /downloads {albumId, quality} */
@@ -158,6 +185,10 @@ export default function DashboardClient() {
   const isLoading  = isActive && !activeQuery.data && activeQuery.isFetching
   const isError    = isActive && activeQuery.isError && !isLoading
   const hasContent = isActive && !isLoading && !isError
+  // Cualquier tipo de resultado cuenta (no solo álbumes): top result, canciones,
+  // artistas o álbumes. Antes el gate solo miraba álbumes/artistas y ocultaba
+  // búsquedas que solo devolvían canciones.
+  const hasResults = topHit !== null || albums.length > 0 || artists.length > 0 || tracks.length > 0
 
   // ── Render guard: prevent dashboard flash before auth confirms ───────────
   if (status !== 'authenticated') {
@@ -202,9 +233,8 @@ export default function DashboardClient() {
         className="sr-only"
       >
         {isLoading && 'Searching…'}
-        {hasContent && albums.length > 0 &&
-          `${albums.length} album${albums.length !== 1 ? 's' : ''} found`}
-        {hasContent && albums.length === 0 && 'No results found'}
+        {hasContent && hasResults && 'Results found'}
+        {hasContent && !hasResults && 'No results found'}
         {isError && 'Search error. Please try again.'}
       </div>
 
@@ -243,21 +273,24 @@ export default function DashboardClient() {
         )}
 
         {/* State C — no results (wireframes §9) */}
-        {hasContent && albums.length === 0 && artists.length === 0 && (
+        {hasContent && !hasResults && (
           <EmptyState
             variant="no-results"
             query={trimmed}
           />
         )}
 
-        {/* State D — results grid (wireframes §7) */}
-        {hasContent && (albums.length > 0 || artists.length > 0) && (
+        {/* State D — results (top result + songs + artists + albums) */}
+        {hasContent && hasResults && (
           <SearchResults
             albums={albums}
             artists={artists}
             tracks={tracks}
+            topHit={topHit}
             onDownloadAlbum={handleDownload}
+            onPlayAlbum={playAlbum}
             onPlayTrack={playTrack}
+            onPlayTopTrack={playTopTrack}
             onDownloadTrack={downloadTrack}
           />
         )}

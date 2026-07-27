@@ -1,9 +1,11 @@
+import { cn } from '@/shared/lib/cn'
 import { Skeleton } from '@/shared/ui/Skeleton'
-import type { Album, ArtistResult, Track } from '@/entities'
+import type { Album, ArtistResult, TopHit, Track } from '@/entities'
 
 import { AlbumCard } from './AlbumCard'
 import { ArtistCard } from './ArtistCard'
 import { EmptyState } from './EmptyState'
+import { TopResultCard } from './TopResultCard'
 import { TrackResults } from './TrackResults'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -12,9 +14,14 @@ export interface SearchResultsProps {
   albums: Album[]
   artists?: ArtistResult[]
   tracks?: Track[]
+  topHit?: TopHit | null
   loading?: boolean
   onDownloadAlbum?: (id: string) => void
+  onPlayAlbum?: (id: string) => void
+  /** Plays the found songs queue from the given index (songs list). */
   onPlayTrack?: (index: number) => void
+  /** Plays a specific track (top result — may not be in the songs list). */
+  onPlayTopTrack?: (track: Track) => void
   onDownloadTrack?: (track: Track) => void
 }
 
@@ -24,12 +31,14 @@ const SKELETON_COUNT = 10
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
- * Renders a responsive grid of AlbumCard v2.
+ * Tidal-style search results, organised in sections:
+ *   1. Top result (best match) + Songs — side by side on desktop.
+ *   2. Artists — circular cards.
+ *   3. Albums — vinyl grid.
  *
  * States:
  *  - loading=true  → skeleton grid (no flash of content)
- *  - albums.length === 0, loading=false → EmptyState 'no-results'
- *  - albums.length > 0  → album grid
+ *  - everything empty, loading=false → EmptyState 'no-results'
  *
  * NOTE: The 'initial' EmptyState variant is rendered by the parent (DashboardClient),
  * NOT by SearchResults. SearchResults is only mounted when an active search exists.
@@ -38,9 +47,12 @@ export function SearchResults({
   albums,
   artists = [],
   tracks = [],
+  topHit = null,
   loading = false,
   onDownloadAlbum,
+  onPlayAlbum,
   onPlayTrack,
+  onPlayTopTrack,
   onDownloadTrack,
 }: SearchResultsProps) {
   // ── Loading skeleton ────────────────────────────────────────────────────────
@@ -64,15 +76,36 @@ export function SearchResults({
   }
 
   // ── Empty results ───────────────────────────────────────────────────────────
-  if (albums.length === 0 && artists.length === 0 && tracks.length === 0) {
+  if (albums.length === 0 && artists.length === 0 && tracks.length === 0 && !topHit) {
     return <EmptyState variant="no-results" />
   }
 
-  const showTracks = tracks.length > 0 && onPlayTrack && onDownloadTrack
+  const showTracks = tracks.length > 0 && Boolean(onPlayTrack) && Boolean(onDownloadTrack)
 
   return (
     <div className="flex flex-col gap-8">
-      {/* ── Artists row — circular results, first (Spotify/Tidal affordance) ── */}
+      {/* ── Top result + Songs — two columns on desktop (Tidal affordance) ── */}
+      {topHit && (
+        <div className={cn('grid gap-6', showTracks && 'lg:grid-cols-2')}>
+          <TopResultCard
+            topHit={topHit}
+            onPlayAlbum={onPlayAlbum}
+            onDownloadAlbum={onDownloadAlbum}
+            onPlayTrack={onPlayTopTrack}
+            onDownloadTrack={onDownloadTrack}
+          />
+          {showTracks && (
+            <TrackResults tracks={tracks} onPlay={onPlayTrack!} onDownload={onDownloadTrack!} />
+          )}
+        </div>
+      )}
+
+      {/* ── Songs full-width when there is no top result ─────────────────── */}
+      {!topHit && showTracks && (
+        <TrackResults tracks={tracks} onPlay={onPlayTrack!} onDownload={onDownloadTrack!} />
+      )}
+
+      {/* ── Artists row — circular results (Spotify/Tidal affordance) ─────── */}
       {artists.length > 0 && (
         <section aria-label={`${artists.length} artist${artists.length !== 1 ? 's' : ''} found`}>
           <h2 className="mb-3 font-mono text-xs font-semibold uppercase tracking-wider text-secondary">
@@ -86,15 +119,8 @@ export function SearchResults({
         </section>
       )}
 
-      {/* ── Songs — antes se pedían al backend y no se pintaban nunca ─────── */}
-      {showTracks && (
-        <TrackResults tracks={tracks} onPlay={onPlayTrack} onDownload={onDownloadTrack} />
-      )}
-
       {/* ── Album grid ─────────────────────────────────────────────────────── */}
-      {albums.length > 0 && (
-        <AlbumGrid albums={albums} onDownloadAlbum={onDownloadAlbum} />
-      )}
+      {albums.length > 0 && <AlbumGrid albums={albums} onDownloadAlbum={onDownloadAlbum} />}
     </div>
   )
 }

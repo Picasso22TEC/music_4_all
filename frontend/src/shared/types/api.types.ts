@@ -83,7 +83,16 @@ export interface ArtistSearchDTO {
   picture?: string | null
 }
 
+export interface TopHitDTO {
+  type: 'artist' | 'album' | 'track' | 'playlist'
+  artist?: ArtistSearchDTO | null
+  album?: AlbumDTO | null
+  track?: TrackDTO | null
+  playlist?: Record<string, unknown> | null
+}
+
 export interface SearchResponseDTO {
+  top_hit?: TopHitDTO | null
   artists: {
     items: ArtistSearchDTO[]
     total_number_of_items: number

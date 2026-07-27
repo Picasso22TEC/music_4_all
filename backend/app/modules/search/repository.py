@@ -24,6 +24,7 @@ from .schemas import (
     PlaylistOut,
     ResolveUrlResponse,
     SearchResultsResponse,
+    TopHitOut,
     TrackOut,
 )
 
@@ -173,6 +174,35 @@ def _playlist_to_out(playlist: object) -> PlaylistOut:
     )
 
 
+def _raw_top_hit(raw: Any) -> Any:
+    """Extrae el top_hit del resultado crudo (dict de tidalapi u objeto)."""
+    if isinstance(raw, dict):
+        return raw.get("top_hit")
+    return getattr(raw, "top_hit", None)
+
+
+def _top_hit_out(top: object) -> TopHitOut | None:
+    """Mapea el top_hit de tidalapi a TopHitOut según su tipo real.
+
+    Defensivo: un top_hit ausente, de tipo no soportado (Video) o malformado
+    devuelve None — nunca debe tumbar la búsqueda entera.
+    """
+    if top is None:
+        return None
+    try:
+        if isinstance(top, tidalapi.Artist):
+            return TopHitOut(type="artist", artist=_artist_search_out(top))
+        if isinstance(top, tidalapi.Album):
+            return TopHitOut(type="album", album=_album_to_out(top))
+        if isinstance(top, tidalapi.Track):
+            return TopHitOut(type="track", track=_track_to_out(top))
+        if isinstance(top, tidalapi.Playlist):
+            return TopHitOut(type="playlist", playlist=_playlist_to_out(top))
+    except Exception:
+        return None
+    return None  # Video u otros tipos no soportados
+
+
 # ─── Repository ───────────────────────────────────────────────────────────────
 
 
@@ -210,6 +240,7 @@ class SearchV2Repository:
         playlist_items = [_playlist_to_out(p) for p in _list("playlists")]
 
         return SearchResultsResponse(
+            top_hit=_top_hit_out(_raw_top_hit(raw)),
             artists=PaginatedArtists(
                 items=artist_items,
                 total_number_of_items=len(artist_items),

@@ -1,7 +1,7 @@
 import { coverIdToUrl, mapAlbumDTO, mapTrackDTO } from '@/shared/api/mappers'
 import client from '@/shared/api/client'
-import type { Album, Artist, ArtistResult, PaginatedList, Playlist, ResolveUrlResult, SearchResults, Track } from '@/entities'
-import type { AlbumDTO, ResolveUrlResponseDTO, SearchResponseDTO, TrackDTO } from '@/shared/types/api.types'
+import type { Album, Artist, ArtistResult, PaginatedList, Playlist, ResolveUrlResult, SearchResults, Track, TopHit } from '@/entities'
+import type { AlbumDTO, ResolveUrlResponseDTO, SearchResponseDTO, TopHitDTO, TrackDTO } from '@/shared/types/api.types'
 
 function mapPlaylist(dto: Record<string, unknown>): Playlist {
   const cover = dto.cover ? String(dto.cover) : null
@@ -15,6 +15,36 @@ function mapPlaylist(dto: Record<string, unknown>): Playlist {
       ? // 640: tamaño válido del CDN de Tidal (480 devuelve 403). Ver mappers.ts.
         `https://resources.tidal.com/images/${cover.replace(/-/g, '/')}/${640}x${640}.jpg`
       : null,
+  }
+}
+
+/** Contexto de álbum de un track de búsqueda (portada incluida si viene). */
+function trackAlbumCtx(dto: TrackDTO): Pick<Album, 'id' | 'title' | 'coverUrl'> {
+  return dto.album
+    ? {
+        id: dto.album.id,
+        title: dto.album.title,
+        coverUrl: dto.album.cover ? coverIdToUrl(dto.album.cover) : '',
+      }
+    : { id: '', title: '', coverUrl: '' }
+}
+
+/** Mapea el top_hit del backend a la union tipada del frontend. */
+function mapTopHit(dto: TopHitDTO | null | undefined): TopHit | null {
+  if (!dto) return null
+  switch (dto.type) {
+    case 'artist':
+      return dto.artist
+        ? { type: 'artist', artist: { id: dto.artist.id, name: dto.artist.name, imageUrl: dto.artist.picture ?? null } }
+        : null
+    case 'album':
+      return dto.album ? { type: 'album', album: mapAlbumDTO(dto.album) } : null
+    case 'track':
+      return dto.track ? { type: 'track', track: mapTrackDTO(dto.track, trackAlbumCtx(dto.track)) } : null
+    case 'playlist':
+      return dto.playlist ? { type: 'playlist', playlist: mapPlaylist(dto.playlist) } : null
+    default:
+      return null
   }
 }
 
@@ -43,16 +73,7 @@ export const searchApi = {
     }
 
     const tracks: PaginatedList<Track> = {
-      items: data.tracks.items.map((dto) => {
-        const albumCtx = dto.album
-          ? {
-              id: dto.album.id,
-              title: dto.album.title,
-              coverUrl: dto.album.cover ? coverIdToUrl(dto.album.cover) : '',
-            }
-          : { id: '', title: '', coverUrl: '' }
-        return mapTrackDTO(dto, albumCtx)
-      }),
+      items: data.tracks.items.map((dto) => mapTrackDTO(dto, trackAlbumCtx(dto))),
       totalNumberOfItems: data.tracks.total_number_of_items,
       limit: data.tracks.limit,
       offset: data.tracks.offset,
@@ -65,7 +86,7 @@ export const searchApi = {
       offset: data.playlists.offset,
     }
 
-    return { artists, albums, tracks, playlists }
+    return { topHit: mapTopHit(data.top_hit), artists, albums, tracks, playlists }
   },
 
   async resolveUrl(url: string): Promise<ResolveUrlResult> {

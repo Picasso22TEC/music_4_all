@@ -89,10 +89,31 @@ class PaginatedPlaylists(BaseModel):
     offset: int
 
 
+# ─── Top hit ──────────────────────────────────────────────────────────────────
+
+
+class TopHitOut(BaseModel):
+    """El mejor resultado de la búsqueda (``top_hit`` de tidalapi).
+
+    Un único campo va poblado según ``type``. Se modela con campos concretos (en
+    vez de una union) para que el round-trip JSON de la caché (Fase 4) sea
+    inequívoco: cada campo tiene un tipo fijo y no hay que discriminar al re-parsear.
+    """
+
+    type: str  # "artist" | "album" | "track" | "playlist"
+    artist: ArtistSearchOut | None = None
+    album: AlbumOut | None = None
+    track: TrackOut | None = None
+    playlist: PlaylistOut | None = None
+
+
 # ─── Responses ────────────────────────────────────────────────────────────────
 
 
 class SearchResultsResponse(BaseModel):
+    # Mejor coincidencia primero (como Tidal/Spotify). None si tidalapi no devuelve
+    # top_hit o si es un tipo no soportado (p.ej. Video).
+    top_hit: TopHitOut | None = None
     artists: PaginatedArtists
     albums: PaginatedAlbums
     tracks: PaginatedTracks

@@ -16,7 +16,19 @@ export interface ArtistResult {
   readonly imageUrl: string | null
 }
 
+/**
+ * The single best match for a query (Tidal/Spotify "Top result"). A discriminated
+ * union on `type`, so the card renders the right entity with full type safety.
+ */
+export type TopHit =
+  | { readonly type: 'artist'; readonly artist: ArtistResult }
+  | { readonly type: 'album'; readonly album: Album }
+  | { readonly type: 'track'; readonly track: Track }
+  | { readonly type: 'playlist'; readonly playlist: Playlist }
+
 export interface SearchResults {
+  /** Best match, shown first as a prominent card. Null when Tidal returns none. */
+  readonly topHit: TopHit | null
   readonly artists: PaginatedList<ArtistResult>
   readonly albums: PaginatedList<Album>
   readonly tracks: PaginatedList<Track>
