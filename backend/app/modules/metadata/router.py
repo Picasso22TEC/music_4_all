@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from app.core.rate_limiter import limiter
 from app.core.tidal import TidalDownloader
-from app.dependencies import get_authenticated_engine
+from app.dependencies import get_authenticated_engine, get_redis
 
 from .schemas import SearchResponse
 from .service import MetadataService
@@ -18,6 +18,7 @@ async def search(
     q: str = Query(..., min_length=1, max_length=200),
     limit: int = Query(10, ge=1, le=30),
     engine: TidalDownloader = Depends(get_authenticated_engine),
+    redis=Depends(get_redis),
 ):
-    """Busca en Tidal (máx. 30/min por IP)."""
-    return await service.search(q, limit, engine)
+    """Busca en Tidal (máx. 30/min por IP). Cacheada globalmente (Fase 4)."""
+    return await service.search(q, limit, engine, redis)

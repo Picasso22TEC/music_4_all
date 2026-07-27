@@ -57,3 +57,20 @@ auth_logins_total = Counter(
     "Número de inicios de sesión Tidal completados",
     ["status"],  # success | failure
 )
+
+# ── Caché de catálogo Tidal (Fase 4) ──────────────────────────────────────────
+# Protege el rate-limit del client_id compartido: las lecturas del catálogo
+# (búsqueda/metadata/detalle) son globales y se cachean. `result=hit` significa
+# que NO se golpeó a Tidal.
+
+tidal_cache_total = Counter(
+    "music4all_tidal_cache_total",
+    "Lecturas del catálogo Tidal servidas desde caché (hit) o desde Tidal (miss)",
+    ["kind", "result"],  # kind: search|metadata_search|album|artist ; result: hit|miss
+)
+
+tidal_api_errors_total = Counter(
+    "music4all_tidal_api_errors_total",
+    "Errores de la API de Tidal relevantes para el client_id compartido",
+    ["kind"],  # rate_limited (429, abre el circuit breaker) | auth (401)
+)

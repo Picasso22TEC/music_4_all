@@ -71,6 +71,12 @@ async def get_current_user(request: Request) -> CurrentUser:
     return user
 
 
+# ── Redis ──────────────────────────────────────────────────────────────────────
+def get_redis(request: Request):
+    """Cliente Redis de la app (caché de catálogo, sesiones, cola, pub/sub)."""
+    return request.app.state.redis
+
+
 # ── Motor Tidal ──────────────────────────────────────────────────────────────
 def get_engine_registry(request: Request) -> EngineRegistry:
     return request.app.state.engine_registry

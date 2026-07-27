@@ -1,4 +1,5 @@
 import tidalapi
+import tidalapi.exceptions as tidal_exc
 
 from app.core.tidal import TidalDownloader
 
@@ -20,6 +21,8 @@ class MetadataRepository:
                 models=[tidalapi.Album, tidalapi.Track, tidalapi.Playlist],
                 limit=limit,
             )
+        except tidal_exc.TooManyRequests:
+            raise  # que el circuit breaker (Fase 4) lo vea; el resto se degrada a []
         except Exception:
             return results
 

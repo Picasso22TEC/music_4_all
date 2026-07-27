@@ -27,6 +27,20 @@ class Settings(BaseSettings):
     max_user_engines: int = 50
     engine_idle_ttl: int = 1800  # 30 min sin uso → evicción
 
+    # Caché de catálogo Tidal (Fase 4) — búsqueda/metadata/detalle. Es la red de
+    # seguridad del client_id compartido: las lecturas del catálogo son globales
+    # (idénticas para todos los usuarios), así que se cachean en Redis SIN scope de
+    # usuario y una búsqueda repetida (del mismo o de otro usuario) no vuelve a
+    # golpear a Tidal. TTL corto para búsqueda (más "viva") y largo para detalle.
+    tidal_cache_enabled: bool = True
+    tidal_cache_search_ttl: int = 300  # 5 min — /search y /metadata/search
+    tidal_cache_detail_ttl: int = 3600  # 1 h — detalle de álbum/artista (cambia poco)
+    # Circuit breaker ante 429 (TooManyRequests) de Tidal: al recibir un 429 se abre
+    # un backoff global; mientras esté abierto, las lecturas NO cacheadas devuelven
+    # 503 en vez de seguir presionando al client_id de terceros (revocable).
+    tidal_breaker_ttl: int = 30  # cooldown por defecto si Tidal no manda Retry-After
+    tidal_breaker_max_ttl: int = 300  # tope del cooldown aunque Retry-After sea mayor
+
     # Worker concurrency
     max_concurrent_downloads: int = 3
 

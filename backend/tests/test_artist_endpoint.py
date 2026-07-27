@@ -21,6 +21,7 @@ def _mock_artist() -> SimpleNamespace:
         artist=artist_ref,
         album=album_ref,
     )
+
     def _release(name: str, rtype: str) -> SimpleNamespace:
         return SimpleNamespace(
             id=200,

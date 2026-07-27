@@ -5,6 +5,7 @@ from datetime import date
 from typing import Any
 
 import tidalapi
+import tidalapi.exceptions as tidal_exc
 
 from app.core.tidal import TidalDownloader
 
@@ -183,6 +184,10 @@ class SearchV2Repository:
                 models=[tidalapi.Artist, tidalapi.Album, tidalapi.Track, tidalapi.Playlist],
                 limit=limit,
             )
+        except (tidal_exc.TooManyRequests, tidal_exc.AuthenticationError):
+            # Señales del client_id compartido: NO tragárselas — el circuit breaker
+            # (429) y el mapeo a SESSION_EXPIRED (401) las necesitan en el service.
+            raise
         except Exception:
             return SearchResultsResponse(
                 artists=PaginatedArtists(items=[], total_number_of_items=0, limit=limit, offset=0),

@@ -47,7 +47,11 @@ def api_client_with_state():
     engine_mock.check_auth.return_value = True
 
     redis_mock = MagicMock()
+    # get → None cubre a la vez el breaker cerrado y el miss de la caché de catálogo
+    # (Fase 4); setex es la escritura de esa caché tras un miss. Ambos deben ser
+    # awaitables o el endpoint fallaría al `await` un MagicMock síncrono.
     redis_mock.get = AsyncMock(return_value=None)
+    redis_mock.setex = AsyncMock()
 
     registry_mock = MagicMock()
     registry_mock.get = AsyncMock(return_value=engine_mock)

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import tidalapi.exceptions as tidal_exc
+
 from app.main import app
 
 
@@ -45,3 +47,15 @@ def test_search_without_artists_returns_empty_artist_list(api_client_with_state)
 
     assert resp.status_code == 200
     assert resp.json()["artists"]["items"] == []
+
+
+def test_search_rate_limited_becomes_503_tidal_busy(api_client_with_state):
+    """Un 429 de Tidal debe salir como 503 TIDAL_BUSY (circuit breaker, Fase 4),
+    no re-envuelto en 500 por el `except Exception` del router."""
+    client = api_client_with_state
+    app.state.engine.session.search.side_effect = tidal_exc.TooManyRequests("slow down")
+
+    resp = client.get("/search", params={"q": "test"})
+
+    assert resp.status_code == 503
+    assert resp.json()["error"]["code"] == "TIDAL_BUSY"
