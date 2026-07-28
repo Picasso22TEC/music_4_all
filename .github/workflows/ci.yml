@@ -194,7 +194,8 @@ jobs:
         run: uv sync --frozen
 
       - name: Run tests
-        run: uv run pytest tests/ -v --tb=short || echo "No tests found — skipping"
+        # Sin bypass: un fallo de pytest debe bloquear el merge (la suite está en verde).
+        run: uv run pytest tests/ -v --tb=short
 
   # ── Backend: seguridad (bandit) ──────────────────────────────────────────
   security-backend:

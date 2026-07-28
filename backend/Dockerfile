@@ -34,4 +34,8 @@ FROM deps AS production
 COPY . .
 EXPOSE 8000
 ENTRYPOINT ["sh", "/app/docker-entrypoint.sh"]
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# 1 worker a propósito: JobControlRegistry y pending_oauth* son estado in-memory por
+# proceso. Con >1 worker, pausar/cancelar un job solo funcionaría si la petición cae en
+# el worker que lo ejecuta, y el device-auth pendiente podría perderse entre procesos.
+# Subir a varios workers requiere externalizar ese estado a Redis (fase Multi-réplica).
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
