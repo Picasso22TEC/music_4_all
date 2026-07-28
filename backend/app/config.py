@@ -5,6 +5,11 @@ class Settings(BaseSettings):
     app_name: str = "Music 4 All"
     debug: bool = False
 
+    # Entorno de despliegue. En "production"/"prod" el arranque valida la config
+    # sensible y **falla rápido** si sigue con defaults de desarrollo (ver
+    # `production_config_errors` y el guard en main.py). Por defecto: desarrollo.
+    environment: str = "development"
+
     # Tidal
     tidal_quality: str = "LOSSLESS"
 
@@ -64,6 +69,29 @@ class Settings(BaseSettings):
 
     # PostgreSQL — SQLite solo en desarrollo local
     database_url: str = "sqlite+aiosqlite:///./dev.db"
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() in {"production", "prod"}
+
+    def production_config_errors(self) -> list[str]:
+        """Config que hace inseguro un despliegue público. Lista vacía = OK.
+
+        La consume el guard de arranque (main.py): si `is_production` y esto no está
+        vacío, la app se niega a arrancar en vez de servir con defaults de desarrollo.
+        """
+        problems: list[str] = []
+        if not self.session_encryption_key:
+            problems.append(
+                "SESSION_ENCRYPTION_KEY vacía: los tokens se cifran con una clave "
+                "efímera que no sobrevive al reinicio (las sesiones se perderían)."
+            )
+        if not self.cookie_secure:
+            problems.append("COOKIE_SECURE=False: la cookie de sesión viajaría también por HTTP.")
+        dev_origins = [o for o in self.cors_origins if "localhost" in o or "127.0.0.1" in o]
+        if dev_origins:
+            problems.append(f"CORS_ORIGINS aún incluye orígenes de desarrollo: {dev_origins}")
+        return problems
 
     @property
     def async_database_url(self) -> str:

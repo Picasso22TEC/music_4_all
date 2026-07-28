@@ -54,6 +54,17 @@ def _setup_tracing() -> None:
 async def lifespan(app: FastAPI):
     logger.info("Starting Music 4 All API", extra={"version": "7.0.0"})
 
+    # Guard de producción: no arrancar con defaults de desarrollo inseguros. Falla
+    # rápido y ruidoso en vez de servir una web pública con tokens sin cifrado
+    # persistente, cookies no-Secure o CORS de localhost. En desarrollo no aplica.
+    if settings.is_production:
+        problems = settings.production_config_errors()
+        if problems:
+            raise RuntimeError(
+                "Configuración insegura para ENVIRONMENT=production:\n  - "
+                + "\n  - ".join(problems)
+            )
+
     # El esquema es responsabilidad de Alembic (`alembic upgrade head`, que el
     # contenedor ejecuta antes de arrancar; en local, ver docs/development.md).
     # Antes se llamaba aquí a `Base.metadata.create_all`, que solo crea tablas
