@@ -4,9 +4,10 @@ import type {
   DeviceAuthResponseDTO,
   PkceStartResponseDTO,
   PkceStatusResponseDTO,
+  SessionListResponseDTO,
   SessionStatusResponseDTO,
 } from '@/shared/types/api.types'
-import type { DeviceAuthCode, TidalPlan, TidalUser } from '@/entities'
+import type { ActiveSession, DeviceAuthCode, TidalPlan, TidalUser } from '@/entities'
 
 /**
  * Ensures a Tidal OAuth URL has a valid https:// scheme.
@@ -98,6 +99,32 @@ export const authApi = {
   async logout(): Promise<void> {
     // v2 session logout: clears the httpOnly m4a_sid cookie + the app session in Redis.
     await client.post('/session/logout')
+  },
+
+  // ── Panel de sesiones activas (dispositivos) ────────────────────────────────
+
+  /** Lista las sesiones de app activas del usuario (una por dispositivo/navegador). */
+  async listSessions(): Promise<ActiveSession[]> {
+    const { data } = await client.get<SessionListResponseDTO>('/session/sessions')
+    return data.sessions.map((s) => ({
+      sid: s.sid,
+      createdAt: s.created_at,
+      lastSeen: s.last_seen,
+      ip: s.ip,
+      userAgent: s.user_agent,
+      current: s.current,
+    }))
+  },
+
+  /** Cierra una sesión concreta (otro dispositivo) por su sid. */
+  async revokeSession(sid: string): Promise<void> {
+    await client.delete(`/session/sessions/${encodeURIComponent(sid)}`)
+  },
+
+  /** Cierra todas las demás sesiones, conservando la actual. Devuelve cuántas cerró. */
+  async revokeOtherSessions(): Promise<number> {
+    const { data } = await client.delete<{ revoked: number }>('/session/sessions')
+    return data.revoked
   },
 
   // ── PKCE: conexión Hi-Fi 16-bit (segunda sesión Tidal del usuario) ──────────

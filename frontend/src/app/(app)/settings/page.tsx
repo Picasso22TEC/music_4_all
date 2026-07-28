@@ -8,6 +8,7 @@ import { useSettingsStore } from '@/features/settings'
 import {
   HiFiConnection,
   HIFI_LOCKED_HINT,
+  SessionsPanel,
   useAuthStore,
   useLockedDownloadQualities,
   useLogoutMutation,
@@ -105,6 +106,9 @@ export default function SettingsPage() {
 
       {/* ── Hi-Fi 16-bit (segunda sesión Tidal PKCE) ─────────────────── */}
       <HiFiConnection />
+
+      {/* ── Sesiones activas (dispositivos) ──────────────────────────── */}
+      <SessionsPanel />
 
       {/* ── Appearance ───────────────────────────────────────────────── */}
       <Card>

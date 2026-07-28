@@ -20,3 +20,13 @@ export interface DeviceAuthCode {
   readonly expiresIn: number
   readonly interval: number
 }
+
+/** Una sesión de app activa del usuario (panel de dispositivos). */
+export interface ActiveSession {
+  readonly sid: string
+  readonly createdAt: number // Unix (s)
+  readonly lastSeen: number // Unix (s)
+  readonly ip: string
+  readonly userAgent: string
+  readonly current: boolean
+}

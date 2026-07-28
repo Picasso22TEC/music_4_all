@@ -1,1 +1,7 @@
-export type { TidalPlan, TidalUser, TidalSession, DeviceAuthCode } from './session.types'
+export type {
+  TidalPlan,
+  TidalUser,
+  TidalSession,
+  DeviceAuthCode,
+  ActiveSession,
+} from './session.types'

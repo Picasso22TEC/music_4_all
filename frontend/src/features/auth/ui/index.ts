@@ -13,3 +13,5 @@ export { SessionRecoveryActions } from './SessionRecoveryActions'
 export type { SessionRecoveryActionsProps } from './SessionRecoveryActions'
 
 export { HiFiConnection } from './HiFiConnection'
+
+export { SessionsPanel } from './SessionsPanel'

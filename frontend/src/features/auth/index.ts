@@ -23,6 +23,11 @@ export {
   usePkceDisconnectMutation,
   HIFI_LOCKED_HINT,
 } from './model/pkce.queries'
+export {
+  useSessionsQuery,
+  useRevokeSessionMutation,
+  useRevokeOtherSessionsMutation,
+} from './model/sessions.queries'
 export { authApi } from './api/auth.api'
 export {
   LoginForm,
@@ -30,6 +35,7 @@ export {
   AuthTransitionOverlay,
   IdleWarningModal,
   HiFiConnection,
+  SessionsPanel,
 } from './ui'
 export { playAuthTransition } from './model/auth-transition.store'
 

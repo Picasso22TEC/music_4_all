@@ -165,3 +165,17 @@ export interface PkceStartResponseDTO {
 export interface PkceStatusResponseDTO {
   connected: boolean
 }
+
+// ── Panel de sesiones activas del usuario (backend Fase 1, UI Fase 7) ─────────
+export interface SessionInfoDTO {
+  sid: string
+  created_at: number
+  last_seen: number
+  ip: string
+  user_agent: string
+  current: boolean
+}
+
+export interface SessionListResponseDTO {
+  sessions: SessionInfoDTO[]
+}
