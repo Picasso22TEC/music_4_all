@@ -19,6 +19,7 @@ export const queryKeys = {
     all: () => ['session'] as const,
     status: () => ['session', 'status'] as const,
     deviceAuth: (deviceCode: string) => ['session', 'device-auth', deviceCode] as const,
+    pkceStatus: () => ['session', 'pkce', 'status'] as const,
   },
 } as const
 
@@ -29,4 +30,5 @@ export type QueryKey = ReturnType<
   | typeof queryKeys.artist.detail
   | typeof queryKeys.session.status
   | typeof queryKeys.session.deviceAuth
+  | typeof queryKeys.session.pkceStatus
 >

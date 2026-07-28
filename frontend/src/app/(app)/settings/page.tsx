@@ -4,7 +4,13 @@ import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 
 import { useSettingsStore } from '@/features/settings'
-import { useAuthStore, useLogoutMutation } from '@/features/auth'
+import {
+  HiFiConnection,
+  HIFI_LOCKED_HINT,
+  useAuthStore,
+  useLockedDownloadQualities,
+  useLogoutMutation,
+} from '@/features/auth'
 import { Button, Card, QualitySelector } from '@/shared/ui'
 import { cn } from '@/shared/lib/cn'
 
@@ -18,6 +24,7 @@ export default function SettingsPage() {
 
   const user   = useAuthStore((s) => s.user)
   const logout = useLogoutMutation()
+  const lockedQualities = useLockedDownloadQualities()
 
   function handleSignOut() {
     logout.mutate(undefined, {
@@ -86,9 +93,17 @@ export default function SettingsPage() {
               album and artist pages).
             </p>
           </div>
-          <QualitySelector value={audioQuality} onChange={setAudioQuality} />
+          <QualitySelector
+            value={audioQuality}
+            onChange={setAudioQuality}
+            disabledValues={lockedQualities}
+            lockedHint={HIFI_LOCKED_HINT}
+          />
         </div>
       </Card>
+
+      {/* ── Hi-Fi 16-bit (segunda sesión Tidal PKCE) ─────────────────── */}
+      <HiFiConnection />
 
       {/* ── Appearance ───────────────────────────────────────────────── */}
       <Card>

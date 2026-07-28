@@ -10,7 +10,11 @@ import { cn } from '@/shared/lib/cn'
 import { formatDuration } from '@/shared/lib/format'
 import { Button, QualitySelector } from '@/shared/ui'
 import type { AudioQuality } from '@/entities'
-import { useAuthStore } from '@/features/auth'
+import {
+  HIFI_LOCKED_HINT,
+  useAuthStore,
+  useLockedDownloadQualities,
+} from '@/features/auth'
 import { useAlbumDetailQuery } from '@/features/album-detail'
 import { usePlayerStore, trackToPlayerTrack } from '@/features/player'
 import {
@@ -46,6 +50,7 @@ export function AlbumClient({ albumId }: { albumId: string }) {
   const defaultQuality = useSettingsStore((s) => s.audioQuality)
   const [qualityOverride, setQualityOverride] = useState<AudioQuality | null>(null)
   const quality = qualityOverride ?? defaultQuality
+  const lockedQualities = useLockedDownloadQualities()
 
   const downloadMutation = useStartDownloadMutation()
   const onDownloadError = useDownloadErrorToast()
@@ -237,7 +242,12 @@ export function AlbumClient({ albumId }: { albumId: string }) {
                 <span className="font-sans text-xs text-secondary" aria-hidden="true">
                   Quality:
                 </span>
-                <QualitySelector value={quality} onChange={setQualityOverride} />
+                <QualitySelector
+                  value={quality}
+                  onChange={setQualityOverride}
+                  disabledValues={lockedQualities}
+                  lockedHint={HIFI_LOCKED_HINT}
+                />
               </div>
               <p className="font-sans text-2xs text-disabled">
                 Applies to downloads from this album. Your default lives in Settings.

@@ -2,6 +2,8 @@ import client from '@/shared/api/client'
 import type {
   DeviceAuthPollResponseDTO,
   DeviceAuthResponseDTO,
+  PkceStartResponseDTO,
+  PkceStatusResponseDTO,
   SessionStatusResponseDTO,
 } from '@/shared/types/api.types'
 import type { DeviceAuthCode, TidalPlan, TidalUser } from '@/entities'
@@ -96,5 +98,36 @@ export const authApi = {
   async logout(): Promise<void> {
     // v2 session logout: clears the httpOnly m4a_sid cookie + the app session in Redis.
     await client.post('/session/logout')
+  },
+
+  // ── PKCE: conexión Hi-Fi 16-bit (segunda sesión Tidal del usuario) ──────────
+
+  /** ¿El usuario tiene conectada la sesión Hi-Fi (16-bit)? */
+  async pkceStatus(): Promise<boolean> {
+    const { data } = await client.get<PkceStatusResponseDTO>('/session/pkce/status')
+    return data.connected
+  },
+
+  /**
+   * Inicia el login PKCE y devuelve la URL que el usuario debe abrir. Al loguearse,
+   * Tidal lo redirige a una página "Oops" cuya URL completa debe pegar para completar.
+   */
+  async pkceStart(): Promise<string> {
+    const { data } = await client.post<PkceStartResponseDTO>('/session/pkce/start', {})
+    return ensureHttps(data.login_url)
+  },
+
+  /** Canjea la URL "Oops" pegada por el usuario; devuelve si quedó conectado. */
+  async pkceComplete(redirectUrl: string): Promise<boolean> {
+    const { data } = await client.post<PkceStatusResponseDTO>('/session/pkce/complete', {
+      redirect_url: redirectUrl,
+    })
+    return data.connected
+  },
+
+  /** Desconecta la sesión Hi-Fi (borra los tokens PKCE). Devuelve `false`. */
+  async pkceDisconnect(): Promise<boolean> {
+    const { data } = await client.delete<PkceStatusResponseDTO>('/session/pkce')
+    return data.connected
   },
 }

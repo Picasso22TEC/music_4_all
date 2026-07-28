@@ -14,8 +14,23 @@ export {
   useDeviceAuthPollingQuery,
   useLogoutMutation,
 } from './model/auth.queries'
+export {
+  usePkceStatusQuery,
+  useHiFiConnected,
+  useLockedDownloadQualities,
+  usePkceStartMutation,
+  usePkceCompleteMutation,
+  usePkceDisconnectMutation,
+  HIFI_LOCKED_HINT,
+} from './model/pkce.queries'
 export { authApi } from './api/auth.api'
-export { LoginForm, SessionRecoveryModal, AuthTransitionOverlay, IdleWarningModal } from './ui'
+export {
+  LoginForm,
+  SessionRecoveryModal,
+  AuthTransitionOverlay,
+  IdleWarningModal,
+  HiFiConnection,
+} from './ui'
 export { playAuthTransition } from './model/auth-transition.store'
 
 // ── Public API for triggering recovery from DownloadPanel (Fase 6E/6F) ───────

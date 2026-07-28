@@ -155,3 +155,13 @@ export interface DeviceAuthPollResponseDTO {
   }
   expires_at?: string
 }
+
+// ── PKCE: segunda sesión Tidal para 16-bit LOSSLESS (Fase 5) ──────────────────
+export interface PkceStartResponseDTO {
+  /** URL de login web de Tidal que el usuario abre para autorizar la Hi-Fi. */
+  login_url: string
+}
+
+export interface PkceStatusResponseDTO {
+  connected: boolean
+}

@@ -10,6 +10,11 @@ export type ApiErrorCode =
   | 'CONFLICT'
   | 'INVALID_TRANSITION'
   | 'DEVICE_AUTH_EXPIRED'
+  // Conexión Hi-Fi (PKCE 16-bit): flujo no iniciado/expirado, canje fallido, o
+  // la cuenta logueada no coincide con la sesión.
+  | 'PKCE_NOT_STARTED'
+  | 'PKCE_EXCHANGE_FAILED'
+  | 'PKCE_WRONG_ACCOUNT'
   | 'SERVER_ERROR'
 
 export interface ApiError {

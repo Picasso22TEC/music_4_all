@@ -11,3 +11,5 @@ export type { SessionRecoveryContentProps } from './SessionRecoveryContent'
 
 export { SessionRecoveryActions } from './SessionRecoveryActions'
 export type { SessionRecoveryActionsProps } from './SessionRecoveryActions'
+
+export { HiFiConnection } from './HiFiConnection'

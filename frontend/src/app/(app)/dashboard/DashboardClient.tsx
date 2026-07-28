@@ -14,7 +14,11 @@ import {
   VintageSpeaker,
 } from '@/shared/ui'
 
-import { useAuthStore } from '@/features/auth'
+import {
+  HIFI_LOCKED_HINT,
+  useAuthStore,
+  useLockedDownloadQualities,
+} from '@/features/auth'
 import { useSettingsStore } from '@/features/settings'
 import {
   EmptyState,
@@ -70,6 +74,7 @@ export default function DashboardClient() {
   // dashboard es un atajo a la misma preferencia que usan álbum y artista).
   const quality = useSettingsStore((s) => s.audioQuality)
   const setQuality = useSettingsStore((s) => s.setAudioQuality)
+  const lockedQualities = useLockedDownloadQualities()
   const reduceEffects = useSettingsStore((s) => s.reduceEffects)
 
   const trimmed  = query.trim()
@@ -276,7 +281,12 @@ export default function DashboardClient() {
           <span className="font-sans text-xs text-secondary" aria-hidden="true">
             Quality:
           </span>
-          <QualitySelector value={quality} onChange={setQuality} />
+          <QualitySelector
+            value={quality}
+            onChange={setQuality}
+            disabledValues={lockedQualities}
+            lockedHint={HIFI_LOCKED_HINT}
+          />
         </div>
       </section>
 
