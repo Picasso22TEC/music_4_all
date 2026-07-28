@@ -1,9 +1,15 @@
 # Fase 7 — De-mock y confianza de producción
 
-> Estado: **PROPUESTA** (auditoría hecha 2026-07-28; pendiente de ejecutar en una rama
-> `feat/production-readiness`). Objetivo: que ningún camino de producción dependa de
-> mocks/stubs, defaults de desarrollo, o funcionalidad a medias, de modo que el
-> producto sea confiable al abrirse al público.
+> Estado: **EN CURSO** (rama `feat/production-readiness`, desde 2026-07-28). Objetivo:
+> que ningún camino de producción dependa de mocks/stubs, defaults de desarrollo, o
+> funcionalidad a medias, de modo que el producto sea confiable al abrirse al público.
+>
+> **Hecho en esta rama:** A1 (borrado `security.py`), B (guard de config + Grafana por
+> env), C1 (fix "EXISTE"), D1 (`--workers 1`), F1 (CI bloquea), E1 (UI panel de
+> sesiones), C2 (helper de copia en inglés en el toast + mensajes del worker
+> traducidos — **residual**: los mensajes de error de job vía WS solo traen código
+> numérico, no el `code` string, así que un mapeo completo requiere plumbear el code),
+> G1 (roadmap refrescado). **Pendiente:** D2 y externalización de estado (Multi-réplica).
 
 ## Resumen de la auditoría
 

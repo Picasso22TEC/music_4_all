@@ -15,10 +15,11 @@ Estado de pendientes, deuda técnica, mejoras futuras y riesgos conocidos, basad
 ## 1. Pendientes actuales
 
 ### Frontend
-- **`/library` y `/settings`** (`(app)/library/page.tsx`, `(app)/settings/page.tsx`) son placeholders (`return null`) — sin implementación.
-- **`AlbumDetailPanel`** (Phase 6C) no está conectado — `handleOpenAlbum` en `DashboardClient.tsx` solo hace `console.info`.
-- **RM-03 (sesión vía cookie httpOnly)**: `middleware.ts` tiene el scaffolding (`PROTECTED_PATHS`, `AUTH_PATHS`, `matcher`) pero el cuerpo no aplica redirecciones — la protección de rutas es 100% client-side (rehidratación de `auth.store`). Pendiente: backend debe emitir cookie `session_id` httpOnly y el middleware debe activarse.
+- ~~**`/library` y `/settings`** son placeholders (`return null`)~~ — **RESUELTO**: `/library` renderiza la colección real (agrupa el historial vía `useHistoryQuery`) y `/settings` está completo (cuenta, calidad, Hi-Fi, sesiones activas, legal, efectos).
+- ~~**`AlbumDetailPanel` (Phase 6C) no conectado**~~ — **RESUELTO**: el detalle de álbum es una ruta real `/(app)/album/[id]`; el dashboard navega a ella.
+- ~~**RM-03 (sesión vía cookie httpOnly)**: `middleware.ts` solo scaffolding~~ — **RESUELTO**: el backend emite `m4a_sid` httpOnly y `middleware.ts` protege las rutas de verdad contra su presencia (Fase 1 multiusuario).
 - **Rediseño "neón retro 90s"**: **Login, Dashboard y escena decorativa implementados** (Login: commits `b90cee5`/`a23a8f9`; Dashboard: rama `feat/dashboard-neon-retro`, 2026-07-06 — incluye navegación móvil UX-03 y transición cross-layout; escena decorativa Fase 15: rama `feat/dashboard-escena-decorativa`, 2026-07-07). Ver sección 3.
+- **Pendientes de confianza de producción**: ver `docs/PRODUCTION_READINESS.md` (Fase 7) — algunos ya resueltos en la rama `feat/production-readiness`.
 
 > El ítem previo "limpieza de código legacy pendiente" (`src/store/`, `src/components/`, `src/hooks/`, `src/lib/`, carpetas de ruta vacías) **ya no aplica**: esos directorios no existen — el frontend está 100% en FSD.
 
