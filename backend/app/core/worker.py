@@ -108,9 +108,9 @@ async def _handle_job(
             extra={"user": user_id, "kind": engine_kind},
         )
         error = (
-            "Conecta tu sesión Hi-Fi (16-bit) en Ajustes para descargar en esta calidad."
+            "Connect your Hi-Fi (16-bit) session in Settings to download this quality."
             if engine_kind == "pkce"
-            else "Sesión de Tidal no disponible. Vuelve a iniciar sesión."
+            else "Your Tidal session is unavailable. Please sign in again."
         )
         await _update_state(
             redis,

@@ -30,9 +30,10 @@ function run(error: unknown) {
 beforeEach(() => mockToast.mockReset())
 
 describe('useDownloadErrorToast', () => {
-  it('surfaces the backend explanation when the quota is exceeded', () => {
+  it('shows an English quota explanation, not the backend Spanish message', () => {
     const config = run(apiError())
-    expect(config.description).toBe(apiError().message)
+    expect(config.description).toMatch(/download limit/i)
+    expect(config.description).not.toContain('Ya tienes')
   })
 
   it('reads a quota hit as a warning, not an error (it is a limit, not a failure)', () => {

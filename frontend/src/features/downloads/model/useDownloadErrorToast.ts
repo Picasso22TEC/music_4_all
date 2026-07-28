@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react'
 
-import { isApiError } from '@/shared/lib'
+import { friendlyErrorMessage, isApiError } from '@/shared/lib'
 import { useToast } from '@/shared/ui'
 
 /**
@@ -22,7 +22,8 @@ export function useDownloadErrorToast() {
       toast({
         variant: overQuota ? 'warning' : 'error',
         title: overQuota ? 'Download limit reached' : 'Could not start download',
-        description: isApiError(error) ? error.message : 'Please try again.',
+        // Copia en inglés por código (evita mostrar el mensaje del backend en español).
+        description: friendlyErrorMessage(error),
       })
     },
     [toast],
