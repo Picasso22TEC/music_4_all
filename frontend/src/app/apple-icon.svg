@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+  <!-- apple-touch-icon: cuadrado a sangre completa (iOS redondea las esquinas). -->
+  <rect width="180" height="180" fill="#0D1117"/>
+  <circle cx="90" cy="90" r="54" fill="none" stroke="#00E5BF" stroke-width="10"/>
+  <circle cx="90" cy="90" r="29" fill="none" stroke="#00C9A7" stroke-width="7" opacity="0.7"/>
+  <circle cx="90" cy="90" r="9" fill="#4DFFD9"/>
+</svg>

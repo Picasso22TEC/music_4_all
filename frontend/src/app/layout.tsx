@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { GeistMono } from 'geist/font/mono'
 import { Inter, Monoton, Permanent_Marker, VT323 } from 'next/font/google'
 
@@ -55,6 +55,18 @@ export const metadata: Metadata = {
   // No enviar Referer en peticiones de imágenes: CloudFront (CDN de Tidal)
   // devuelve 403 cuando recibe Referer: http://localhost:3000/
   referrer: 'no-referrer',
+  applicationName: 'Music 4 All',
+  // PWA en iOS: standalone al añadir a pantalla de inicio (iOS ignora el manifest).
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Music 4 All',
+  },
+}
+
+// themeColor va en `viewport` (Next 14): pinta la barra de estado en modo standalone.
+export const viewport: Viewport = {
+  themeColor: '#080B0F',
 }
 
 // ── Root Layout ───────────────────────────────────────────────────────────────

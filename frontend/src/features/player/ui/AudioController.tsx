@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 
 import { usePlayerStore } from '../model/player.store'
+import { useMediaSession } from '../lib/useMediaSession'
 
 /**
  * The single, session-wide <audio> element that actually plays audio.
@@ -22,6 +23,9 @@ export function AudioController() {
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const volume = usePlayerStore((s) => s.volume)
   const progressSeconds = usePlayerStore((s) => s.progressSeconds)
+
+  // Controles del SO / pantalla de bloqueo (metadatos + play/pause/prev/next).
+  useMediaSession()
 
   // ── Load a new source only when the track actually changes ──────────────────
   useEffect(() => {
