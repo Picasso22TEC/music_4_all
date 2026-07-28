@@ -3,6 +3,12 @@
 Estado de pendientes, deuda técnica, mejoras futuras y riesgos conocidos, basado en el estado real del repositorio.
 
 > **Última actualización: 2026-07-04** (saneamiento de repo). Varios ítems previos ya resueltos se corrigieron en esta pasada.
+>
+> **Nota (2026-07-28):** partes de la sección 1 están **desactualizadas** — `/library`,
+> `/settings` y `middleware.ts` ya NO son placeholders, están implementados y en uso. La
+> auditoría de confianza de producción y su plan de limpieza (de-mock, defaults de dev,
+> features a medias, gates de CI) viven ahora en **`docs/PRODUCTION_READINESS.md`**
+> (Fase 7 propuesta). Refrescar esta sección forma parte de esa fase (ítem G1).
 
 ---
 
