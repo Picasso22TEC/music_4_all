@@ -5,6 +5,7 @@ import { Inter, Monoton, Permanent_Marker, VT323 } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/providers/Providers'
 import { AuthTransitionOverlay } from '@/features/auth'
+import { ServiceWorkerRegistration } from './ServiceWorkerRegistration'
 
 // ── B-04: Tipografías del Design System (design-system §2.1) ─────────────────
 
@@ -90,6 +91,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               AnimatePresence sobre children ni keys dinamicas: el shell y el
               WebSocket singleton no se tocan. */}
           <AuthTransitionOverlay />
+          <ServiceWorkerRegistration />
         </Providers>
       </body>
     </html>
