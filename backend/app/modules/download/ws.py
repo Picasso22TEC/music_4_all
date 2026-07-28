@@ -18,6 +18,7 @@ import anyio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.config import settings
+from app.core import bans
 from app.core import redis_client as rc
 from app.core import user_session as us
 from app.core.tidal import TidalDownloader
@@ -111,6 +112,11 @@ async def websocket_downloads(websocket: WebSocket) -> None:
             await websocket.close(code=1008, reason="Unauthorized — session expired or missing")
             return
         uid = str(session_data["tidal_user_id"])
+        # Gate de ban: un usuario baneado no recibe progreso de descargas.
+        if await bans.is_banned(redis, uid):
+            await websocket.accept()
+            await websocket.close(code=1008, reason="Forbidden — account banned")
+            return
     else:
         # Fallback legacy: sin cookie, usar el estado del motor global.
         engine: TidalDownloader = websocket.app.state.engine  # type: ignore[attr-defined]

@@ -238,10 +238,16 @@ class TestUserIsolation:
         ps = _make_pubsub(messages)
         redis = _make_redis(ps)
         # get_app_session: redis.get(app:session:sid) → sesión válida del usuario `uid`.
+        # Mock consciente de la clave: la sesión solo responde a su propia clave; el
+        # resto (p.ej. el gate de ban, music4all:banned:*) devuelve None → no baneado.
         session_json = json.dumps(
             {"tidal_user_id": uid, "abs_exp": time.time() + 3600, "last_seen": time.time()}
         )
-        redis.get = AsyncMock(return_value=session_json)
+
+        async def _get(key: str) -> str | None:
+            return session_json if str(key).startswith("app:session:") else None
+
+        redis.get = AsyncMock(side_effect=_get)
         redis.setex = AsyncMock()
         app.state.engine = _make_engine(authenticated=True)
         app.state.redis = redis

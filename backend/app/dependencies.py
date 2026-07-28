@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from fastapi import Depends, Request
 
 from app.config import settings
+from app.core import bans
 from app.core import redis_client as rc
 from app.core import user_session as us
 from app.core.engine_registry import EngineRegistry
@@ -46,9 +47,27 @@ def _unauthorized() -> ApiException:
     )
 
 
+def _banned(ban: dict) -> ApiException:
+    reason = str(ban.get("reason") or "").strip()
+    message = "Tu cuenta ha sido suspendida."
+    if reason:
+        message = f"{message} Motivo: {reason}"
+    return ApiException(
+        code="ACCOUNT_BANNED",
+        message=message,
+        http_status=403,
+        retriable=False,
+    )
+
+
 # ── Identidad ────────────────────────────────────────────────────────────────
 async def get_current_user_optional(request: Request) -> CurrentUser | None:
-    """Resuelve la cookie ``m4a_sid`` → sesión de app → usuario. None si no hay sesión."""
+    """Resuelve la cookie ``m4a_sid`` → sesión de app → usuario. None si no hay sesión.
+
+    Si el usuario está **baneado** lanza 403 ``ACCOUNT_BANNED`` en vez de devolverlo:
+    este es el chokepoint autoritativo del ban (cubre todo endpoint autenticado y el
+    opcional), complementario a la revocación de sesiones que hace ``ban_user``.
+    """
     sid = request.cookies.get(settings.session_cookie_name)
     redis = getattr(request.app.state, "redis", None)
     if not sid or redis is None:
@@ -57,7 +76,11 @@ async def get_current_user_optional(request: Request) -> CurrentUser | None:
     data = await us.get_app_session(redis, sid, touch=touch)
     if not data:
         return None
-    user = CurrentUser(tidal_user_id=str(data["tidal_user_id"]), sid=sid)
+    uid = str(data["tidal_user_id"])
+    ban = await bans.get_ban(redis, uid)
+    if ban is not None:
+        raise _banned(ban)
+    user = CurrentUser(tidal_user_id=uid, sid=sid)
     # Lo lee `rate_limiter.user_or_ip_key` para aplicar el límite por usuario.
     request.state.current_user = user
     return user
@@ -101,6 +124,26 @@ async def get_authenticated_engine(
     if engine is None:
         raise _unauthorized()
     return engine
+
+
+# ── Administración (Fase 6) ──────────────────────────────────────────────────
+async def require_admin(
+    user: CurrentUser = Depends(get_current_user),
+) -> CurrentUser:
+    """Exige que el usuario actual sea administrador (``settings.admin_tidal_user_ids``).
+
+    403 si la sesión es válida pero el usuario no es admin. Con la lista vacía
+    (por defecto) **nadie** es admin, así que ``/admin/*`` queda cerrado hasta que
+    se configure ``ADMIN_TIDAL_USER_IDS`` en el entorno.
+    """
+    if user.tidal_user_id not in settings.admin_tidal_user_ids:
+        raise ApiException(
+            code="FORBIDDEN",
+            message="Se requieren permisos de administrador.",
+            http_status=403,
+            retriable=False,
+        )
+    return user
 
 
 # ── Propiedad de jobs (anti-IDOR) ────────────────────────────────────────────

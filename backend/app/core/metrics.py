@@ -58,6 +58,14 @@ auth_logins_total = Counter(
     ["status"],  # success | failure
 )
 
+# ── Anti-abuso / administración (Fase 6) ──────────────────────────────────────
+
+bans_total = Counter(
+    "music4all_bans_total",
+    "Acciones de ban/unban aplicadas a usuarios",
+    ["action"],  # ban | unban
+)
+
 # ── Caché de catálogo Tidal (Fase 4) ──────────────────────────────────────────
 # Protege el rate-limit del client_id compartido: las lecturas del catálogo
 # (búsqueda/metadata/detalle) son globales y se cachean. `result=hit` significa

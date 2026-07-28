@@ -49,6 +49,19 @@ class Settings(BaseSettings):
     max_downloads_per_day: int = 50
     max_concurrent_jobs_per_user: int = 3
 
+    # Administración / anti-abuso (Fase 6) — IDs de usuario Tidal con acceso a
+    # `/admin/*` (banear/desbanear, revisar strikes). Lista vacía = nadie es admin
+    # (todo `/admin/*` responde 403). En env, mismo formato que cors_origins:
+    # ADMIN_TIDAL_USER_IDS='["197033432"]'.
+    admin_tidal_user_ids: list[str] = []
+
+    # Detección de abuso (Fase 6, 6B) — se cuenta un "strike" cada vez que un usuario
+    # topa una cuota o es limitado por rate-limit. Al acumular strike_alert_threshold
+    # strikes dentro de la ventana se emite una alerta (log + métrica) para revisión
+    # manual; el ban sigue siendo decisión humana (no hay auto-ban). 0 = desactivado.
+    abuse_strike_window: int = 3600  # ventana deslizante (s) en la que se cuentan strikes
+    abuse_strike_alert_threshold: int = 20  # strikes en la ventana que disparan la alerta
+
     # PostgreSQL — SQLite solo en desarrollo local
     database_url: str = "sqlite+aiosqlite:///./dev.db"
 

@@ -9,6 +9,7 @@ import tidalapi
 from fastapi import Request, Response
 
 from app.config import settings
+from app.core import bans
 from app.core import user_session as us
 from app.core.exceptions import ApiException
 from app.core.logging_config import get_logger
@@ -200,6 +201,17 @@ class SessionService:
             # ── Sesión multiusuario: tokens cifrados por usuario + cookie de app ──
             redis = app_state.redis
             uid = us.user_id_from_session(session)
+            # Gate de ban en el propio login (esta ruta no pasa por get_current_user):
+            # un usuario baneado no obtiene cookie ni tokens nuevos.
+            if uid and await bans.is_banned(redis, uid):
+                del pending_v2[device_code]
+                app_state.pending_oauth = None
+                raise ApiException(
+                    "ACCOUNT_BANNED",
+                    "Tu cuenta ha sido suspendida y no puede iniciar sesión.",
+                    403,
+                    retriable=False,
+                )
             if uid:
                 token_data = us.token_data_from_session(session)
                 await us.store_user_tokens(redis, uid, "oauth", token_data)

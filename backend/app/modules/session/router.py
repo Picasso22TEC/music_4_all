@@ -68,6 +68,9 @@ async def poll_device_auth(
     """
     try:
         result = await _service.poll_device_auth(device_code, request, response)
+    except ApiException:
+        # Errores de dominio (p.ej. ACCOUNT_BANNED) conservan su código/estado.
+        raise
     except Exception as exc:
         raise ApiException("SERVER_ERROR", str(exc), 500, retriable=True) from exc
 

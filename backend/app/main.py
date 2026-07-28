@@ -27,13 +27,12 @@ from app.core.reconciliation import reconcile_stale_jobs
 from app.core.tidal import TidalDownloader
 from app.core.worker import start_worker
 
-# ── Legacy routers (compatibilidad) ───────────────────────────────────────────
+# ── Routers de módulos (la separación legacy/v2 se ve en los include_router) ──
+from app.modules.admin.router import router as admin_router
 from app.modules.auth.router import router as auth_router
 from app.modules.download.router import router as download_router
 from app.modules.download.ws import router as ws_router
 from app.modules.history.router import router as history_router
-
-# ── V2 routers (spec Technical Specification v1.0) ────────────────────────────
 from app.modules.jobs.router import router as jobs_router
 from app.modules.metadata.router import router as metadata_router
 from app.modules.search.router import router as search_router
@@ -213,6 +212,7 @@ app.include_router(history_router)
 app.include_router(search_router)
 app.include_router(jobs_router)
 app.include_router(session_router)
+app.include_router(admin_router)
 
 
 @app.get("/health", include_in_schema=False)
