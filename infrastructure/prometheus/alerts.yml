@@ -1,0 +1,71 @@
+# Reglas de alerta de Music 4 All (Fase 6 — hardening público).
+#
+# Cargar desde prometheus.yml con:
+#     rule_files:
+#       - /etc/prometheus/alerts.yml
+#
+# Los umbrales son un punto de partida conservador: ajústalos con tráfico real.
+# Todas las métricas referenciadas las expone el backend (app/core/metrics.py) en
+# /metrics. Sin Alertmanager configurado, estas alertas se ven igualmente en la UI
+# de Prometheus (Status -> Rules / Alerts) y en Grafana.
+
+groups:
+  - name: music4all_tidal_client_id
+    rules:
+      # 401 de Tidal sostenidos: la señal más grave para un despliegue público. El
+      # client_id compartido de terceros pudo ser REVOCADO (riesgo transversal del
+      # plan, no eliminable) → toda descarga fallaría. Requiere acción inmediata.
+      - alert: TidalClientIdPossiblyRevoked
+        expr: sum(rate(music4all_tidal_api_errors_total{kind="auth"}[5m])) > 0.2
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Posible revocación del client_id de Tidal (401 sostenidos)"
+          description: >
+            Se están recibiendo errores 401 de Tidal de forma sostenida. Si no es una
+            oleada de sesiones de usuario expiradas, el client_id compartido pudo haber
+            sido revocado por Tidal y ninguna descarga funcionará. Revisar de inmediato.
+
+      # 429 de Tidal: el circuit breaker se está abriendo. El client_id está bajo
+      # presión de rate-limit; la caché (Fase 4) debería absorber la mayoría.
+      - alert: TidalRateLimitSpike
+        expr: sum(rate(music4all_tidal_api_errors_total{kind="rate_limited"}[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pico de rate-limit (429) de Tidal"
+          description: >
+            Tidal está devolviendo 429 con frecuencia y el circuit breaker se abre.
+            Revisar la tasa de aciertos de caché (music4all_tidal_cache_total) y el
+            volumen de descargas; considerar endurecer cuotas.
+
+  - name: music4all_abuse
+    rules:
+      # Un usuario superó el umbral de strikes (cuota/rate-limit) en la ventana.
+      # No es auto-ban: es un aviso para revisar y, si procede, banear a mano.
+      - alert: AbuseAlertFiring
+        expr: increase(music4all_abuse_alerts_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Actividad de abuso detectada (revisar para ban manual)"
+          description: >
+            Al menos un usuario superó el umbral de strikes. Revisar
+            GET /admin/users/{id} para decidir un ban manual desde /admin/bans.
+
+      # Muchos rechazos de cuota: puede indicar abuso distribuido o cuotas mal
+      # dimensionadas para el tráfico real.
+      - alert: QuotaRejectionSpike
+        expr: sum(rate(music4all_quota_rejections_total[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pico de rechazos de cuota por usuario"
+          description: >
+            Se están rechazando muchas descargas por cuota. Revisar si es abuso o si
+            los límites (max_downloads_per_day / max_concurrent_jobs_per_user) están
+            mal dimensionados.

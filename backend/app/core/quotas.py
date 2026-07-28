@@ -28,6 +28,7 @@ from datetime import UTC, datetime
 from redis.asyncio import Redis
 
 from app.config import settings
+from app.core import abuse
 from app.core import redis_client as rc
 from app.core.exceptions import ApiException
 from app.core.metrics import quota_rejections_total
@@ -117,6 +118,7 @@ async def assert_within_quota(redis: Redis, uid: str) -> None:
         used = await daily_count(redis, uid)
         if used >= max_daily:
             quota_rejections_total.labels(quota="daily").inc()
+            await abuse.record_strike(redis, uid, kind="quota_daily")
             raise ApiException(
                 code="QUOTA_EXCEEDED",
                 message=(
@@ -132,6 +134,7 @@ async def assert_within_quota(redis: Redis, uid: str) -> None:
         running = len(await active_jobs(redis, uid))
         if running >= max_concurrent:
             quota_rejections_total.labels(quota="concurrent").inc()
+            await abuse.record_strike(redis, uid, kind="quota_concurrent")
             raise ApiException(
                 code="QUOTA_EXCEEDED",
                 message=(

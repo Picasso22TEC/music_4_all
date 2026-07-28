@@ -126,6 +126,10 @@ services:
       - "9090:9090"
     volumes:
       - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Reglas de alerta (Fase 6). Activas cuando prometheus.yml declara:
+      #   rule_files:
+      #     - /etc/prometheus/alerts.yml
+      - ./infrastructure/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml

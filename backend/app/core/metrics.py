@@ -66,6 +66,20 @@ bans_total = Counter(
     ["action"],  # ban | unban
 )
 
+# Un "strike" se registra cada vez que un usuario topa una cuota o es limitado por
+# rate-limit. Al acumular strikes suficientes en la ventana se emite una alerta
+# (music4all_abuse_alerts_total) para revisión manual — el ban sigue siendo humano.
+abuse_strikes_total = Counter(
+    "music4all_abuse_strikes_total",
+    "Infracciones de abuso registradas (cuota/rate-limit) por tipo",
+    ["kind"],  # quota_daily | quota_concurrent | rate_limit
+)
+
+abuse_alerts_total = Counter(
+    "music4all_abuse_alerts_total",
+    "Alertas de abuso emitidas (un usuario superó el umbral de strikes en la ventana)",
+)
+
 # ── Caché de catálogo Tidal (Fase 4) ──────────────────────────────────────────
 # Protege el rate-limit del client_id compartido: las lecturas del catálogo
 # (búsqueda/metadata/detalle) son globales y se cachean. `result=hit` significa

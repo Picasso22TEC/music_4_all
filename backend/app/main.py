@@ -16,7 +16,9 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
+from app.core import abuse
 from app.core import redis_client as rc
+from app.core import user_session as us
 from app.core.database import AsyncSessionLocal, engine
 from app.core.engine_registry import EngineRegistry
 from app.core.exceptions import ApiException
@@ -111,7 +113,34 @@ app = FastAPI(
 
 # ── Rate limiting ──────────────────────────────────────────────────────────────
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]  # slowapi handler signature compatible at runtime
+
+
+async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """Registra un strike de abuso para el usuario limitado y delega en slowapi.
+
+    Best-effort: cualquier fallo aquí no debe enmascarar el 429. El usuario puede no
+    estar resuelto en ``request.state`` (el límite por defecto salta en el middleware
+    antes de las dependencias), así que se intenta también por la cookie de sesión.
+    """
+    try:
+        redis = getattr(request.app.state, "redis", None)
+        if redis is not None:
+            user = getattr(request.state, "current_user", None)
+            uid = user.tidal_user_id if user is not None else None
+            if uid is None:
+                sid = request.cookies.get(settings.session_cookie_name)
+                if sid:
+                    data = await us.get_app_session(redis, sid, touch=False)
+                    if data:
+                        uid = str(data["tidal_user_id"])
+            if uid is not None:
+                await abuse.record_strike(redis, uid, kind="rate_limit")
+    except Exception:  # noqa: BLE001 — la telemetría de abuso nunca rompe la respuesta
+        pass
+    return _rate_limit_exceeded_handler(request, exc)
+
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)  # type: ignore[arg-type]  # slowapi handler signature compatible at runtime
 app.add_middleware(SlowAPIMiddleware)
 
 # ── Compresión de respuestas ───────────────────────────────────────────────────

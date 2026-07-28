@@ -10,7 +10,7 @@ from __future__ import annotations
 from redis.asyncio import Redis
 
 from app.config import settings
-from app.core import bans, quotas
+from app.core import abuse, bans, quotas
 from app.core import user_session as us
 from app.core.exceptions import ApiException
 
@@ -50,6 +50,9 @@ class AdminService:
 
     async def unban(self, redis: Redis, target_uid: str) -> UnbanResponse:
         unbanned = await bans.unban_user(redis, str(target_uid))
+        # Borrón y cuenta nueva: sin limpiar strikes, el usuario reingresaría con el
+        # contador lleno y volvería a disparar la alerta al primer límite.
+        await abuse.clear_strikes(redis, str(target_uid))
         return UnbanResponse(tidal_user_id=str(target_uid), unbanned=unbanned)
 
     async def user_info(self, redis: Redis, target_uid: str) -> AdminUserInfo:
@@ -66,9 +69,5 @@ class AdminService:
             active_sessions=len(sessions),
             daily_downloads=daily,
             concurrent_jobs=len(active),
-            strikes=await self._strike_count(redis, target_uid),
+            strikes=await abuse.strike_count(redis, target_uid),
         )
-
-    async def _strike_count(self, redis: Redis, uid: str) -> int:
-        """Strikes de abuso acumulados. Cableado en 6B (detección de abuso); 0 aquí."""
-        return 0
