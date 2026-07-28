@@ -61,6 +61,14 @@ music/
 # SQLite — bases de datos locales de desarrollo
 *.db
 *.sqlite3
+*.db.bak
+
+# Muestras de audio para analisis de espectrograma (Spek) — no versionar
+spek_samples/
+
+# Scripts de investigacion/verificacion locales (probes de calidad, PKCE, Android
+# Auto). Contienen client_ids/secrets publicos de Tidal hardcodeados → no versionar.
+backend/scripts/
 
 # Media
 *.mp3
