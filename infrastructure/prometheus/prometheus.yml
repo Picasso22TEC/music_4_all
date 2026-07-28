@@ -4,6 +4,10 @@ global:
   external_labels:
     project: music4all
 
+# Reglas de alerta (Fase 6). El archivo se monta en el contenedor vía docker-compose.
+rule_files:
+  - /etc/prometheus/alerts.yml
+
 scrape_configs:
   - job_name: music4all-backend
     static_configs:

@@ -74,9 +74,8 @@ MAX_CONCURRENT_JOBS_PER_USER=3     # jobs no terminales simultáneos
 
 ## 5. Alertas Prometheus
 
-Las reglas están en `infrastructure/prometheus/alerts.yml` (ya montado en el contenedor
-de Prometheus vía `docker-compose.yml`). **Para activarlas, declara el archivo en
-`infrastructure/prometheus/prometheus.yml`:**
+Las reglas están en `infrastructure/prometheus/alerts.yml`, montado en el contenedor de
+Prometheus vía `docker-compose.yml` y ya declarado en `prometheus.yml`:
 
 ```yaml
 rule_files:

@@ -1,8 +1,8 @@
 # Reglas de alerta de Music 4 All (Fase 6 — hardening público).
 #
-# Cargar desde prometheus.yml con:
-#     rule_files:
-#       - /etc/prometheus/alerts.yml
+# Ya declarado en prometheus.yml (rule_files) y montado en el contenedor vía
+# docker-compose. Recargar sin reiniciar: POST http://localhost:9090/-/reload
+# (--web.enable-lifecycle ya está activo) o `docker compose restart prometheus`.
 #
 # Los umbrales son un punto de partida conservador: ajústalos con tráfico real.
 # Todas las métricas referenciadas las expone el backend (app/core/metrics.py) en
