@@ -68,6 +68,20 @@ async def test_disconnect_removes_tokens(redis):
     assert (await svc.pkce_status(redis, "u1")).connected is False
 
 
+async def test_disconnect_invalidates_cached_pkce_engine(redis):
+    from unittest.mock import AsyncMock, MagicMock
+
+    svc = SessionService()
+    await us.store_user_tokens(redis, "u1", "pkce", {"access_token": "x"})
+    registry = MagicMock()
+    registry.invalidate = AsyncMock()
+
+    await svc.disconnect_pkce(redis, "u1", registry)
+
+    # El motor Hi-Fi cacheado se descarta para que no siga sirviendo 16-bit.
+    registry.invalidate.assert_awaited_once_with("u1", "pkce")
+
+
 # ── start ─────────────────────────────────────────────────────────────────────
 async def test_start_returns_url_and_stores_pending(redis, monkeypatch):
     monkeypatch.setattr(service_module.tidalapi, "Session", lambda: FakeTidalSession())

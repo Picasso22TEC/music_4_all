@@ -39,7 +39,8 @@ async def test_handle_job_uses_owner_engine_and_releases(registry, redis, monkey
     assert registry.acquire.await_args.args[1] == "u1"  # resuelve por user_id
     process.assert_awaited_once()
     assert process.await_args.args[1] is engine  # usa el motor del dueño
-    registry.release.assert_awaited_once_with("u1")
+    # Sin 'quality' → MASTER → motor device-flow (oauth).
+    registry.release.assert_awaited_once_with("u1", "oauth")
 
 
 async def test_handle_job_releases_quota_slot_when_done(registry, redis, monkeypatch):

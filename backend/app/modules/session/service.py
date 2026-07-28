@@ -307,8 +307,17 @@ class SessionService:
         tokens = await us.get_user_tokens(redis, uid, "pkce")
         return PkceStatusResponse(connected=tokens is not None)
 
-    async def disconnect_pkce(self, redis, uid: str) -> PkceStatusResponse:
+    async def disconnect_pkce(self, redis, uid: str, registry=None) -> PkceStatusResponse:
+        """Borra los tokens PKCE del usuario y descarta su motor Hi-Fi cacheado.
+
+        Sin invalidar el motor, un motor PKCE ya construido seguiría en memoria
+        (con sus tokens) hasta la evicción por TTL, permitiendo descargas 16-bit
+        tras la desconexión. `registry` es opcional para no acoplar la capa de
+        datos al registro en los tests.
+        """
         await us.delete_user_tokens(redis, uid, "pkce")
+        if registry is not None:
+            await registry.invalidate(uid, "pkce")
         return PkceStatusResponse(connected=False)
 
     # ── Logout + panel de sesiones ───────────────────────────────────────────

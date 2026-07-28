@@ -17,9 +17,10 @@ class FakeEngine:
 
     instances: list[FakeEngine] = []
 
-    def __init__(self, log_callback=None, session_data=None):
+    def __init__(self, log_callback=None, session_data=None, is_pkce=False):
         self.session_data = session_data or {}
         self.session = SimpleNamespace(access_token=self.session_data.get("access_token"))
+        self.is_pkce = is_pkce
         self.cleaned = False
         self._auth_ok = True
         self._refresh_to: str | None = None
@@ -98,11 +99,11 @@ async def test_idle_engine_evicted_and_cleaned(redis):
     reg = er.EngineRegistry(max_engines=50, idle_ttl=1800)
     old_engine = await reg.get(redis, "old")
     # Envejecer artificialmente la entrada "old".
-    reg._engines["old"].last_access = time.monotonic() - 10_000
+    reg._engines["oauth:old"].last_access = time.monotonic() - 10_000
     # Crear otro motor dispara la evicción por TTL.
     await reg.get(redis, "fresh")
-    assert "old" not in reg._engines
-    assert "fresh" in reg._engines
+    assert "oauth:old" not in reg._engines
+    assert "oauth:fresh" in reg._engines
     assert old_engine.cleaned is True
 
 
@@ -113,8 +114,8 @@ async def test_lru_cap_evicts_least_recently_used(redis):
     reg = er.EngineRegistry(max_engines=1, idle_ttl=1800)
     ea = await reg.get(redis, "a")
     await reg.get(redis, "b")
-    assert "a" not in reg._engines  # LRU evictado
-    assert "b" in reg._engines
+    assert "oauth:a" not in reg._engines  # LRU evictado
+    assert "oauth:b" in reg._engines
     assert ea.cleaned is True
 
 
@@ -126,7 +127,7 @@ async def test_pinned_engine_not_evicted(redis):
     pinned = await reg.acquire(redis, "pinned")  # refcount = 1
     assert pinned is not None
     await reg.get(redis, "other")  # sobre el tope, pero no puede evictar al fijado
-    assert "pinned" in reg._engines
+    assert "oauth:pinned" in reg._engines
     assert pinned.cleaned is False
 
 
@@ -134,9 +135,9 @@ async def test_release_unpins(redis):
     await _store(redis, "u")
     reg = er.EngineRegistry()
     await reg.acquire(redis, "u")
-    assert reg._engines["u"].refcount == 1
+    assert reg._engines["oauth:u"].refcount == 1
     await reg.release("u")
-    assert reg._engines["u"].refcount == 0
+    assert reg._engines["oauth:u"].refcount == 0
 
 
 async def test_cleanup_all_clears_everything(redis):
@@ -155,5 +156,34 @@ async def test_invalidate_removes_single_user(redis):
     reg = er.EngineRegistry()
     ez = await reg.get(redis, "z")
     await reg.invalidate("z")
-    assert "z" not in reg._engines
+    assert "oauth:z" not in reg._engines
     assert ez.cleaned is True
+
+
+# ── Segunda sesión PKCE (16-bit): convive con la oauth sin pisarse ────────────
+async def test_pkce_and_oauth_engines_coexist(redis):
+    await us.store_user_tokens(
+        redis, "dual", "oauth", {"access_token": "o", "refresh_token": "r", "token_type": "Bearer"}
+    )
+    await us.store_user_tokens(
+        redis, "dual", "pkce", {"access_token": "p", "refresh_token": "r", "token_type": "Bearer"}
+    )
+    reg = er.EngineRegistry()
+
+    e_oauth = await reg.get(redis, "dual", "oauth")
+    e_pkce = await reg.get(redis, "dual", "pkce")
+
+    assert e_oauth is not e_pkce  # motores distintos, cacheados por separado
+    assert e_oauth.is_pkce is False
+    assert e_pkce.is_pkce is True  # tidalapi refrescará con el cliente PKCE
+    assert "oauth:dual" in reg._engines
+    assert "pkce:dual" in reg._engines
+    assert reg.size() == 2
+
+
+async def test_pkce_engine_none_without_pkce_tokens(redis):
+    # Tiene sesión oauth pero no ha conectado la Hi-Fi: el motor pkce no existe.
+    await _store(redis, "only_oauth")
+    reg = er.EngineRegistry()
+    assert await reg.get(redis, "only_oauth", "pkce") is None
+    assert await reg.acquire(redis, "only_oauth", "pkce") is None

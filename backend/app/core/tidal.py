@@ -66,9 +66,14 @@ class TidalDownloader:
     FFMPEG_BIN = Path("ffmpeg.exe")  # Se ajustará automáticamente en __init__
     _temp_dir: Path | None
 
-    def __init__(self, log_callback=print, session_data: dict | None = None):
+    def __init__(self, log_callback=print, session_data: dict | None = None, is_pkce: bool = False):
         self.log = log_callback
         self.quality = Quality.hi_res_lossless
+        # is_pkce marca la sesión como PKCE (16-bit): tidalapi refresca el token con
+        # el cliente PKCE en vez del device-flow (ver Session.token_refresh). Sin esto,
+        # una sesión PKCE cargada desde tokens intentaría refrescar con el client_id
+        # equivocado y fallaría la autenticación al expirar.
+        self.is_pkce = is_pkce
         self.session = self._load_session(session_data)
         # Guards the (set session.audio_quality → get_stream) critical section.
         # The engine/session is a shared singleton used by concurrent worker
@@ -131,6 +136,7 @@ class TidalDownloader:
                     session_data["access_token"],
                     session_data["refresh_token"],
                     expiry,
+                    is_pkce=self.is_pkce,
                 )
             except Exception as e:
                 self.log(f"Error cargando sesión desde memoria: {str(e)}")

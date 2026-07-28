@@ -120,7 +120,9 @@ async def pkce_status(request: Request, user: CurrentUser = Depends(get_current_
 @limiter.limit("10/minute")
 async def disconnect_pkce(request: Request, user: CurrentUser = Depends(get_current_user)):
     """Desconecta la sesión Hi-Fi (16-bit) del usuario (borra sus tokens PKCE)."""
-    return await _service.disconnect_pkce(request.app.state.redis, user.tidal_user_id)
+    return await _service.disconnect_pkce(
+        request.app.state.redis, user.tidal_user_id, request.app.state.engine_registry
+    )
 
 
 @router.post("/keepalive", response_model=KeepaliveResponse)

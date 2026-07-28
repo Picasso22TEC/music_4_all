@@ -31,6 +31,7 @@ from app.core.metrics import (
     downloads_total,
     tracks_downloaded_total,
 )
+from app.core.quality import requires_pkce
 from app.core.tidal import TidalDownloader
 from app.modules.download.repository import DownloadRepository
 from app.modules.download.schemas import DownloadJobStatus
@@ -94,18 +95,30 @@ async def _handle_job(
     job_id = str(job.get("job_id", ""))
     user_id = job.get("user_id")
     title = job.get("title", "")
+    # El 16-bit LOSSLESS (HIGH) solo lo entrega la segunda sesión PKCE del usuario;
+    # el resto de calidades usan su motor device-flow por defecto (ver
+    # core/quality.requires_pkce y EngineRegistry).
+    engine_kind = "pkce" if requires_pkce(job.get("quality", "MASTER")) else "oauth"
     log = job_logger(__name__, job_id)
 
-    engine = await engine_registry.acquire(redis, str(user_id)) if user_id else None
+    engine = await engine_registry.acquire(redis, str(user_id), engine_kind) if user_id else None
     if engine is None:
-        log.warning("No Tidal engine for job — session missing/expired", extra={"user": user_id})
+        log.warning(
+            "No Tidal engine for job — session missing/expired",
+            extra={"user": user_id, "kind": engine_kind},
+        )
+        error = (
+            "Conecta tu sesión Hi-Fi (16-bit) en Ajustes para descargar en esta calidad."
+            if engine_kind == "pkce"
+            else "Sesión de Tidal no disponible. Vuelve a iniciar sesión."
+        )
         await _update_state(
             redis,
             job_id,
             title,
             DownloadJobStatus.FAILED,
             0.0,
-            error="Sesión de Tidal no disponible. Vuelve a iniciar sesión.",
+            error=error,
             user_id=user_id,
         )
         downloads_total.labels(status="failed").inc()
@@ -116,7 +129,7 @@ async def _handle_job(
     try:
         await _process_job(job, engine, redis, session_factory, job_controls, semaphore)
     finally:
-        await engine_registry.release(str(user_id))
+        await engine_registry.release(str(user_id), engine_kind)
         # El job ya está en estado terminal: libera su cupo de cuota. La
         # autolimpieza de `quotas` haría lo mismo; esto solo lo libera antes.
         await quotas.release_job(redis, str(user_id), job_id)

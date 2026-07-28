@@ -53,6 +53,18 @@ def is_lossless(api_quality: str | None) -> bool:
     return _normalize(api_quality) not in _LOSSY_QUALITIES
 
 
+def requires_pkce(api_quality: str | None) -> bool:
+    """``True`` si la calidad necesita la sesión PKCE (16-bit LOSSLESS).
+
+    El cliente device-flow (Automotive HiRes) entrega hi-res 24-bit pero devuelve
+    **AAC** para el tier ``HIGH`` (Tidal "LOSSLESS" 16-bit); solo el cliente PKCE
+    web entrega ese 16-bit real. Así, ``HIGH`` se enruta al motor PKCE del usuario
+    y el resto (MASTER/HIRES/NORMAL) al motor device-flow. Ver ``core/tidal.py`` y
+    ``EngineRegistry``.
+    """
+    return _normalize(api_quality) == "HIGH"
+
+
 def extension_for(api_quality: str | None) -> str:
     """Extensión de archivo destino: ``.flac`` para lossless, ``.m4a`` para lossy."""
     return ".flac" if is_lossless(api_quality) else ".m4a"
