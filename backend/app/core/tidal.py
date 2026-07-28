@@ -368,6 +368,22 @@ class TidalDownloader:
             return "MAX", f"{sample_rate / 1000:g}kHz / {bit_depth}bit"
         return "HIFI", f"{sample_rate / 1000:g}kHz / {bit_depth}bit"
 
+    def _format_quality_label(
+        self, final_path: Path, s_rate: int, s_bits: int, lossless: bool
+    ) -> str:
+        """Etiqueta de calidad legible a partir del audio ya en disco.
+
+        Es la etiqueta que se guarda en el historial. Se usa tanto tras descargar como
+        cuando el archivo ya existía: antes, ese segundo caso devolvía el literal
+        "EXISTE" y el historial mostraba "EXISTE" como si fuera un formato de audio.
+        """
+        if lossless:
+            label = f"{s_rate / 1000:g}kHz / {s_bits}bit"
+            if s_bits > 16 or s_rate > 44100:
+                label += " (Hi-Res)"
+            return label
+        return self._aac_quality_label(final_path)
+
     def _probe_quality_from_manifest(self, track_id: int) -> tuple[str, str]:
         try:
             track = self.session.track(track_id)  # type: ignore[arg-type]  # tidalapi stubs declare str but accepts int
@@ -805,7 +821,8 @@ class TidalDownloader:
                 if info is not None:
                     if progress_callback:
                         progress_callback(1.0)
-                    return (True, str(final_path), "EXISTE", info[0], info[1])
+                    label = self._format_quality_label(final_path, info[0], info[1], lossless)
+                    return (True, str(final_path), label, info[0], info[1])
 
             # Obtener álbum y portada
             album = self.session.album(track_obj.album.id)
@@ -866,13 +883,7 @@ class TidalDownloader:
 
             info = self._read_audio_info(final_path)
             s_rate, s_bits = info if info is not None else (44100, 16)
-
-            if lossless:
-                calidad_txt = f"{s_rate / 1000:g}kHz / {s_bits}bit"
-                if s_bits > 16 or s_rate > 44100:
-                    calidad_txt += " (Hi-Res)"
-            else:
-                calidad_txt = self._aac_quality_label(final_path)
+            calidad_txt = self._format_quality_label(final_path, s_rate, s_bits, lossless)
 
             track_meta.comment = f"Tidal Rip | {calidad_txt}"
 
