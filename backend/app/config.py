@@ -67,8 +67,21 @@ class Settings(BaseSettings):
     abuse_strike_window: int = 3600  # ventana deslizante (s) en la que se cuentan strikes
     abuse_strike_alert_threshold: int = 20  # strikes en la ventana que disparan la alerta
 
+    # Web Push (PWA P1-C) — VAPID. Vacías = push DESACTIVADO (la app funciona igual).
+    # VAPID_PUBLIC_KEY = applicationServerKey (base64url) que usa el navegador.
+    # VAPID_PRIVATE_KEY = base64url del DER PKCS8 (una línea). Generar ambas con el
+    # script de `.env.example`. vapid_subject debe ser un mailto: real en producción.
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@example.com"
+
     # PostgreSQL — SQLite solo en desarrollo local
     database_url: str = "sqlite+aiosqlite:///./dev.db"
+
+    @property
+    def push_enabled(self) -> bool:
+        """El push solo está activo si hay par de claves VAPID configurado."""
+        return bool(self.vapid_public_key and self.vapid_private_key)
 
     @property
     def is_production(self) -> bool:

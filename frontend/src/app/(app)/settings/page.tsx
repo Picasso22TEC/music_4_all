@@ -13,6 +13,7 @@ import {
   useLockedDownloadQualities,
   useLogoutMutation,
 } from '@/features/auth'
+import { PushNotificationsToggle } from '@/features/push'
 import { Button, Card, QualitySelector } from '@/shared/ui'
 import { cn } from '@/shared/lib/cn'
 
@@ -109,6 +110,9 @@ export default function SettingsPage() {
 
       {/* ── Sesiones activas (dispositivos) ──────────────────────────── */}
       <SessionsPanel />
+
+      {/* ── Notificaciones push "descarga lista" (PWA) ───────────────── */}
+      <PushNotificationsToggle />
 
       {/* ── Appearance ───────────────────────────────────────────────── */}
       <Card>

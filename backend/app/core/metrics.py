@@ -80,6 +80,14 @@ abuse_alerts_total = Counter(
     "Alertas de abuso emitidas (un usuario superó el umbral de strikes en la ventana)",
 )
 
+# ── Web Push (PWA P1-C) ───────────────────────────────────────────────────────
+
+push_notifications_total = Counter(
+    "music4all_push_notifications_total",
+    "Notificaciones Web Push intentadas por resultado",
+    ["result"],  # sent | expired (suscripción muerta, se purga) | error
+)
+
 # ── Caché de catálogo Tidal (Fase 4) ──────────────────────────────────────────
 # Protege el rate-limit del client_id compartido: las lecturas del catálogo
 # (búsqueda/metadata/detalle) son globales y se cachean. `result=hit` significa

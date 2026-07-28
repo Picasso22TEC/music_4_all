@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import settings
-from app.core import quotas
+from app.core import push, quotas
 from app.core import redis_client as rc
 from app.core.engine_registry import EngineRegistry
 from app.core.job_controls import JobControlRegistry
@@ -346,6 +346,13 @@ async def _process_job(
             100.0,
             file_path=file_path,
             user_id=user_id,
+        )
+        # PWA: avisar al dueño que su descarga está lista. Best-effort y
+        # feature-flagged (no-op si no hay claves VAPID); nunca rompe el job.
+        await push.notify_user(
+            redis,
+            user_id,
+            {"title": "Download ready", "body": title, "url": "/downloads", "tag": job_id},
         )
     else:
         downloads_total.labels(status="failed").inc()

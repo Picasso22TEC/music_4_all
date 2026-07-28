@@ -28,6 +28,7 @@ dependencies = [
     # Seguridad (Fase 7)
     "slowapi>=0.1.9",
     "cryptography>=49.0.0",
+    "pywebpush>=2.3.0",
 ]
 
 [dependency-groups]

@@ -37,6 +37,7 @@ from app.modules.download.ws import router as ws_router
 from app.modules.history.router import router as history_router
 from app.modules.jobs.router import router as jobs_router
 from app.modules.metadata.router import router as metadata_router
+from app.modules.push.router import router as push_router
 from app.modules.search.router import router as search_router
 from app.modules.session.router import router as session_router
 
@@ -253,6 +254,7 @@ app.include_router(search_router)
 app.include_router(jobs_router)
 app.include_router(session_router)
 app.include_router(admin_router)
+app.include_router(push_router)
 
 
 @app.get("/health", include_in_schema=False)
