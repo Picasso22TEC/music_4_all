@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
@@ -205,6 +206,18 @@ export function LoginForm() {
             </div>
           )}
 
+          {/* Cuenta suspendida: mensaje claro en vez de un fallo de login opaco. */}
+          {!error && !deviceAuth && endReason === 'banned' && (
+            <div
+              role="alert"
+              className="rounded-md border border-semantic-error bg-semantic-error/10 px-4 py-3"
+            >
+              <p className="font-sans text-sm text-semantic-error">
+                Your account has been suspended. If you believe this is a mistake, contact support.
+              </p>
+            </div>
+          )}
+
           {/* Error message — finite glitch/shake on appearance */}
           {error && (
             <motion.div
@@ -327,6 +340,24 @@ export function LoginForm() {
           </motion.div>
         </Card>
       </div>
+
+      {/* Aviso legal (web pública): al conectar aceptas los términos. Enlaces a las
+          páginas legales públicas (/legal/*), alcanzables sin sesión. */}
+      <p className="mt-8 max-w-md text-center font-sans text-2xs leading-relaxed text-secondary">
+        By connecting you agree to our{' '}
+        <Link href="/legal/terms" className="underline hover:text-teal-400">
+          Terms of Service
+        </Link>
+        ,{' '}
+        <Link href="/legal/copyright" className="underline hover:text-teal-400">
+          Copyright &amp; DMCA policy
+        </Link>{' '}
+        and{' '}
+        <Link href="/legal/disclaimer" className="underline hover:text-teal-400">
+          Disclaimer
+        </Link>
+        . Music 4 All is an unofficial tool and is not affiliated with Tidal.
+      </p>
     </motion.main>
   )
 }

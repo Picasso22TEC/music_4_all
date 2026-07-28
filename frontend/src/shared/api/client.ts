@@ -59,9 +59,9 @@ function parseApiError(data: unknown): ApiError | null {
  */
 let clearingRejectedSession = false
 
-async function clearRejectedSession() {
+async function clearRejectedSession(reason: 'rejected' | 'banned' = 'rejected') {
   const { useAuthStore } = await import('@/features/auth/model/auth.store')
-  useAuthStore.getState().setExpired('rejected')
+  useAuthStore.getState().setExpired(reason)
 
   if (clearingRejectedSession) return
   clearingRejectedSession = true
@@ -83,11 +83,14 @@ client.interceptors.response.use(
       const isAuthError =
         apiError.httpStatus === 401 ||
         (apiError.httpStatus === 403 && apiError.code === 'SESSION_EXPIRED')
+      // Cuenta baneada: el servidor ya revocó la sesión; se cierra en el cliente con
+      // un motivo propio para que el login explique la suspensión (no un 401 genérico).
+      const isBanned = apiError.httpStatus === 403 && apiError.code === 'ACCOUNT_BANNED'
 
       // Dynamic import avoids SSR issues with Zustand localStorage persist
       // El logout no debe bloquear la respuesta al llamante: se lanza en paralelo.
-      if (isAuthError && typeof window !== 'undefined') {
-        void clearRejectedSession()
+      if ((isAuthError || isBanned) && typeof window !== 'undefined') {
+        void clearRejectedSession(isBanned ? 'banned' : 'rejected')
       }
 
       return Promise.reject(apiError)

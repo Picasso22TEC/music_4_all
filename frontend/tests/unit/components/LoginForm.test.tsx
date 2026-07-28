@@ -76,6 +76,7 @@ function resetAuthStore() {
     status: 'unauthenticated',
     user: null,
     expiresAt: null,
+    endReason: null,
     deviceAuth: null,
     isCheckingSession: false,
     isRecoveryModalOpen: false,
@@ -233,6 +234,14 @@ describe('LoginForm', () => {
         screen.getByRole('alert')
       ).toHaveTextContent(/authorization code expired or denied/i)
       expect(useAuthStore.getState().deviceAuth).toBeNull()
+    })
+  })
+
+  describe('account suspended (banned)', () => {
+    it('shows a suspension message when the last session ended with reason "banned"', () => {
+      useAuthStore.setState({ endReason: 'banned' })
+      render(<LoginForm />)
+      expect(screen.getByRole('alert')).toHaveTextContent(/account has been suspended/i)
     })
   })
 

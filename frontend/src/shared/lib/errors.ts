@@ -6,6 +6,8 @@ export type ApiErrorCode =
   | 'RATE_LIMITED'
   // Cuota del usuario agotada (concurrentes o diaria) — 429 con mensaje explicativo.
   | 'QUOTA_EXCEEDED'
+  // Cuenta suspendida (ban) — 403 en todo endpoint autenticado y en el login.
+  | 'ACCOUNT_BANNED'
   | 'REGION_BLOCKED'
   | 'CONFLICT'
   | 'INVALID_TRANSITION'

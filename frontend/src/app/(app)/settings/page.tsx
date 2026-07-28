@@ -1,7 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { LogOut } from 'lucide-react'
+import Link from 'next/link'
+import { LogOut, FileText, Copyright, ShieldAlert } from 'lucide-react'
 
 import { useSettingsStore } from '@/features/settings'
 import {
@@ -138,6 +139,34 @@ export default function SettingsPage() {
               )}
             />
           </button>
+        </div>
+      </Card>
+
+      {/* ── Legal & about ────────────────────────────────────────────── */}
+      <Card>
+        <div className="flex flex-col gap-4">
+          <div>
+            <h2 className="font-sans text-base font-semibold text-primary">Legal &amp; about</h2>
+            <p className="mt-1 font-sans text-sm text-secondary">
+              Music 4 All is an unofficial tool and is not affiliated with Tidal.
+            </p>
+          </div>
+          <nav aria-label="Legal documents" className="flex flex-col divide-y divide-subtle">
+            {[
+              { href: '/legal/terms', label: 'Terms of Service', Icon: FileText },
+              { href: '/legal/copyright', label: 'Copyright & DMCA', Icon: Copyright },
+              { href: '/legal/disclaimer', label: 'Disclaimer', Icon: ShieldAlert },
+            ].map(({ href, label, Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-3 py-3 font-sans text-sm text-secondary hover:text-teal-400 focus-visible:outline-none focus-visible:shadow-glow-focus"
+              >
+                <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+                {label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </Card>
     </div>

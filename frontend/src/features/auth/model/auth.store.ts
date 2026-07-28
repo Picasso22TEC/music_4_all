@@ -8,9 +8,10 @@ type SessionStatus = 'authenticated' | 'expired' | 'unauthenticated'
 /**
  * Por qué se acabó la sesión, para poder decírselo al usuario.
  * 'idle' = se cerró por inactividad (useIdleTimeout); 'rejected' = el servidor la
- * rechazó (401) y el interceptor la dio por perdida.
+ * rechazó (401) y el interceptor la dio por perdida; 'banned' = la cuenta fue
+ * suspendida (403 ACCOUNT_BANNED).
  */
-export type SessionEndReason = 'idle' | 'rejected'
+export type SessionEndReason = 'idle' | 'rejected' | 'banned'
 
 interface AuthState {
   status: SessionStatus
